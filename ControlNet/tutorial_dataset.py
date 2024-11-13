@@ -4,14 +4,14 @@ import numpy as np
 
 from torch.utils.data import Dataset
 
-DATASET_NAME = "overfit-full-sized-images"
+TRAIN_PROP = 0.9
+BOOTSTRAP_FACTOR = 1
+DATASET_NAME = "bootstrapped-dataset-64x64"
 
 class MyDataset(Dataset):
-    def __init__(self):
-        self.data = []
-        with open(f'./training/{DATASET_NAME}/prompt.json', 'rt') as f:
-            for line in f:
-                self.data.append(json.loads(line))
+    def __init__(self, data):
+        # HACK: for bootstrapping dataset
+        self.data = data * BOOTSTRAP_FACTOR
 
     def __len__(self):
         return len(self.data)
@@ -37,4 +37,14 @@ class MyDataset(Dataset):
         target = (target.astype(np.float32) / 127.5) - 1.0
 
         return dict(jpg=target, txt=prompt, hint=source)
-
+    
+    @staticmethod
+    def get_train_val_datasets():
+        data = []
+        with open(f'./training/{DATASET_NAME}/prompt.json', 'rt') as f:
+            for line in f:
+                data.append(json.loads(line))
+        # randomly shuffle data
+        np.random.shuffle(data)
+        # split data into 90/10 train/val splits
+        return MyDataset(data[:int(len(data) * TRAIN_PROP)]), MyDataset(data[int(len(data) * TRAIN_PROP):])

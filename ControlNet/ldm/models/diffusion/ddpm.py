@@ -27,6 +27,10 @@ from ldm.models.autoencoder import IdentityFirstStage, AutoencoderKL
 from ldm.modules.diffusionmodules.util import make_beta_schedule, extract_into_tensor, noise_like
 from ldm.models.diffusion.ddim import DDIMSampler
 
+from cldm.logger import ScuffedLogger
+
+LOG_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/ControlNet/__runs__/initial_test/log.csv"
+
 
 __conditioning_keys__ = {'concat': 'c_concat',
                          'crossattn': 'c_crossattn',
@@ -581,6 +585,8 @@ class LatentDiffusion(DDPM):
             assert self.use_ema
             self.model_ema.reset_num_updates()
 
+        self.scuffed_logger = ScuffedLogger.get_instance(LOG_FP)
+
     def make_cond_schedule(self, ):
         self.cond_ids = torch.full(size=(self.num_timesteps,), fill_value=self.num_timesteps - 1, dtype=torch.long)
         ids = torch.round(torch.linspace(0, self.num_timesteps - 1, self.num_timesteps_cond)).long()
@@ -845,7 +851,13 @@ class LatentDiffusion(DDPM):
             if self.shorten_cond_schedule:  # TODO: drop this option
                 tc = self.cond_ids[t].to(self.device)
                 c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
-        return self.p_losses(x, c, t, *args, **kwargs)
+        
+        loss_tup = self.p_losses(x, c, t, *args, **kwargs)
+        loss = loss_tup[0].item()
+        
+        # log training loss @ current step
+        self.scuffed_logger.update_train_loss(loss)
+        return loss_tup
 
     def apply_model(self, x_noisy, t, cond, return_ids=False):
         if isinstance(cond, dict):
