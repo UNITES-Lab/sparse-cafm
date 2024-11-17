@@ -25,7 +25,7 @@ def generate_json(dataset_root):
         raise ValueError("The number of files in 'source' and 'target' directories does not match.")
     
     # Open the output file in write mode
-    output_file = os.path.join(dataset_root, 'dataset.json')
+    output_file = os.path.join(dataset_root, 'prompt.json')
     with open(output_file, 'w') as f:
         # Generate each JSON entry and write it as a new line
         for i, (source_file, target_file) in enumerate(zip(source_files, target_files)):

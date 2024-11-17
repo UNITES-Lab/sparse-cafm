@@ -5,14 +5,13 @@ import os
 from PIL import Image
 from glob import glob
 
-OUT_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/bootstrapped-dataset-4x4"
+OUT_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/bootstrapped-dataset-64x64"
 TARGET_IMG_SIDE_LEN = 512
-NUM_SLICES = 2
+NUM_SLICES = 8
 
 # 1. open image, subdivide into 64x64 squares
 # 2. upscale img_chunk -> (512, 512)
 # 3. save
-
 
 def bootstrap_img(fp):
     img = cv2.imread(fp)
@@ -41,7 +40,7 @@ def bootstrap_img(fp):
             idx += 1
 
 if __name__ == "__main__":
-    fp = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/full-sized-toy-dataset"
+    fp = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/full-sized-toy-dataset-cropped"
     imgs = glob(os.path.join(fp, "*", "*.png"))
     for img_fp in imgs:
         bootstrap_img(img_fp)

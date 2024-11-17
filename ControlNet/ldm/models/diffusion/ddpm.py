@@ -854,9 +854,10 @@ class LatentDiffusion(DDPM):
         
         loss_tup = self.p_losses(x, c, t, *args, **kwargs)
         loss = loss_tup[0].item()
+        loss_dict = loss_tup[1]
         
         # log training loss @ current step
-        self.scuffed_logger.update_train_loss(loss)
+        self.scuffed_logger.update_losess(loss, loss_dict)
         return loss_tup
 
     def apply_model(self, x_noisy, t, cond, return_ids=False):

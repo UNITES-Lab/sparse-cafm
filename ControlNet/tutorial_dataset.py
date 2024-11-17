@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 TRAIN_PROP = 0.9
 BOOTSTRAP_FACTOR = 1
-DATASET_NAME = "bootstrapped-dataset-64x64"
+DATASET_NAME = "bs-ds-crop-64x64"
 
 class MyDataset(Dataset):
     def __init__(self, data):
