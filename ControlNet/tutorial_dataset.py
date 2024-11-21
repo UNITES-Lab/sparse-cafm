@@ -1,4 +1,5 @@
 import json
+import os
 import cv2
 import numpy as np
 
@@ -8,10 +9,12 @@ TRAIN_PROP = 0.9
 BOOTSTRAP_FACTOR = 1
 DATASET_NAME = "bs-ds-crop-64x64"
 
+
 class MyDataset(Dataset):
-    def __init__(self, data):
+    def __init__(self, data, dataset_name: str):
         # HACK: for bootstrapping dataset
         self.data = data * BOOTSTRAP_FACTOR
+        self.dataset_name = dataset_name
 
     def __len__(self):
         return len(self.data)
@@ -19,12 +22,12 @@ class MyDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
 
-        source_filename = item['source']
-        target_filename = item['target']
-        prompt = item['prompt']
+        source_filename = item["source"]
+        target_filename = item["target"]
+        prompt = item["prompt"]
 
-        source = cv2.imread(f'./training/{DATASET_NAME}/' + source_filename)
-        target = cv2.imread(f'./training/{DATASET_NAME}/' + target_filename)
+        source = cv2.imread(f"./training/{self.dataset_name}/" + source_filename)
+        target = cv2.imread(f"./training/{self.dataset_name}/" + target_filename)
 
         # Do not forget that OpenCV read images in BGR order.
         source = cv2.cvtColor(source, cv2.COLOR_BGR2RGB)
@@ -37,14 +40,22 @@ class MyDataset(Dataset):
         target = (target.astype(np.float32) / 127.5) - 1.0
 
         return dict(jpg=target, txt=prompt, hint=source)
-    
+
     @staticmethod
-    def get_train_val_datasets():
+    def get_train_val_datasets(dataset_name: str):
+
         data = []
-        with open(f'./training/{DATASET_NAME}/prompt.json', 'rt') as f:
+        dataset_path = f"./training/{dataset_name}"
+        assert os.path.isdir(dataset_path), f"Dataset {dataset_path} does not exist"
+
+        with open(f"./training/{dataset_name}/prompt.json", "rt") as f:
             for line in f:
                 data.append(json.loads(line))
+
         # randomly shuffle data
         np.random.shuffle(data)
+
         # split data into 90/10 train/val splits
-        return MyDataset(data[:int(len(data) * TRAIN_PROP)]), MyDataset(data[int(len(data) * TRAIN_PROP):])
+        return MyDataset(data[: int(len(data) * TRAIN_PROP)], dataset_name), MyDataset(
+            data[int(len(data) * TRAIN_PROP) :], dataset_name
+        )

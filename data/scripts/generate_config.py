@@ -2,15 +2,6 @@ import os
 import json
 import argparse
 
-# Example prompts list
-prompts = [
-    "pale golden rod circle with old lace background",
-    "light coral circle with white background",
-    "aqua circle with light pink background",
-    "cornflower blue circle with light golden rod yellow background",
-    "light slate gray circle with blue background"
-]
-
 def generate_json(dataset_root):
     # Define paths to source and target folders
     source_dir = os.path.join(dataset_root, 'source')
@@ -31,9 +22,6 @@ def generate_json(dataset_root):
         for i, (source_file, target_file) in enumerate(zip(source_files, target_files)):
             if source_file != target_file:
                 raise ValueError(f"File names do not match: {source_file} and {target_file}")
-            
-            # Get the prompt, cycling through the prompts if we have fewer prompts than files
-            prompt = prompts[i % len(prompts)]
             
             # Create entry in specified format
             entry = {

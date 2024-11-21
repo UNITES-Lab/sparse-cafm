@@ -29,8 +29,6 @@ from ldm.models.diffusion.ddim import DDIMSampler
 
 from cldm.logger import ScuffedLogger
 
-LOG_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/ControlNet/__runs__/initial_test/log.csv"
-
 
 __conditioning_keys__ = {'concat': 'c_concat',
                          'crossattn': 'c_crossattn',
@@ -585,7 +583,7 @@ class LatentDiffusion(DDPM):
             assert self.use_ema
             self.model_ema.reset_num_updates()
 
-        self.scuffed_logger = ScuffedLogger.get_instance(LOG_FP)
+        self.scuffed_logger = ScuffedLogger.get_instance()
 
     def make_cond_schedule(self, ):
         self.cond_ids = torch.full(size=(self.num_timesteps,), fill_value=self.num_timesteps - 1, dtype=torch.long)

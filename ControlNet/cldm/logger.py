@@ -5,19 +5,24 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision
-from typing import List, Dict
 
+from typing import List, Dict, Optional
+from cldm.metrics import calc_psnr
 from cv2 import log
 from PIL import Image
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
-LOG_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/ControlNet/__runs__/11-17-24-64x64-crop/log.csv"
 
 # TODO: create a custom callback
 # 1. MSE train loss @ each step
 # 2. MSE (i.e., pixel-loss) validation loss @ each epoch
 # 3. PSNR @ each epoch
+
+# TODO: implement
+class Logger:
+    def __init__(self) -> None:
+        pass
 
 class ScuffedLogger:
     """
@@ -28,15 +33,18 @@ class ScuffedLogger:
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
-            # Create and remember the instance
             cls._instance = super(ScuffedLogger, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, log_out_path: str) -> None:
+    def __init__(self, log_out_path: Optional[str] = None) -> None:
         if hasattr(self, 'initialized') and self.initialized:
             return
 
-        self.csv_out_path = log_out_path
+        if log_out_path is not None:
+            self.csv_out_path = log_out_path
+        else:
+            self.csv_out_path = "log.csv"
+        
         self.HEADERS = ['Step', 'Epoch', 'Train Loss', 'Val Loss', 'Val MSE', 'Val PSNR']
 
         self.steps: List[int] = []
@@ -55,14 +63,14 @@ class ScuffedLogger:
         self.initialized = True
 
     @classmethod
-    def get_instance(cls, log_out_path: str):
+    def get_instance(cls):
         """
         Returns the singleton instance of ScuffedLogger.
         If the instance doesn't exist, it creates one with the given log_out_path.
         Subsequent calls ignore the log_out_path parameter.
         """
         if cls._instance is None:
-            cls._instance = cls(log_out_path)
+            cls._instance = cls()
         return cls._instance
 
     def update_reconstruction_error(self, mse: float, psnr: float):
@@ -96,6 +104,9 @@ class ScuffedLogger:
             writer = csv.writer(f)
             writer.writerow(self.HEADERS)
             writer.writerows(zip(self.steps, self.epochs, self.train_losses, self.val_losses, self.val_mse, self.val_psnr))
+            
+    def set_csv_path(self, path: str):
+        self.csv_out_path = path
 
 class ImageLogger(Callback):
     def __init__(self, batch_frequency=2000, max_images=4, clamp=True, increase_log_steps=True,
@@ -112,7 +123,9 @@ class ImageLogger(Callback):
         self.log_on_batch_idx = log_on_batch_idx
         self.log_images_kwargs = log_images_kwargs if log_images_kwargs else {}
         self.log_first_step = log_first_step
-        self.scuffed_logger = ScuffedLogger.get_instance(LOG_FP)
+        
+        # image logger now has an instance of ScuffedLogger
+        self.scuffed_logger = ScuffedLogger.get_instance()
 
     @rank_zero_only
     def log_local(self, save_dir, split, images, global_step, current_epoch, batch_idx):
@@ -132,38 +145,15 @@ class ImageLogger(Callback):
             
         # (B, C, H, W ) -> (3, 512, 512)
         # HACK: we assume a BS of 1 for logging
-        input: torch.Tensor = images['conditioning'].squeeze(0)
-        target: torch.Tensor = images['reconstruction'].squeeze(0)
-        mse = F.mse_loss(input, target).item()
-        psnr = ImageLogger.calculate_psnr(input, target)
+       
+        pred: torch.Tensor = images['samples_cfg_scale_9.00'].squeeze(0).detach().cpu()
+        target: torch.Tensor = images['reconstruction'].squeeze(0).detach().cpu()
+        
+        mse = F.mse_loss(pred, target).item()
+        psnr = calc_psnr(pred, target)
+        
         self.scuffed_logger.update_reconstruction_error(mse, psnr)
         
-    @staticmethod
-    def calculate_psnr(input_tensor: torch.Tensor, target_tensor: torch.Tensor, max_pixel_value: float = 1.0) -> float:
-        """
-        Calculate the Peak Signal-to-Noise Ratio (PSNR) between two images.
-
-        Args:
-            input_tensor (torch.Tensor): The reconstructed or processed image tensor. Shape: (C, H, W)
-            target_tensor (torch.Tensor): The original image tensor. Shape: (C, H, W)
-            max_pixel_value (float, optional): The maximum possible pixel value of the images. Defaults to 1.0.
-
-        Returns:
-            float: The PSNR value in decibels (dB).
-        """
-        # Ensure input and target have the same shape
-        if input_tensor.shape != target_tensor.shape:
-            raise ValueError(f"Input tensor shape {input_tensor.shape} does not match target tensor shape {target_tensor.shape}.")
-
-        # Compute MSE
-        mse = F.mse_loss(input_tensor, target_tensor)
-
-        if mse == 0:
-            return float('inf')  # PSNR is infinite if MSE is zero (identical images)
-
-        psnr = 10 * math.log10((max_pixel_value ** 2) / mse.item())
-        return psnr
-
     def log_img(self, pl_module, batch, batch_idx, split="train"):
         check_idx = batch_idx  # if self.log_on_batch_idx else pl_module.global_step
         if (self.check_frequency(check_idx) and  # batch_idx % self.batch_freq == 0
@@ -187,7 +177,14 @@ class ImageLogger(Callback):
                     if self.clamp:
                         images[k] = torch.clamp(images[k], -1., 1.)
 
-            self.log_local(pl_module.logger.save_dir, split, images,
+            # modify the sample img output dir
+            img_out_dir = os.path.join(os.path.dirname(self.scuffed_logger.csv_out_path), "samples")
+            os.makedirs(img_out_dir, exist_ok=True)
+            
+            # self.log_local(pl_module.logger.save_dir, split, images,
+            #                pl_module.global_step, pl_module.current_epoch, batch_idx)
+            
+            self.log_local(img_out_dir, split, images,
                            pl_module.global_step, pl_module.current_epoch, batch_idx)
 
             if is_train:

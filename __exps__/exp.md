@@ -1,0 +1,1 @@
+This directory will contain all experimental results, regardless of model variant, organized by some standard format.

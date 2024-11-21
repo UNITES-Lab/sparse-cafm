@@ -4,19 +4,21 @@ import os
 
 from PIL import Image
 from glob import glob
+from generate_config import generate_json
 
-OUT_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/bootstrapped-dataset-64x64"
+ROOT = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data"
+SRC_DIR = f"{ROOT}/full-sized-c-asm-data"
 TARGET_IMG_SIDE_LEN = 512
 NUM_SLICES = 8
+IMG_EXT = "tiff"
 
 # 1. open image, subdivide into 64x64 squares
 # 2. upscale img_chunk -> (512, 512)
 # 3. save
 
-def bootstrap_img(fp):
+def bootstrap_img(fp, dst_folder):
     img = cv2.imread(fp)
     img_name = os.path.basename(fp)
-    dst_folder = OUT_DIR
     if "target" in fp:
         dst_subdir = "target"
     else:
@@ -38,9 +40,15 @@ def bootstrap_img(fp):
             )
             img_seg.save(dst_fp)
             idx += 1
+            
+def main():
+    fp = SRC_DIR
+    imgs = glob(os.path.join(fp, "*", f"*{IMG_EXT}"))
+    dst_folder = f"{ROOT}/bs-ds-{NUM_SLICES**2}x{NUM_SLICES**2}"
+    os.makedirs(dst_folder, exist_ok=True)
+    for img_fp in imgs:
+        bootstrap_img(img_fp, dst_folder)
+    generate_json(dst_folder)
 
 if __name__ == "__main__":
-    fp = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/full-sized-toy-dataset-cropped"
-    imgs = glob(os.path.join(fp, "*", "*.png"))
-    for img_fp in imgs:
-        bootstrap_img(img_fp)
+    main()
