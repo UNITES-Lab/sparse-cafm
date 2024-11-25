@@ -8,7 +8,7 @@ from generate_config import generate_json
 
 ROOT = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data"
 SRC_DIR = f"{ROOT}/full-sized-c-asm-data"
-TARGET_IMG_SIDE_LEN = 512
+TARGET_IMG_SIDE_LEN = 256
 NUM_SLICES = 8
 IMG_EXT = "tiff"
 

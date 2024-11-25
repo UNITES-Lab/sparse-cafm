@@ -146,8 +146,6 @@ class ImageLogger(Callback):
         input: torch.Tensor = images['conditioning'].squeeze(0).detach().cpu()
         target: torch.Tensor = images['reconstruction'].squeeze(0).detach().cpu()
         
-        breakpoint()
-        
         mse = F.mse_loss(input, target).item()
         psnr = calc_psnr(input, target)
         
