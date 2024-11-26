@@ -6,9 +6,9 @@ training:
   batch_size: 4
   steps_per_epoch: 100
   epochs: 10
-  optimizer: Adam
+  loss: MSELoss
   lr: 1e-4
-  loss: MSE
+  optimizer: Adam
 
 validation:
   batch_size: 32
@@ -16,6 +16,9 @@ validation:
   loss: MSE
 
 dataset:
-  name: Sapphire
+  name: SapphireDataset
   image_size: 256
   crop_size: 64
+
+logging:
+  result_columns:  ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss"]

@@ -55,8 +55,8 @@ class ExperimentLogger:
         self.config_fp = config_save_fp
 
         # path to results csv file
-        self.results_out_path = os.path.join(exp_out_dir, "results.csv")
 
+        self.results_out_path = os.path.join(exp_out_dir, "results.csv")
     def add_result_column(self, name: str):
         self.results[name] = None
         self._update_csv()

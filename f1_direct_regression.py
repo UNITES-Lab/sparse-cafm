@@ -1,13 +1,14 @@
-from calendar import c
-from math import e
 import yaml
 import torch
 import torch.nn as nn
 
+from calendar import c
+from math import e
 from tqdm import tqdm
+from torch.utils.data import DataLoader
 from util.logger import ExperimentLogger
 from datasets.sapphire import SapphireDataset
-from torch.utils.data import DataLoader
+from util.config import LOSS_FUNCTIONS, OPTIMIZERS
 
 CONFIG_FP = (
     "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/config.yaml"
@@ -37,9 +38,7 @@ def main():
 
     config = parse_config(CONFIG_FP)
     logger = ExperimentLogger(config_fp=CONFIG_FP, exp_name="f1_direct_regression")
-    logger.add_result_columns(
-        ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss"]
-    )
+    logger.add_result_columns(config["logging"]["result_columns"])
 
     # create model + change classification head
     model = torch.hub.load("pytorch/vision:v0.10.0", "resnet152", pretrained=True)
@@ -62,9 +61,9 @@ def main():
         val_dataset, batch_size=config["validation"]["batch_size"], shuffle=False
     )
 
-    # Define the loss function and optimizer
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=float(config["training"]["lr"]))
+    # define loss function and optimizer
+    criterion = LOSS_FUNCTIONS[config["training"]["loss"]]()
+    optimizer = OPTIMIZERS[config["training"]["optimizer"]](model.parameters(), lr=float(config["training"]["lr"]))
 
     num_epochs = config["training"]["epochs"]
     device = 4

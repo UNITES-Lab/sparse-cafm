@@ -58,8 +58,8 @@ class SapphireDataset(Dataset):
 
         _current_fps = glob(f"{SRC_DIR}/*/*Current*{EXT}")
         _topo_fps = glob(f"{SRC_DIR}/*/*Topo*{EXT}")
+        
         # load all images
-
         all_current_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in _current_fps]
         all_topo_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in _topo_fps]
         self.current_maps = [
@@ -112,7 +112,7 @@ class SapphireDataset(Dataset):
         # raw (H, W) current map
         y = self.current_maps[sample_idx]
         y_unnormalized: np.ndarray = self._raw_current_maps[sample_idx]
-        
+
         # z: #  pixels < self.epsilon divided by total # pixels
         z = (y_unnormalized.flatten() < self.epsilon).sum() / (
             y_unnormalized.shape[0] * y_unnormalized.shape[1]
