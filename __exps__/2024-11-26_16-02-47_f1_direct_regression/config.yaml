@@ -1,0 +1,21 @@
+model:
+  variant: ResNet152
+  pretrained: True
+
+training:
+  batch_size: 4
+  steps_per_epoch: 100
+  epochs: 10
+  optimizer: Adam
+  lr: 1e-4
+  loss: MSE
+
+validation:
+  batch_size: 32
+  steps_per_epoch: 100
+  loss: MSE
+
+dataset:
+  name: Sapphire
+  image_size: 256
+  crop_size: 64
