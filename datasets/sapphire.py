@@ -34,36 +34,38 @@ class SapphireDataset(Dataset):
         self.current_maps: tuple = None
         self.topo_maps: tuple = None
         self._load_imgs()
-        
-        self.z: Optional[float] = None
-        self._calculate_z()
 
-    def _calculate_z(self):
-        _current_fps = glob(f"{SRC_DIR}/*/*Current*.npy")
+        # threshold representing bottom 10th percentile of current values
+        self.epsilon: Optional[float] = None
+        self._calculate_epsilon()
+
+    def _calculate_epsilon(self):
         all_current_readings = []
         # for all files in sample_fps
         # open data with shape 512, 512
         # append all values to all_current_readings
-        for fp in _current_fps:
+        for fp in self._raw_current_fps:
             data = np.load(fp)
             all_current_readings.append(data)
         # reshape into 1d vector
         all_current_readings = np.array(all_current_readings).reshape(-1)
         # calculate the bottom 10th percentile
-        self.z = np.percentile(all_current_readings, 10)
+        self.epsilon = np.percentile(all_current_readings, 10)
 
     def _load_imgs(self) -> None:
+        self._raw_current_fps = glob(f"{SRC_DIR}/*/*Current*.npy")
+        self._raw_current_maps = [np.load(fp) for fp in self._raw_current_fps]
+
         _current_fps = glob(f"{SRC_DIR}/*/*Current*{EXT}")
         _topo_fps = glob(f"{SRC_DIR}/*/*Topo*{EXT}")
         # load all images
-        all_current_imgs = [
-            cv2.imread(path, cv2.IMREAD_COLOR) for path in _current_fps
-        ]
+
+        all_current_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in _current_fps]
         all_topo_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in _topo_fps]
-        # convert all imgs to tensors
         self.current_maps = [
             cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_current_imgs
         ]
+        # convert all topo maps to img tensors
         self.topo_maps = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_topo_imgs]
 
     def _create_augmentation_pipeline(self):
@@ -107,7 +109,16 @@ class SapphireDataset(Dataset):
             raise Exception(f"Invalid split: {self.split}")
 
         X = self.topo_maps[sample_idx]
+        # raw (H, W) current map
+
         y = self.current_maps[sample_idx]
+        y_unnormalized: np.ndarray = self._raw_current_maps[sample_idx]
+        # z: #  pixels < self.epsilon divided by total # pixels
+        z = (y_unnormalized.flatten() < self.epsilon).sum() / (
+            y_unnormalized.shape[0] * y_unnormalized.shape[1]
+        )
+        # z should always be in range: [0, 1]
+        assert z >= 0.0 and z <= 1.0
 
         # apply augmentations
         # convert -> tensor
@@ -117,5 +128,6 @@ class SapphireDataset(Dataset):
         return {
             "X": X,
             "y": y,
-            "z": self.z,
+            "z": z,
+            "epsilon": self.epsilon,
         }
