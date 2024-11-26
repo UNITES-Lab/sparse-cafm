@@ -5,6 +5,9 @@
 **.tif
 **.bmp
 
+SwinIR
+SwinIR/**
+
 __repos__
 __repos__/**
 __old__

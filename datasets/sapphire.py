@@ -10,7 +10,7 @@ from glob import glob
 
 ORIGINAL_IMAGE_SIZE = (256, 256)
 SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/11-19-24/2. MoS2 on Sapphire"
-EXT = ".tff"
+EXT = "tiff"
 
 
 class SapphireDataset(Dataset):
@@ -31,39 +31,40 @@ class SapphireDataset(Dataset):
         self.augmentation_pipeline = self._create_augmentation_pipeline()
 
         # (B, C, H, W)
-        self.current_maps: Optional[List[np.ndarray]] = None
-        self.topo_maps = Optional[List[np.ndarray]] = None
+        self.current_maps: tuple = None
+        self.topo_maps: tuple = None
         self._load_imgs()
+        
+        self.z: Optional[float] = None
+        self._calculate_z()
+
+    def _calculate_z(self):
+        _current_fps = glob(f"{SRC_DIR}/*/*Current*.npy")
+        all_current_readings = []
+        # for all files in sample_fps
+        # open data with shape 512, 512
+        # append all values to all_current_readings
+        for fp in _current_fps:
+            data = np.load(fp)
+            all_current_readings.append(data)
+        # reshape into 1d vector
+        all_current_readings = np.array(all_current_readings).reshape(-1)
+        # calculate the bottom 10th percentile
+        self.z = np.percentile(all_current_readings, 10)
 
     def _load_imgs(self) -> None:
-        all_current_paths = glob(f"{SRC_DIR}/*/*Current*{EXT}")
-        all_topo_paths = glob(f"{SRC_DIR}/*/*Current*{EXT}")
-
-        # HACK: hard-code a 4/1 split for train/val sets
-        if self.split == "train":
-            all_current_paths = all_current_paths[:-1]
-            all_topo_paths = all_topo_paths[:-1]
-        elif self.split == "val":
-            all_current_paths = [all_current_paths[-1]]
-            all_topo_paths = [all_topo_paths[-1]]
-        else:
-            raise Exception(f"Invalid split: {self.split}")
-
+        _current_fps = glob(f"{SRC_DIR}/*/*Current*{EXT}")
+        _topo_fps = glob(f"{SRC_DIR}/*/*Topo*{EXT}")
         # load all images
         all_current_imgs = [
-            cv2.imread(path, cv2.IMREAD_COLOR) for path in all_current_paths
+            cv2.imread(path, cv2.IMREAD_COLOR) for path in _current_fps
         ]
-        all_topo_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in all_topo_paths]
-
+        all_topo_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in _topo_fps]
         # convert all imgs to tensors
         self.current_maps = [
-            cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            for img in all_current_imgs
+            cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_current_imgs
         ]
-        self.topo_maps = [
-            cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            for img in all_topo_imgs
-        ]
+        self.topo_maps = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_topo_imgs]
 
     def _create_augmentation_pipeline(self):
         # NOTE: we always take a random crop
@@ -104,13 +105,17 @@ class SapphireDataset(Dataset):
             sample_idx = len(self.current_maps) - 1
         else:
             raise Exception(f"Invalid split: {self.split}")
-        
+
         X = self.topo_maps[sample_idx]
         y = self.current_maps[sample_idx]
-        
+
         # apply augmentations
         # convert -> tensor
         augmented = self.augmentation_pipeline(image=X, mask=y)
-        X = torch.tensor(augmented['image']).permute(2, 0, 1).float().to(self.device)
-        y = torch.tensor(augmented['mask']).permute(2, 0, 1).float().to(self.device)
-        return
+        X = torch.tensor(augmented["image"]).permute(2, 0, 1).float().to(self.device)
+        y = torch.tensor(augmented["mask"]).permute(2, 0, 1).float().to(self.device)
+        return {
+            "X": X,
+            "y": y,
+            "z": self.z,
+        }
