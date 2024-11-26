@@ -110,24 +110,25 @@ class SapphireDataset(Dataset):
 
         X = self.topo_maps[sample_idx]
         # raw (H, W) current map
-
         y = self.current_maps[sample_idx]
         y_unnormalized: np.ndarray = self._raw_current_maps[sample_idx]
+        
         # z: #  pixels < self.epsilon divided by total # pixels
         z = (y_unnormalized.flatten() < self.epsilon).sum() / (
             y_unnormalized.shape[0] * y_unnormalized.shape[1]
         )
+        z = torch.tensor(z).float()
         # z should always be in range: [0, 1]
         assert z >= 0.0 and z <= 1.0
 
         # apply augmentations
         # convert -> tensor
         augmented = self.augmentation_pipeline(image=X, mask=y)
-        X = torch.tensor(augmented["image"]).permute(2, 0, 1).float().to(self.device)
-        y = torch.tensor(augmented["mask"]).permute(2, 0, 1).float().to(self.device)
+        X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
+        y = torch.tensor(augmented["mask"]).permute(2, 0, 1).float()
         return {
-            "X": X,
-            "y": y,
+            "X": X.float(),
+            "y": y.float(),
             "z": z,
             "epsilon": self.epsilon,
         }
