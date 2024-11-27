@@ -63,7 +63,9 @@ def main():
 
     # define loss function and optimizer
     criterion = LOSS_FUNCTIONS[config["training"]["loss"]]()
-    optimizer = OPTIMIZERS[config["training"]["optimizer"]](model.parameters(), lr=float(config["training"]["lr"]))
+    optimizer = OPTIMIZERS[config["training"]["optimizer"]](
+        model.parameters(), lr=float(config["training"]["lr"])
+    )
 
     num_epochs = config["training"]["epochs"]
     device = 4
@@ -77,6 +79,12 @@ def main():
         for i, batch in enumerate(tqdm(train_dataloader, desc="Batches")):
 
             X = batch["X"].to(device)
+            X_og = batch["X_og"]
+            
+            # original current map
+            # (B, H, W, C) 
+            y_og = batch["y_og"]
+
             z = batch["z"].to(device)
             optimizer.zero_grad()
             # forward
@@ -98,18 +106,22 @@ def main():
                     "val_loss": None,
                 }
             )
+            logger.save_sample(X_og, epoch, name="train_X")
+            logger.save_sample(y_og, epoch, name="train_y")
 
-        # Compute average loss for the epoch
+        # compute average loss for the epoch
         epoch_loss = running_loss / len(train_dataset)
         print(f"Epoch {epoch+1}/{num_epochs}, Training Loss: {epoch_loss:.4f}")
 
-        # Validation phase
+        # validation
         model.eval()  # Set model to evaluation mode
         val_running_loss = 0.0
         with torch.no_grad():  # Disable gradient computation
             for i, batch in enumerate(tqdm(val_dataloader, desc="Batches")):
                 # Move inputs and targets to device
                 X = batch["X"].to(device)
+                X_og = batch["X_og"]
+                y_og = batch["y_og"]
                 z = batch["z"].to(device)
                 # Forward pass
                 outputs = model(X)
@@ -129,8 +141,10 @@ def main():
                         "val_loss": loss.item(),
                     }
                 )
+                logger.save_sample(X_og, epoch, name="val_X")
+                logger.save_sample(y_og, epoch, name="val_y")
 
-        # Compute average validation loss
+        # compute average validation loss
         val_loss = val_running_loss / len(val_dataset)
         print(f"Epoch {epoch+1}/{num_epochs}, Validation Loss: {val_loss:.4f}")
 

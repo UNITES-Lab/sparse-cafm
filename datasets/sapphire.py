@@ -91,11 +91,14 @@ class SapphireDataset(Dataset):
 
         :param index:
         :returns:
+            ```
             {
                 'X': torch.Tensor, # topo-map w/ shape [C, H, W]
+                'X_og': torch.Tensor, # topo-map w/ shape [H, W, C]
                 'y': torch.Tensor, # target current-map w/ shape [C, H, W]
                 'z': torch.Tensor, # scalar-valued target denoting 'current-under-threshold'
             }
+            ```
         """
 
         # HACK: hard-coded train/val splits
@@ -108,14 +111,16 @@ class SapphireDataset(Dataset):
         else:
             raise Exception(f"Invalid split: {self.split}")
 
-        X = self.topo_maps[sample_idx]
+        X: torch.Tensor = self.topo_maps[sample_idx]
+        X_og = X.copy()
         # raw (H, W) current map
-        y = self.current_maps[sample_idx]
-        y_unnormalized: np.ndarray = self._raw_current_maps[sample_idx]
+        y: torch.Tensor = self.current_maps[sample_idx]
+        y_og: torch.Tensot = y.copy()
+        y_raw: np.ndarray = self._raw_current_maps[sample_idx]
 
         # z: #  pixels < self.epsilon divided by total # pixels
-        z = (y_unnormalized.flatten() < self.epsilon).sum() / (
-            y_unnormalized.shape[0] * y_unnormalized.shape[1]
+        z = (y_raw.flatten() < self.epsilon).sum() / (
+            y_raw.shape[0] * y_raw.shape[1]
         )
         z = torch.tensor(z).float()
         # z should always be in range: [0, 1]
@@ -128,7 +133,9 @@ class SapphireDataset(Dataset):
         y = torch.tensor(augmented["mask"]).permute(2, 0, 1).float()
         return {
             "X": X.float(),
+            "X_og": X_og,
             "y": y.float(),
+            "y_og": y_og,
             "z": z,
             "epsilon": self.epsilon,
         }

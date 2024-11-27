@@ -5,7 +5,7 @@ model:
 training:
   batch_size: 4
   steps_per_epoch: 100
-  epochs: 10
+  epochs: 3
   loss: MSELoss
   lr: 1e-4
   optimizer: Adam
@@ -13,7 +13,7 @@ training:
 validation:
   batch_size: 32
   steps_per_epoch: 100
-  loss: MSE
+  loss: MSELoss
 
 dataset:
   name: SapphireDataset

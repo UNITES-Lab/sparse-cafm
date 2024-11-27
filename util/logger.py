@@ -1,3 +1,4 @@
+import cv2
 import math
 import os
 import csv
@@ -30,6 +31,7 @@ class ExperimentLogger:
         """
         assert config_fp.endswith(".yaml")
         self.config_fp = config_fp
+        self.exp_dir: Optional[str] = None
         self.exp_name = exp_name
         self.results_out_path: Optional[str] = None
         self.results = pd.DataFrame()
@@ -44,6 +46,7 @@ class ExperimentLogger:
         date_time_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         subdir_name = date_time_str + "_" + self.exp_name
         exp_out_dir = os.path.join(EXPS_DIR, subdir_name)
+        self.exp_dir = exp_out_dir
 
         # make new subdir if needed
         os.makedirs(exp_out_dir, exist_ok=True)
@@ -55,8 +58,8 @@ class ExperimentLogger:
         self.config_fp = config_save_fp
 
         # path to results csv file
-
         self.results_out_path = os.path.join(exp_out_dir, "results.csv")
+
     def add_result_column(self, name: str):
         self.results[name] = None
         self._update_csv()
@@ -71,3 +74,17 @@ class ExperimentLogger:
             [self.results, pd.DataFrame.from_records([kwargs])], ignore_index=True
         )
         self._update_csv()
+
+    def save_sample(self, X: torch.Tensor, epoch: int, name: Optional[str] = ""):
+        """
+        :param X: (B, H, W, C)
+        :param epoch: int
+        :param name: str
+        """
+        figures_dir = os.path.join(self.exp_dir, "figures")
+        os.makedirs(figures_dir, exist_ok=True)
+        x_out_path = os.path.join(self.exp_dir, "figures", f"{name}_{epoch}.png")
+        # save img
+        X_np = X.detach().cpu().numpy()
+        X_np = X_np[0, :, :, :]
+        cv2.imwrite(x_out_path, X_np)
