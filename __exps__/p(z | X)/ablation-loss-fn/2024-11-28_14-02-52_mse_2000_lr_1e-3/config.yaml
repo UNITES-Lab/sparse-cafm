@@ -1,8 +1,8 @@
 global:
-  device: 0
+  device: 7
 
 model:
-  name: vit_l_16
+  variant: ResNet152
   pretrained: True
 
 training:
@@ -10,7 +10,7 @@ training:
   steps_per_epoch: 256
   epochs: 2000
   loss: MSE
-  lr: 1e-4
+  lr: 1e-3
   optimizer: Adam
 
 validation:
@@ -20,12 +20,12 @@ validation:
 
 dataset:
   name: SapphireDataset
-  image_size: 224
+  image_size: 256
   crop_size: 64
   num_workers: 8
 
 logging:
-  exp_name: vit_l_16
+  exp_name: mse_2000_lr_1e-3
   result_columns:  ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
-  log_figures: false
+  log_figures: true
   log_interval: 256

@@ -20,7 +20,7 @@ validation:
 
 dataset:
   name: SapphireDataset
-  image_size: 224
+  image_size: (224, 224)
   crop_size: 64
   num_workers: 8
 

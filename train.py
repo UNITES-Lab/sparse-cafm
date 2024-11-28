@@ -6,8 +6,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from datasets.sapphire import SapphireDataset
 from util.logger import ExperimentLogger
-from util.config import LOSS_FUNCTIONS, OPTIMIZERS
-from torchvision.models import resnet152, swin_transformer, efficientnet_v2_l, vit_l_16
+from util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS
 
 CONFIG_FP = (
     "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/config.yaml"
@@ -43,20 +42,33 @@ def main():
     )
     logger.add_result_columns(config["logging"]["result_columns"])
 
-    # create model + change classification head
-    model: torch.nn.Module = torch.hub.load(
-        "pytorch/vision:v0.10.0", "resnet152", pretrained=True
-    )
-    in_features = model.fc.in_features
-
-    # change classification to have size 1
-    model.fc = RegressionHead(in_features)
+    # dynamically load model
+    model_fn = MODELS[config["model"]["name"]]['fn']
+    model_weights = MODELS[config["model"]["name"]]['weights']
+    model: torch.nn.Module = model_fn(weights=model_weights)
+    
+    # model guilotine
+    if config["model"]['name'] == 'swin_b':
+        in_features = model.head.in_features
+        model.head = RegressionHead(in_features)
+    elif config["model"]['name'] == 'efficientnet_v2_l':
+        # model.classifier is nn.Sequential
+        in_features = model.classifier[1].in_features
+        model.classifier = RegressionHead(in_features)
+    elif config["model"]['name'] == 'vit_l_16':
+        in_features = model.heads.head.in_features
+        model.heads.head = RegressionHead(in_features)
+    else:
+        in_features = model.fc.in_features
+        model.fc = RegressionHead(in_features)
 
     # create train/val dataset and dataloader
+    img_size = int(config["dataset"]["image_size"])
     train_dataset = SapphireDataset(
         split="train",
         steps_per_epoch=config["training"]["steps_per_epoch"],
         device=config["global"]["device"],
+        original_image_size=(img_size, img_size),
     )
     train_dataloader = DataLoader(
         train_dataset,
@@ -68,6 +80,7 @@ def main():
         split="val",
         steps_per_epoch=config["validation"]["steps_per_epoch"],
         device=config["global"]["device"],
+        original_image_size=(img_size, img_size),
     )
     val_dataloader = DataLoader(
         val_dataset,
