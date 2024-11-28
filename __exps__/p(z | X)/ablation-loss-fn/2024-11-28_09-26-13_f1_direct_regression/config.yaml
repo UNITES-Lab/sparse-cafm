@@ -1,19 +1,22 @@
+global:
+  device: 7
+
 model:
   variant: ResNet152
   pretrained: True
 
 training:
-  batch_size: 4
-  steps_per_epoch: 100
-  epochs: 3
-  loss: MSELoss
+  batch_size: 16
+  steps_per_epoch: 256
+  epochs: 2000
+  loss: L1
   lr: 1e-4
   optimizer: Adam
 
 validation:
-  batch_size: 32
-  steps_per_epoch: 100
-  loss: MSELoss
+  batch_size: 16
+  steps_per_epoch: 256
+  loss: L1
 
 dataset:
   name: SapphireDataset

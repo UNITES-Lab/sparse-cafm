@@ -1,5 +1,5 @@
 global:
-  device: 4
+  device: 6
 
 model:
   variant: ResNet152
@@ -9,7 +9,7 @@ training:
   batch_size: 16
   steps_per_epoch: 256
   epochs: 2000
-  loss: Dice
+  loss: MSE
   lr: 1e-4
   optimizer: Adam
 

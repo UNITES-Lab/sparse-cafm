@@ -8,12 +8,23 @@ from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List
 from glob import glob
 
+Z_MULT = 100
 ORIGINAL_IMAGE_SIZE = (256, 256)
 SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/11-19-24/2. MoS2 on Sapphire"
 EXT = "tiff"
 
 
 class SapphireDataset(Dataset):
+    """
+    Dataset class for MoS2 samples collected on a Sapphire substrate.
+
+    :Definitions:
+    - X: topography map (height, width, depth)
+    - y: current map (height, width, current)
+    - z: scalar, current-under-threshold
+    - epsilon: threshold representing bottom 10th percentile of current values
+    """
+
     def __init__(
         self,
         split: str = "train",
@@ -58,7 +69,7 @@ class SapphireDataset(Dataset):
 
         _current_fps = glob(f"{SRC_DIR}/*/*Current*{EXT}")
         _topo_fps = glob(f"{SRC_DIR}/*/*Topo*{EXT}")
-        
+
         # load all images
         all_current_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in _current_fps]
         all_topo_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in _topo_fps]
@@ -69,7 +80,6 @@ class SapphireDataset(Dataset):
         self.topo_maps = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_topo_imgs]
 
     def _create_augmentation_pipeline(self):
-        # NOTE: we always take a random crop
         return A.Compose(
             [
                 A.HorizontalFlip(p=0.5),
@@ -79,7 +89,8 @@ class SapphireDataset(Dataset):
                     height=self.original_image_size[1],
                 ),
                 A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-            ]
+            ],
+            additional_targets={"y_raw": "mask", "X_og": "mask", "y_og": "mask"},
         )
 
     def __len__(self):
@@ -113,24 +124,28 @@ class SapphireDataset(Dataset):
 
         X: torch.Tensor = self.topo_maps[sample_idx]
         X_og = X.copy()
+
         # raw (H, W) current map
         y: torch.Tensor = self.current_maps[sample_idx]
         y_og: torch.Tensot = y.copy()
         y_raw: np.ndarray = self._raw_current_maps[sample_idx]
+        augmented = self.augmentation_pipeline(image=X, mask=y, y_raw=y_raw, X_og=X_og, y_og=y_og)
+        
+        y_raw = augmented["y_raw"]
+        X_og = torch.tensor(augmented["X_og"])
+        y_og = torch.tensor(augmented["y_og"])
 
-        # z: #  pixels < self.epsilon divided by total # pixels
-        z = (y_raw.flatten() < self.epsilon).sum() / (
-            y_raw.shape[0] * y_raw.shape[1]
-        )
-        z = torch.tensor(z).float()
-        # z should always be in range: [0, 1]
-        assert z >= 0.0 and z <= 1.0
+        # z: # pixels < self.epsilon divided by total # pixels
+        z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
+        z = torch.tensor(z).float() * Z_MULT
 
-        # apply augmentations
+        # z should always be in range: [0, 100]
+        assert z >= 0.0 and z <= 100.0
+
         # convert -> tensor
-        augmented = self.augmentation_pipeline(image=X, mask=y)
         X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
         y = torch.tensor(augmented["mask"]).permute(2, 0, 1).float()
+
         return {
             "X": X.float(),
             "X_og": X_og,

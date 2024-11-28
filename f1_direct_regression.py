@@ -2,13 +2,12 @@ import yaml
 import torch
 import torch.nn as nn
 
-from calendar import c
-from math import e
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from util.logger import ExperimentLogger
 from datasets.sapphire import SapphireDataset
 from util.config import LOSS_FUNCTIONS, OPTIMIZERS
+from util.logger import ExperimentLogger
+from util.loss import DiceLoss
 
 CONFIG_FP = (
     "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/config.yaml"
@@ -62,38 +61,43 @@ def main():
     )
 
     # define loss function and optimizer
-    criterion = LOSS_FUNCTIONS[config["training"]["loss"]]()
+    train_loss = LOSS_FUNCTIONS[config["training"]["loss"]]()
+    val_loss = LOSS_FUNCTIONS[config["validation"]["loss"]]()
     optimizer = OPTIMIZERS[config["training"]["optimizer"]](
         model.parameters(), lr=float(config["training"]["lr"])
     )
 
     num_epochs = config["training"]["epochs"]
-    device = 4
+    device = config["global"]["device"]
     model = model.to(device)
 
-    for epoch in tqdm(range(num_epochs), desc="Epochs"):
-        # Training phase
-        model.train()  # Set model to training mode
+    for epoch in range(num_epochs):
+
+        model.train()
         running_loss = 0.0
 
-        for i, batch in enumerate(tqdm(train_dataloader, desc="Batches")):
+        for i, batch in enumerate(
+            tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
+        ):
 
             X = batch["X"].to(device)
             X_og = batch["X_og"]
-            
-            # original current map
-            # (B, H, W, C) 
-            y_og = batch["y_og"]
 
+            # original current map
+            # (B, H, W, C)
+            y_og = batch["y_og"]
             z = batch["z"].to(device)
+
             optimizer.zero_grad()
+
             # forward
             outputs = model(X)
+
             # TODO: do we need this?
             if z.dim() == 1:
                 z = z.unsqueeze(1)
 
-            loss = criterion(outputs, z)
+            loss = train_loss(outputs, z)
             loss.backward()
             optimizer.step()
             running_loss += loss.item() * X.size(0)
@@ -109,28 +113,31 @@ def main():
             logger.save_sample(X_og, epoch, name="train_X")
             logger.save_sample(y_og, epoch, name="train_y")
 
-        # compute average loss for the epoch
-        epoch_loss = running_loss / len(train_dataset)
-        print(f"Epoch {epoch+1}/{num_epochs}, Training Loss: {epoch_loss:.4f}")
-
         # validation
-        model.eval()  # Set model to evaluation mode
+        model.eval()
         val_running_loss = 0.0
-        with torch.no_grad():  # Disable gradient computation
-            for i, batch in enumerate(tqdm(val_dataloader, desc="Batches")):
-                # Move inputs and targets to device
+        with torch.no_grad():
+            for i, batch in enumerate(
+                tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
+            ):
+
+                # move inputs -> device
                 X = batch["X"].to(device)
                 X_og = batch["X_og"]
                 y_og = batch["y_og"]
                 z = batch["z"].to(device)
-                # Forward pass
+
+                # forward pass
                 outputs = model(X)
-                # Ensure the target has the correct shape
+
+                # ensure the target has the correct shape
                 if z.dim() == 1:
                     z = z.unsqueeze(1)
-                # Compute loss
-                loss = criterion(outputs, z)
-                # Accumulate validation loss
+
+                # compute loss
+                loss = val_loss(outputs, z)
+
+                # accumulate validation loss
                 val_running_loss += loss.item() * X.size(0)
                 logger.log(
                     **{
@@ -143,10 +150,6 @@ def main():
                 )
                 logger.save_sample(X_og, epoch, name="val_X")
                 logger.save_sample(y_og, epoch, name="val_y")
-
-        # compute average validation loss
-        val_loss = val_running_loss / len(val_dataset)
-        print(f"Epoch {epoch+1}/{num_epochs}, Validation Loss: {val_loss:.4f}")
 
 
 if __name__ == "__main__":
