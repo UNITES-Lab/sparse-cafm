@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from datasets.sapphire import SapphireDataset
 from util.logger import ExperimentLogger
 from util.config import LOSS_FUNCTIONS, OPTIMIZERS
+from torchvision.models import resnet152, swin_transformer, efficientnet_v2_l, vit_l_16
 
 CONFIG_FP = (
     "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/config.yaml"
@@ -128,6 +129,7 @@ def main():
                     "epoch": epoch,
                     "train_loss": loss.item(),
                     "val_loss": None,
+                    "z": z.mean().item(),
                 }
             )
 
@@ -169,6 +171,7 @@ def main():
                         "epoch": epoch,
                         "train_loss": None,
                         "val_loss": loss.item(),
+                        "z": z.mean().item()
                     }
                 )
 

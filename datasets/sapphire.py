@@ -91,9 +91,9 @@ class SapphireDataset(Dataset):
                 A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             ],
             additional_targets={
-                "y": "image",
-                "X_og": "image",
-                "y_og": "image",
+                "y": "mask",
+                "X_og": "mask",
+                "y_og": "mask",
             },
         )
 
@@ -143,9 +143,9 @@ class SapphireDataset(Dataset):
         # convert -> tensor
         X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
         y = torch.tensor(augmented["y"]).permute(2, 0, 1).float()
+        y_raw = augmented["mask"]  # stays a np.ndarray
         X_og = torch.tensor(augmented["X_og"])
         y_og = torch.tensor(augmented["y_og"])
-        y_raw = augmented["mask"]  # stays a np.ndarray
 
         # MARK: calculate values of z
         # z: # pixels < self.epsilon divided by total # pixels
