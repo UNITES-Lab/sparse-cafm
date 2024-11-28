@@ -1,5 +1,5 @@
 global:
-  device: 4
+  device: 6
 
 model:
   variant: ResNet152
@@ -22,6 +22,10 @@ dataset:
   name: SapphireDataset
   image_size: 256
   crop_size: 64
+  num_workers: 8
 
 logging:
+  exp_name: dice_2000
   result_columns:  ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss"]
+  log_figures: false
+  log_interval: 256

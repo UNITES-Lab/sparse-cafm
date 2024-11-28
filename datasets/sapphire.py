@@ -90,7 +90,11 @@ class SapphireDataset(Dataset):
                 ),
                 A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             ],
-            additional_targets={"y_raw": "mask", "X_og": "mask", "y_og": "mask"},
+            additional_targets={
+                "y": "image",
+                "X_og": "image",
+                "y_og": "image",
+            },
         )
 
     def __len__(self):
@@ -122,34 +126,41 @@ class SapphireDataset(Dataset):
         else:
             raise Exception(f"Invalid split: {self.split}")
 
-        X: torch.Tensor = self.topo_maps[sample_idx]
+        X: np.ndarray = self.topo_maps[sample_idx]
         X_og = X.copy()
 
         # raw (H, W) current map
-        y: torch.Tensor = self.current_maps[sample_idx]
-        y_og: torch.Tensot = y.copy()
+        # copy all tensors -> GPU for augmentations
+        y: np.ndarray = self.current_maps[sample_idx]
+        y_og = y.copy()
         y_raw: np.ndarray = self._raw_current_maps[sample_idx]
-        augmented = self.augmentation_pipeline(image=X, mask=y, y_raw=y_raw, X_og=X_og, y_og=y_og)
-        
-        y_raw = augmented["y_raw"]
-        X_og = torch.tensor(augmented["X_og"])
-        y_og = torch.tensor(augmented["y_og"])
 
-        # z: # pixels < self.epsilon divided by total # pixels
-        z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
-        z = torch.tensor(z).float() * Z_MULT
-
-        # z should always be in range: [0, 100]
-        assert z >= 0.0 and z <= 100.0
+        # TODO: is our augmentation pipeline a bottleneck?
+        augmented = self.augmentation_pipeline(
+            image=X, mask=y_raw, y=y, X_og=X_og, y_og=y_og
+        )
 
         # convert -> tensor
         X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
-        y = torch.tensor(augmented["mask"]).permute(2, 0, 1).float()
+        y = torch.tensor(augmented["y"]).permute(2, 0, 1).float()
+        X_og = torch.tensor(augmented["X_og"])
+        y_og = torch.tensor(augmented["y_og"])
+        y_raw = augmented["mask"]  # stays a np.ndarray
+
+        # MARK: calculate values of z
+        # z: # pixels < self.epsilon divided by total # pixels
+        z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
+
+        # TODO: what is the ideal way to normalize z?
+        z = torch.tensor(z).float() * Z_MULT
+
+        # z should always be in range: [0, 1.0 * Z_MULT]
+        assert z >= 0.0 and z <= (1.0 * Z_MULT)
 
         return {
-            "X": X.float(),
+            "X": X,
             "X_og": X_og,
-            "y": y.float(),
+            "y": y,
             "y_og": y_og,
             "z": z,
             "epsilon": self.epsilon,

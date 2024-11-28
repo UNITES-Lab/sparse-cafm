@@ -24,10 +24,13 @@ class ExperimentLogger:
     A flexible logger used for recording and organizing experimental runs.
     """
 
-    def __init__(self, config_fp: str, exp_name: Optional[str] = "") -> None:
+    def __init__(
+        self, config_fp: str, exp_name: Optional[str] = "", log_interval: int = 100
+    ) -> None:
         """
-
         :param config_fp: path to a `.yaml` config file containing all hps
+        :param exp_name: name of the experiment
+        :param log_interval: how often to write log results to .csv file
         """
         assert config_fp.endswith(".yaml")
         self.config_fp = config_fp
@@ -35,6 +38,8 @@ class ExperimentLogger:
         self.exp_name = exp_name
         self.results_out_path: Optional[str] = None
         self.results = pd.DataFrame()
+        self.log_interval = log_interval
+        self.log_counter = 0
         self._setup_exp_dir()
 
     def _update_csv(self):
@@ -73,7 +78,9 @@ class ExperimentLogger:
         self.results = pd.concat(
             [self.results, pd.DataFrame.from_records([kwargs])], ignore_index=True
         )
-        self._update_csv()
+        if self.log_counter % self.log_interval == 0:
+            self._update_csv()
+        self.log_counter += 1
 
     def save_sample(self, X: torch.Tensor, epoch: int, name: Optional[str] = ""):
         """
