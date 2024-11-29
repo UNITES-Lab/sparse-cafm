@@ -14,11 +14,6 @@ from typing import List, Dict, Optional
 EXPS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/p(z | X)/ablation-model-variant"
 
 
-# TODO: implement an experiment launcher for easy, co-ordinated ablations
-class ExperimentLauncher:
-    pass
-
-
 class ExperimentLogger:
     """
     A flexible logger used for recording and organizing experimental runs.

@@ -11,7 +11,7 @@ from util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS
 CONFIG_FP = (
     "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/config.yaml"
 )
-
+Z_MULT = 1
 
 class RegressionHead(nn.Module):
     """
@@ -23,7 +23,7 @@ class RegressionHead(nn.Module):
         self.fc1 = nn.Linear(in_channels, 1)
 
     def forward(self, x):
-        return self.fc1(x)
+        return torch.sigmoid(self.fc1(x)) * Z_MULT
 
 
 def parse_config(fp: str) -> dict:
@@ -43,21 +43,21 @@ def main():
     logger.add_result_columns(config["logging"]["result_columns"])
 
     # dynamically load model
-    model_fn = MODELS[config["model"]["name"]]['fn']
-    model_weights = MODELS[config["model"]["name"]]['weights']
+    model_fn = MODELS[config["model"]["name"]]["fn"]
+    model_weights = MODELS[config["model"]["name"]]["weights"]
     model: torch.nn.Module = model_fn(weights=model_weights)
-    
+
     # model guilotine
-    if config["model"]['name'] == 'swin_b':
+    if config["model"]["name"] == "swin_b":
         in_features = model.head.in_features
         model.head = RegressionHead(in_features)
-    elif config["model"]['name'] == 'efficientnet_v2_l':
+    elif config["model"]["name"] == "efficientnet_v2_l":
         # model.classifier is nn.Sequential
         in_features = model.classifier[1].in_features
         model.classifier = RegressionHead(in_features)
-    elif config["model"]['name'] == 'vit_l_16':
+    elif config["model"]["name"] == "vit_l_16":
         in_features = model.heads.head.in_features
-        model.heads.head = RegressionHead(in_features)
+        model.heads = RegressionHead(in_features)
     else:
         in_features = model.fc.in_features
         model.fc = RegressionHead(in_features)
@@ -184,7 +184,7 @@ def main():
                         "epoch": epoch,
                         "train_loss": None,
                         "val_loss": loss.item(),
-                        "z": z.mean().item()
+                        "z": z.mean().item(),
                     }
                 )
 

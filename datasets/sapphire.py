@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List
 from glob import glob
 
-Z_MULT = 100
+Z_MULT = 1
 ORIGINAL_IMAGE_SIZE = (256, 256)
 SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/11-19-24/2. MoS2 on Sapphire"
 EXT = "tiff"
@@ -31,6 +31,7 @@ class SapphireDataset(Dataset):
         steps_per_epoch: int = 100,
         side_length: int = 64,
         device: int = 0,
+        z_mult: int = Z_MULT,
         original_image_size: tuple = ORIGINAL_IMAGE_SIZE,
     ):
         super(SapphireDataset, self).__init__()
@@ -38,6 +39,7 @@ class SapphireDataset(Dataset):
         self.steps_per_epoch: int = steps_per_epoch
         self.split: str = split
         self.device: int = device
+        self.z_mult: int = z_mult
         self.original_image_size: Tuple[int, int] = original_image_size
         self.augmentation_pipeline = self._create_augmentation_pipeline()
 
@@ -152,10 +154,10 @@ class SapphireDataset(Dataset):
         z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
 
         # TODO: what is the ideal way to normalize z?
-        z = torch.tensor(z).float() * Z_MULT
+        z = torch.tensor(z).float() * self.z_mult
 
         # z should always be in range: [0, 1.0 * Z_MULT]
-        assert z >= 0.0 and z <= (1.0 * Z_MULT)
+        assert z >= 0.0 and z <= (1.0 * self.z_mult)
 
         return {
             "X": X,

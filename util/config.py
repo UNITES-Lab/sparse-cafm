@@ -35,7 +35,7 @@ MODELS = {
     "vit_l_16": {
         "fn": vit_l_16,
         "weights": ViT_L_16_Weights.IMAGENET1K_V1,
-    },       
+    },
 }
 
 OPTIMIZERS = {

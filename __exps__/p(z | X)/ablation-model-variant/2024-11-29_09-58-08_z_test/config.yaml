@@ -1,14 +1,14 @@
 global:
-  device: 7
+  device: 0
 
 model:
-  name: vit_l_16
+  name: resnet152
   pretrained: True
 
 training:
   batch_size: 16
   steps_per_epoch: 256
-  epochs: 2000
+  epochs: 1
   loss: Huber
   lr: 1e-4
   optimizer: Adam
@@ -25,7 +25,7 @@ dataset:
   num_workers: 8
 
 logging:
-  exp_name: vit_l_16_replace_all_heads
+  exp_name: z_test
   result_columns:  ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   log_figures: false
   log_interval: 256
