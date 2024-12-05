@@ -6,7 +6,7 @@ model:
   pretrained: True
 
 training:
-  batch_size: 16
+  batch_size: 64
   steps_per_epoch: 256
   epochs: 100000
   loss: Huber
