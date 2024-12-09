@@ -1,15 +1,15 @@
 global:
-  device: 3
+  device: 6
 
 model:
-  name: efficientnet_v2_l
+  name: resnet152
   pretrained: True
 
 training:
   batch_size: 16
   steps_per_epoch: 256
   epochs: 2000
-  loss: L1
+  loss: MSE
   lr: 1e-6
   optimizer: Adam
 
@@ -20,12 +20,12 @@ validation:
 
 dataset:
   name: SapphireDataset
-  image_size: 256
+  image_size: 224
   crop_size: 64
   num_workers: 8
 
 logging:
-  exp_name: efficientnet_v2_l-l1-1e-6
-  result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
+  exp_name: resnet-mse-1e-6
+  result_columns:  ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   log_figures: false
   log_interval: 256

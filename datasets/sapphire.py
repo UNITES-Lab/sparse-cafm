@@ -9,14 +9,12 @@ from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List, Union
 from glob import glob
 
-# hacky, and should most likely be removed
+# hacky; should most likely be removed
 Z_MULT = 1
-
 ORIGINAL_IMAGE_SIZE = (256, 256)
 CROPPED_IMG_SIDE_LENGTH = 64
 SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/11-19-24/2. MoS2 on Sapphire"
 EXT = "tiff"
-
 TRAIN_SPLIT = "train"
 VAL_SPLIT = "val"
 
@@ -185,29 +183,33 @@ class SapphireDataset(Dataset):
         else:
             raise Exception(f"Invalid split: {self.split}")
 
+        # get topography map with normalized depth dim
         X: np.ndarray = self.topo_maps[sample_idx]
+        # copy of original X for figure logging
         X_og = X.copy()
 
-        # raw (H, W) current map
-        # copy all tensors -> GPU for augmentations
         y: np.ndarray = self.current_maps[sample_idx]
+        # copy of original y for figure logging
         y_og = y.copy()
+        # raw (H, W) current map; unnormalized (very small) current values
         y_raw: np.ndarray = self._raw_current_maps[sample_idx]
 
-        # TODO: is our augmentation pipeline a bottleneck?
+        # augment samples
+        # X recieves pixel-value normalization, all other data do not
         augmented = self.augmentation_pipeline(
             image=X, mask=y_raw, y=y, X_og=X_og, y_og=y_og
         )
 
-        # convert -> tensor
+        # convert all data -> tensor
         X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
         y = torch.tensor(augmented["y"]).permute(2, 0, 1).float()
-        y_raw = augmented["mask"]  # stays a np.ndarray
         X_og = torch.tensor(augmented["X_og"])
         y_og = torch.tensor(augmented["y_og"])
+        # stays as a np.ndarray
+        y_raw = augmented["mask"]
 
         # MARK: calculate values of z
-        # z: # pixels < self.epsilon divided by total # pixels
+        # z: sum(pixels < self.epsilon) / total num pixels
         z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
 
         # TODO: what is the ideal way to normalize z?
@@ -218,9 +220,9 @@ class SapphireDataset(Dataset):
 
         return {
             "X": X,
-            "X_og": X_og,
             "y": y,
-            "y_og": y_og,
             "z": z,
+            "X_og": X_og,
+            "y_og": y_og,
             "epsilon": self.epsilon,
         }

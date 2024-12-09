@@ -33,7 +33,7 @@ def parse_config(fp: str) -> dict:
 
 
 def main():
-
+    
     config = parse_config(CONFIG_FP)
     logger = ExperimentLogger(
         config_fp=CONFIG_FP,

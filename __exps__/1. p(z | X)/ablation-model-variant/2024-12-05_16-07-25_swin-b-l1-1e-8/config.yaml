@@ -1,8 +1,8 @@
 global:
-  device: 3
+  device: 2
 
 model:
-  name: efficientnet_v2_l
+  name: swin_b
   pretrained: True
 
 training:
@@ -10,7 +10,7 @@ training:
   steps_per_epoch: 256
   epochs: 2000
   loss: L1
-  lr: 1e-6
+  lr: 1e-8
   optimizer: Adam
 
 validation:
@@ -25,7 +25,7 @@ dataset:
   num_workers: 8
 
 logging:
-  exp_name: efficientnet_v2_l-l1-1e-6
+  exp_name: swin-b-l1-1e-8
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   log_figures: false
   log_interval: 256
