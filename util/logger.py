@@ -1,15 +1,11 @@
 import cv2
-import math
 import os
-import csv
 import torch
-import yaml
 import datetime
-import numpy as np
 import pandas as pd
-import torch.nn.functional as F
 
 from typing import List, Dict, Optional
+from torch.utils.tensorboard import SummaryWriter
 
 EXPS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/p(z | X)/ablation-model-variant"
 
@@ -29,12 +25,13 @@ class ExperimentLogger:
         """
         assert config_fp.endswith(".yaml")
         self.config_fp = config_fp
-        self.exp_dir: Optional[str] = None
         self.exp_name = exp_name
-        self.results_out_path: Optional[str] = None
         self.results = pd.DataFrame()
         self.log_interval = log_interval
         self.log_counter = 0
+        self.exp_dir: Optional[str] = None
+        self.results_out_path: Optional[str] = None
+        self.summary_writer: Optional[SummaryWriter] = None
         self._setup_exp_dir()
 
     def _update_csv(self):
@@ -59,6 +56,11 @@ class ExperimentLogger:
 
         # path to results csv file
         self.results_out_path = os.path.join(exp_out_dir, "results.csv")
+        
+        # create a tensorboard writer object
+        tb_log_dir = os.path.join(self.exp_dir, "tensorboard")
+        os.makedirs(tb_log_dir, exist_ok=True)
+        self.writer = SummaryWriter(log_dir=tb_log_dir)
 
     def add_result_column(self, name: str):
         self.results[name] = None
@@ -70,12 +72,20 @@ class ExperimentLogger:
         self._update_csv()
 
     def log(self, **kwargs):
+        # log -> csv
         self.results = pd.concat(
             [self.results, pd.DataFrame.from_records([kwargs])], ignore_index=True
         )
         if self.log_counter % self.log_interval == 0:
             self._update_csv()
         self.log_counter += 1
+        
+        # log -> tensorboard
+        if step is None:
+            step = self.log_counter
+        for k, v in kwargs.items():
+            if isinstance(v, (int, float)):
+                self.writer.add_scalar(k, v, step)
 
     def save_sample(self, X: torch.Tensor, epoch: int, name: Optional[str] = ""):
         """

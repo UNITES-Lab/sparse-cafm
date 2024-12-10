@@ -21,6 +21,7 @@ Models
     2. simple regression model:     y_hat -> z_hat
     
 Training diffusion model will be a different procedure from eval.
+
 """
 
 
