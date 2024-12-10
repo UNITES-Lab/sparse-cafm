@@ -5,6 +5,7 @@ import random
 import albumentations as A
 import numpy as np
 
+from enum import Enum
 from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List, Union
 from glob import glob
@@ -17,6 +18,13 @@ SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/
 EXT = "tiff"
 TRAIN_SPLIT = "train"
 VAL_SPLIT = "val"
+
+
+class Formulation(Enum):
+    P_Z_BAR_X = 0
+    P_Y_BAR_X = 1
+    P_Z_BAR_X_Y = 2
+    P_Z_BAR_X_PLUS_Y_BAR_X = 3
 
 
 class SapphireDataset(Dataset):
@@ -33,6 +41,7 @@ class SapphireDataset(Dataset):
     def __init__(
         self,
         split: str = "train",
+        formulation: Formulation = Formulation.P_Y_BAR_X,
         steps_per_epoch: int = 100,
         side_length: int = CROPPED_IMG_SIDE_LENGTH,
         device: int = 0,
@@ -52,6 +61,7 @@ class SapphireDataset(Dataset):
         self.side_length: int = side_length
         self.steps_per_epoch: int = steps_per_epoch
         self.split: str = split
+        self.formulation: Formulation = formulation
         self.device: int = device
         self.z_mult: int = z_mult
         self.original_image_size: Tuple[int, int] = original_image_size
@@ -155,7 +165,7 @@ class SapphireDataset(Dataset):
         """
         return self.steps_per_epoch
 
-    def __getitem__(self, index: int) -> Dict:
+    def get_item_p_z_bar_x(self, index: int) -> Dict:
         """
         Get the next randomly sampled item from the dataset.
 
@@ -226,3 +236,81 @@ class SapphireDataset(Dataset):
             "y_og": y_og,
             "epsilon": self.epsilon,
         }
+
+    def get_item_p_y_bar_x(self, index: int) -> Dict:
+        
+        # HACK: hard-coded train/val splits
+        # choose a random sample idx
+        if self.split == TRAIN_SPLIT:
+            # randint is inclusive: [a, b]
+            # select a random sample from self.data[:-1]
+            sample_idx = random.randint(0, len(self.current_maps) - 2)
+        elif self.split == VAL_SPLIT:
+            # select the final data sample: self.data[-1]
+            sample_idx = len(self.current_maps) - 1
+        else:
+            raise Exception(f"Invalid split: {self.split}")
+
+        # get topography map with normalized depth dim
+        X: np.ndarray = self.topo_maps[sample_idx]
+        # copy of original X for figure logging
+        X_og = X.copy()
+
+        y: np.ndarray = self.current_maps[sample_idx]
+        # copy of original y for figure logging
+        y_og = y.copy()
+        # raw (H, W) current map; unnormalized (very small) current values
+        y_raw: np.ndarray = self._raw_current_maps[sample_idx]
+
+        # augment samples
+        # X recieves pixel-value normalization, all other data do not
+        augmented = self.augmentation_pipeline(
+            image=X, mask=y_raw, y=y, X_og=X_og, y_og=y_og
+        )
+
+        # convert all data -> tensor
+        X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
+        y = torch.tensor(augmented["y"]).permute(2, 0, 1).float()
+        X_og = torch.tensor(augmented["X_og"])
+        y_og = torch.tensor(augmented["y_og"])
+        # stays as a np.ndarray
+        y_raw = augmented["mask"]
+
+        # MARK: calculate values of z
+        # z: sum(pixels < self.epsilon) / total num pixels
+        z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
+
+        # TODO: what is the ideal way to normalize z?
+        z = torch.tensor(z).float() * self.z_mult
+
+        # z should always be in range: [0, 1.0 * Z_MULT]
+        assert z >= 0.0 and z <= (1.0 * self.z_mult)
+
+        return dict(jpg=y, txt="", hint=X)
+
+    def __getitem__(self, index: int) -> Dict:
+        """
+        Get the next randomly sampled item from the dataset.
+
+        :param index: currently unused, necessiary for batch data-loading
+        :returns:
+            ```
+                {
+
+                    'X': torch.Tensor, # topo-map w/ shape [C, H, W]
+                    'X_og': torch.Tensor, # topo-map w/ shape [H, W, C]
+                    'y': torch.Tensor, # target current-map w/ shape [C, H, W]
+                    'z': torch.Tensor, # scalar-valued target denoting 'current-under-threshold'
+                }
+        """
+
+        fn_map = {
+            Formulation.P_Z_BAR_X: self.get_item_p_z_bar_x,
+            Formulation.P_Y_BAR_X: self.get_item_p_y_bar_x,
+            }
+        if self.formulation not in fn_map:
+            raise Exception(
+                f"Error: invalid problem problem formulation: {self.formulation}"
+            )
+        f = fn_map[self.formulation]
+        return f(index)

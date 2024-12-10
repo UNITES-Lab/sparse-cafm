@@ -1,3 +1,4 @@
+import yaml
 import torch
 import torch.nn as nn
 from util.loss import DiceLoss, FocalLoss
@@ -8,6 +9,13 @@ from torchvision.models import (
     EfficientNet_V2_L_Weights,
     ViT_L_16_Weights,
 )
+
+
+def parse_config(fp: str) -> dict:
+    with open(fp, "r") as f:
+        config = yaml.safe_load(f)
+    return config
+
 
 LOSS_FUNCTIONS = {
     "MSE": nn.MSELoss,
