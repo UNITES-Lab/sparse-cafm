@@ -1,42 +1,96 @@
+import os
 import yaml
+import sys
 import torch
 import torch.nn as nn
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from datasets.sapphire import SapphireDataset
+from datasets.sapphire import SapphireDataset, Formulation
 from util.logger import ExperimentLogger
-from util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS
+from util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS, parse_config
+from models.regression_head import RegressionHead
 
-CONFIG_FP = (
-    "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/config.yaml"
-)
+TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
+EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
 Z_MULT = 1
 
-class RegressionHead(nn.Module):
+
+@torch.no_grad()
+def eval():
     """
-    Custom classification head used for predicting the final output value z.
+    Evaluate a ViT regression model (data) -> (z_pred) for 1000 steps on held out data.
+    - Report MAE and avg MAE.
     """
 
-    def __init__(self, in_channels):
-        super(RegressionHead, self).__init__()
-        self.fc1 = nn.Linear(in_channels, 1)
-
-    def forward(self, x):
-        return torch.sigmoid(self.fc1(x)) * Z_MULT
-
-
-def parse_config(fp: str) -> dict:
-    with open(fp, "r") as f:
-        config = yaml.safe_load(f)
-    return config
-
-
-def main():
-    
-    config = parse_config(CONFIG_FP)
+    config = parse_config(EVAL_CONFIG_FP)
     logger = ExperimentLogger(
-        config_fp=CONFIG_FP,
+        config_fp=EVAL_CONFIG_FP,
+        exp_name=config["logging"]["exp_name"],
+        log_interval=config["logging"]["log_interval"],
+    )
+
+    # add metrics to log
+    logger.add_result_columns(config["logging"]["result_columns"])
+    img_size = int(config["dataset"]["image_size"])
+    model: torch.nn.Module = torch.load(config["model"]["weights_path"])
+    device = config["global"]["device"]
+    model.cuda(device)
+    model.eval()
+
+    val_dataset = SapphireDataset(
+        "val",
+        Formulation.P_Z_BAR_X,
+        steps_per_epoch=config["validation"]["steps_per_epoch"],
+        device=config["global"]["device"],
+        original_image_size=(img_size, img_size),
+    )
+    val_loss = LOSS_FUNCTIONS[config["validation"]["loss"]]()
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=config["validation"]["batch_size"],
+        shuffle=False,
+        num_workers=config["dataset"]["num_workers"],
+    )
+
+    loss_total = 0.0
+    loss_mvg_avg = 0.0
+
+    for i, batch in enumerate(tqdm(val_dataloader, desc=f"Evaluating Model")):
+
+        # move inputs -> device
+        X = batch["X"].to(device)
+        X_og = batch["X_og"]
+        y_og = batch["y_og"]
+        z = batch["z"].to(device)
+
+        # forward pass
+        outputs = model(X)
+
+        # ensure the target has the correct shape
+        if z.dim() == 1:
+            z = z.unsqueeze(1)
+
+        # compute loss
+        loss = val_loss(outputs, z)
+
+        # accumulate validation loss
+        loss_total += loss.item() * X.size(0)
+        loss_mvg_avg = loss_total / (i + 1)
+        logger.log(
+            **{
+                "L1 Loss": loss_total,
+                "Avg. L1 Loss": loss_mvg_avg,
+            }
+        )
+
+
+def train():
+    
+    config = parse_config(TRAIN_CONFIG_FP)
+    logger = ExperimentLogger(
+        config_fp=TRAIN_CONFIG_FP,
+        root=config["logging"]["root"],
         exp_name=config["logging"]["exp_name"],
         log_interval=config["logging"]["log_interval"],
     )
@@ -58,6 +112,8 @@ def main():
     elif config["model"]["name"] == "vit_l_16":
         in_features = model.heads.head.in_features
         model.heads = RegressionHead(in_features)
+    elif config["model"]["name"] == "simple_z_reg_vit":
+        pass
     else:
         in_features = model.fc.in_features
         model.fc = RegressionHead(in_features)
@@ -66,6 +122,7 @@ def main():
     img_size = int(config["dataset"]["image_size"])
     train_dataset = SapphireDataset(
         split="train",
+        formulation=Formulation.P_Z_BAR_X,
         steps_per_epoch=config["training"]["steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),
@@ -78,6 +135,7 @@ def main():
     )
     val_dataset = SapphireDataset(
         split="val",
+        formulation=Formulation.P_Z_BAR_X,
         steps_per_epoch=config["validation"]["steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),
@@ -96,9 +154,10 @@ def main():
         model.parameters(), lr=float(config["training"]["lr"])
     )
 
+    best_loss = sys.maxsize
     num_epochs = config["training"]["epochs"]
     device = config["global"]["device"]
-    model = model.cuda(device)
+    model.cuda(device)
 
     for epoch in range(num_epochs):
 
@@ -154,7 +213,10 @@ def main():
         # validation
         model.eval()
         val_running_loss = 0.0
+        num_val_steps = 0
+        
         with torch.no_grad():
+
             for i, batch in enumerate(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
@@ -191,6 +253,22 @@ def main():
                 if bool(config["logging"]["log_figures"]):
                     logger.save_sample(X_og, epoch, name="val_X")
                     logger.save_sample(y_og, epoch, name="val_y")
+
+                num_val_steps += 1
+
+            # optionally log best/epoch model weights
+            avg_val_loss = val_running_loss / num_val_steps
+            if bool(config["logging"]["save_weights"]):
+                if bool(config["logging"]["save_only_best_weights"]):
+                    if avg_val_loss < best_loss:
+                        best_loss = avg_val_loss
+                        logger.save_weights(model, "best")
+                else:
+                    logger.save_weights(model, f"epoch_{epoch}")
+
+
+def main():
+    train()
 
 
 if __name__ == "__main__":

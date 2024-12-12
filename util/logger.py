@@ -7,7 +7,7 @@ import pandas as pd
 from typing import List, Dict, Optional
 from torch.utils.tensorboard import SummaryWriter
 
-EXPS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/p(z | X)/ablation-model-variant"
+EXPS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/1. p(z | X)"
 
 
 class ExperimentLogger:
@@ -16,19 +16,27 @@ class ExperimentLogger:
     """
 
     def __init__(
-        self, config_fp: str, exp_name: Optional[str] = "", log_interval: int = 100
+        self,
+        config_fp: str,
+        root: str = EXPS_DIR,
+        exp_name: Optional[str] = "",
+        log_interval: int = 100,
+        enable_tensorboard=False,
     ) -> None:
         """
         :param config_fp: path to a `.yaml` config file containing all hps
         :param exp_name: name of the experiment
         :param log_interval: how often to write log results to .csv file
         """
+
         assert config_fp.endswith(".yaml")
         self.config_fp = config_fp
         self.exp_name = exp_name
         self.results = pd.DataFrame()
         self.log_interval = log_interval
         self.log_counter = 0
+        self.root: str = root
+        self.enable_tensorboard = enable_tensorboard
         self.exp_dir: Optional[str] = None
         self.results_out_path: Optional[str] = None
         self.summary_writer: Optional[SummaryWriter] = None
@@ -42,7 +50,7 @@ class ExperimentLogger:
         # get date and time as a string
         date_time_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         subdir_name = date_time_str + "_" + self.exp_name
-        exp_out_dir = os.path.join(EXPS_DIR, subdir_name)
+        exp_out_dir = os.path.join(self.root, subdir_name)
         self.exp_dir = exp_out_dir
 
         # make new subdir if needed
@@ -56,11 +64,12 @@ class ExperimentLogger:
 
         # path to results csv file
         self.results_out_path = os.path.join(exp_out_dir, "results.csv")
-        
+
         # create a tensorboard writer object
-        tb_log_dir = os.path.join(self.exp_dir, "tensorboard")
-        os.makedirs(tb_log_dir, exist_ok=True)
-        self.writer = SummaryWriter(log_dir=tb_log_dir)
+        if self.enable_tensorboard:
+            tb_log_dir = os.path.join(self.exp_dir, "tensorboard")
+            os.makedirs(tb_log_dir, exist_ok=True)
+            self.writer = SummaryWriter(log_dir=tb_log_dir)
 
     def add_result_column(self, name: str):
         self.results[name] = None
@@ -79,13 +88,25 @@ class ExperimentLogger:
         if self.log_counter % self.log_interval == 0:
             self._update_csv()
         self.log_counter += 1
-        
+
         # log -> tensorboard
-        if step is None:
-            step = self.log_counter
-        for k, v in kwargs.items():
-            if isinstance(v, (int, float)):
-                self.writer.add_scalar(k, v, step)
+        if self.enable_tensorboard:
+            if step is None:
+                step = self.log_counter
+            for k, v in kwargs.items():
+                if isinstance(v, (int, float)):
+                    self.writer.add_scalar(k, v, step)
+
+    def save_weights(self, x: torch.nn.Module, name: str = "best"):
+        """
+        Save model weights.
+
+        :param x: model to save
+        """
+        model_out_path = os.path.join(
+            self.exp_dir, f"{self.exp_name}_{name}_weights.pt"
+        )
+        torch.save(x, model_out_path)
 
     def save_sample(self, X: torch.Tensor, epoch: int, name: Optional[str] = ""):
         """

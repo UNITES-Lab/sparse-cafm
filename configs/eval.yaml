@@ -1,0 +1,28 @@
+global:
+  device: 3
+
+regression_model:
+  name: simple_z_reg_vit
+  pretrained: True
+  weights_path: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/1. p(z | X)/2024-12-11_14-28-54_simple_z_reg_vit/simple_z_reg_vit_best_weights.pt
+
+diffusion_model:
+
+validation:
+  batch_size: 16
+  steps_per_epoch: 1000
+  loss: L1
+
+dataset:
+  name: SapphireDataset
+  image_size: 224
+  crop_size: 64
+  num_workers: 8
+
+logging:
+  exp_name: simple_z_reg_vit
+  result_columns: ["L1 Loss", "Avg. L1 Loss"]
+  save_weights: true
+  save_only_best_weights: true
+  log_figures: false
+  log_interval: 1

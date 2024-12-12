@@ -14,18 +14,20 @@ CONFIG_FP = (
 Z_MULT = 1
 
 """
-Formulation 2/4.
+Formulation 4/4.
 
 Models
-    1. conditional diffusion model:     X -> y_hat
-    2. simple regression model:     y_hat -> z_hat
+    1. conditional diffusion model:                  X -> y_hat
+    2. simple regression model:                 X + M1 -> z_hat_1
+    3. simple regression model:                 X + M2 -> z_hat_2
+    4. ensemble                      z_hat_1 + z_hat_2 -> z_hatd
     
 Training diffusion model will be a different procedure from eval.
-
 """
 
 
 def train():
+    
     config = parse_config(CONFIG_FP)
     logger = ExperimentLogger(
         config_fp=CONFIG_FP,
@@ -36,7 +38,11 @@ def train():
 
 
 def eval():
-    # generate a complete, 512x512 y_hat sample
+    
+    # 1. get sample x
+    # 2. use pre-trained model to predict y_hat
+    # 3. y_hat -> transformer -> z_hat
+    
     pass
 
 

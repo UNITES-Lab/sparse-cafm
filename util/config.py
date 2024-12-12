@@ -1,6 +1,7 @@
 import yaml
 import torch
 import torch.nn as nn
+
 from util.loss import DiceLoss, FocalLoss
 from torchvision.models import resnet152, swin_b, efficientnet_v2_l, vit_l_16
 from torchvision.models import (
@@ -9,6 +10,7 @@ from torchvision.models import (
     EfficientNet_V2_L_Weights,
     ViT_L_16_Weights,
 )
+from models.simple_z_predictor import SimpleZRegressionVisionTransformer
 
 
 def parse_config(fp: str) -> dict:
@@ -28,6 +30,10 @@ LOSS_FUNCTIONS = {
 }
 
 MODELS = {
+    "simple_z_reg_vit": {
+        "fn": SimpleZRegressionVisionTransformer.get,
+        "weights": None,
+    },
     "resnet152": {
         "fn": resnet152,
         "weights": ResNet152_Weights.IMAGENET1K_V2,
