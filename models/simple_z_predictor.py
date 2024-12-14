@@ -11,6 +11,7 @@ N_OUTPUT_TOKENS_VT = 16 * 197
 
 class SimpleZRegressionTransformer(torch.nn.Module):
 
+
     def __init__(self) -> None:
         super(SimpleZRegressionTransformer, self).__init__()
         self.transformer = Transformer()
@@ -30,6 +31,13 @@ class SimpleZRegressionTransformer(torch.nn.Module):
 
 
 class SimpleZRegressionVisionTransformer(torch.nn.Module):
+    """
+    A VIT transformer encoder + linear regression head.
+    
+    - X -> z
+    - y -> z
+    - (X + y) -> z
+    """
 
     def __init__(self):
         super(SimpleZRegressionVisionTransformer, self).__init__()
