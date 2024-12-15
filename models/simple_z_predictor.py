@@ -73,7 +73,7 @@ class SimpleZRegressionVisionTransformer(torch.nn.Module):
         x = torch.nn.functional.sigmoid(x)
         return x
 
-    def forward(self, x, y_hat):
+    def forward_two_inputs(self, x, y_hat):
         r"""
 
         Shape:

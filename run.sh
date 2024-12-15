@@ -1,4 +1,4 @@
-# # 1. P(z | X)
+# 1. P(z | X)
 # export CUDA_VISIBLE_DEVICES=0
 # nohup python train_z_bar_X.py /dev/null 2>&1 &
 # exit

@@ -4,7 +4,7 @@ import sys
 import torch
 import torch.nn as nn
 
-from models.simple_z_predictor import EnsembleZRegressionVisionTransformer
+from models.simple_z_predictor import SimpleZRegressionVisionTransformer
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from datasets.sapphire import SapphireDatasetFixedGridSampling, Formulation
@@ -30,7 +30,7 @@ Models
     1. conditional diffusion model:                  X -> y_hat
     2. simple regression model:                 X + M1 -> z_hat_1
     3. simple regression model:                 X + M2 -> z_hat_2
-    4. ensemble                      z_hat_1 + z_hat_2 -> z_hatd
+    4. ensemble:               (z_hat_1 + z_hat_2) / 2 -> z_hat
     
 Training diffusion model will be a different procedure from eval.
 """
@@ -80,8 +80,6 @@ def eval():
 
         # move inputs -> device
         X = batch["X"].to(device)
-        X_og = batch["X_og"]
-        y_og = batch["y_og"]
         z = batch["z"].to(device)
 
         # forward pass
@@ -117,8 +115,9 @@ def train():
     logger.add_result_columns(config["logging"]["result_columns"])
 
     # load model
-    model: torch.nn.Module = EnsembleZRegressionVisionTransformer()
-
+    m1: torch.nn.Module = SimpleZRegressionVisionTransformer()
+    m2: torch.nn.Module = SimpleZRegressionVisionTransformer()
+    
     # create train/val datasets and dataloaders
     img_size = int(config["dataset"]["image_size"])
     train_dataset = SapphireDatasetFixedGridSampling(
@@ -149,20 +148,31 @@ def train():
     )
 
     # define loss function and optimizer
-    train_loss = LOSS_FUNCTIONS[config["training"]["loss"]]()
-    val_loss = LOSS_FUNCTIONS[config["validation"]["loss"]]()
-    optimizer: torch.optim.Optimizer = OPTIMIZERS[config["training"]["optimizer"]](
-        model.parameters(), lr=float(config["training"]["lr"])
+    tl1 = LOSS_FUNCTIONS[config["training"]["loss"]]()
+    tl2 = LOSS_FUNCTIONS[config["training"]["loss"]]()
+    
+    vl1 = LOSS_FUNCTIONS[config["validation"]["loss"]]()
+    vl2 = LOSS_FUNCTIONS[config["validation"]["loss"]]()
+    
+    o1: torch.optim.Optimizer = OPTIMIZERS[config["training"]["optimizer"]](
+        m1.parameters(), lr=float(config["training"]["lr"])
+    )
+    o2: torch.optim.Optimizer = OPTIMIZERS[config["training"]["optimizer"]](
+        m2.parameters(), lr=float(config["training"]["lr"])
     )
 
     best_loss = sys.maxsize
     num_epochs = config["training"]["epochs"]
     device = config["global"]["device"]
-    model.cuda(device)
+    
+    m1.cuda(device)
+    m2.cuda(device)
 
     for epoch in range(num_epochs):
 
-        model.train()
+        m1.train()
+        m2.train()
+        
         running_loss = 0.0
 
         for i, batch in enumerate(
@@ -178,31 +188,39 @@ def train():
             z: torch.Tensor = batch["z"]
             z = z.cuda(device)
             # zero gradients
-            optimizer.zero_grad()
-            # forward
-            # use overloaded method that accepts two, identical square inputs
-            outputs = model(X, y_hat)
+            o1.zero_grad()
+            o2.zero_grad()
+            # forwards
+            out_1 = m1(X)
+            out_2 = m2(y_hat)
             # TODO: do we need this?
             if z.dim() == 1:
                 z = z.unsqueeze(1)
-            loss = train_loss(outputs, z)
-            loss.backward()
-            optimizer.step()
-            # will this break?
-            running_loss += loss.item() * y_hat.size(0)
+            loss1 = tl1(out_1, z)
+            loss2 = tl2(out_2, z)
+            # backprop
+            loss1.backward()
+            loss2.backward()
+            # grad descent
+            o1.step()
+            o2.step()
+            # ensemble loss
+            increment = ((loss1.item() * X.size(0)) + (loss2.item() * y_hat.size(0))) / 2
+            running_loss += increment
             logger.log(
                 **{
                     "global_train_step": len(train_dataloader) * (epoch) + i,
                     "global_val_step": None,
                     "epoch": epoch,
-                    "train_loss": loss.item(),
+                    "train_loss": (loss1.item() + loss2.item()) / 2,
                     "val_loss": None,
                     "z": z.mean().item(),
                 }
             )
 
         # validation
-        model.eval()
+        m1.eval()
+        m2.eval()
         val_running_loss = 0.0
         num_val_steps = 0
 
@@ -219,25 +237,24 @@ def train():
                 # target: scalar-value z
                 z: torch.Tensor = batch["z"]
                 z = z.cuda(device)
-                # zero gradients
-                optimizer.zero_grad()
-                # forward
-                # use overloaded method that accepts two, identical square inputs
-                outputs = model(X, y_hat)
+                # forwards
+                out_1 = m1(X)
+                out_2 = m2(y_hat)
                 # TODO: do we need this?
                 if z.dim() == 1:
                     z = z.unsqueeze(1)
-                # calculate loss
-                loss = val_loss(outputs, z)
-                # TODO: might break
-                val_running_loss += loss.item() * y_hat.size(0)
+                loss1 = vl1(out_1, z)
+                loss2 = vl2(out_2, z)
+                # calc ensemble loss
+                increment = ((loss1.item() * X.size(0)) + (loss2.item() * y_hat.size(0))) / 2
+                val_running_loss += increment
                 logger.log(
                     **{
                         "global_train_step": None,
                         "global_val_step": len(val_dataloader) * (epoch) + i,
                         "epoch": epoch,
                         "train_loss": None,
-                        "val_loss": loss.item(),
+                        "val_loss": (loss1.item() + loss2.item()) / 2,
                         "z": z.mean().item(),
                     }
                 )
@@ -249,9 +266,11 @@ def train():
                 if bool(config["logging"]["save_only_best_weights"]):
                     if avg_val_loss < best_loss:
                         best_loss = avg_val_loss
-                        logger.save_weights(model, "best")
+                        logger.save_weights(m1, "best_m1")
+                        logger.save_weights(m2, "best_m2")
                 else:
-                    logger.save_weights(model, f"epoch_{epoch}")
+                    # logger.save_weights(model, f"epoch_{epoch}")
+                    pass
 
 
 def main():

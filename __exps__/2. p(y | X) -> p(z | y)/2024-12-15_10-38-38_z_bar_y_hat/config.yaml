@@ -25,8 +25,8 @@ dataset:
   num_workers: 0
 
 logging:
-  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/4. p(z | X) + p(y | X)"
-  exp_name: z_bar_X_plus_y_hat
+  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/2. p(y | X) -> p(z | y)"
+  exp_name: z_bar_y_hat
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   save_weights: true
   save_only_best_weights: true
