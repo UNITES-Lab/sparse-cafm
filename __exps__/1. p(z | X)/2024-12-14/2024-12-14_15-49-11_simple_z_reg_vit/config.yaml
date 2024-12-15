@@ -22,7 +22,7 @@ dataset:
   name: SapphireDataset
   image_size: 224
   crop_size: 64
-  num_workers: 0
+  num_workers: 8
 
 logging:
   root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/1. p(z | X)"

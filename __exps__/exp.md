@@ -1,57 +1,38 @@
-This directory will contain all experimental results, regardless of model variant, organized by some standard format.
+# **Experiment Set**: 4-Task Formulations
 
-import torch
-import keyboard
+Goal: figure out which of the four task formulations is most promising.
 
-# Define a flag to stop training
-stop_training = False
+Definitions
+- $X$ : topology-map with shape $\{H, W, D\}$
+- $y$ : current-map with shape $\{H, W, C\}$
+- $\hat{y}$ : predicted current-map with shape $\{H, W, C\}$
+- $g_{\theta}$ : ControlNet `(N, H, W, D) -> (N, H, W, C)`
+    - $g_{\theta}(X) = \hat{y} \approx y$
 
-# Define a function to handle keypress
-def on_key_press():
-    global stop_training
-    if keyboard.is_pressed('q'):  # Listen for 'q' key press
-        print("Kill switch activated. Stopping training...")
-        stop_training = True
+Preparation
+- Train a model $g_{\theta}(X) = \hat{y} \approx y$
+- Develop a pre-processed dataset of $\hat{y}$ 
+    - Splice training and validation set original samples using **fixed-grid sampling**
+    - `1x(512, 512) -> 64x(64, 64)`
+    - Train and validation samples completely seperate (i.e., **4 train 1 val**)
 
-# Example training loop
-def train_model(model, dataloader, optimizer, criterion, num_epochs):
-    global stop_training
-    for epoch in range(num_epochs):
-        if stop_training:
-            break
-        print(f"Epoch {epoch+1}/{num_epochs}")
-        for batch_idx, (inputs, targets) in enumerate(dataloader):
-            if stop_training:
-                break
-            # Forward pass
-            inputs, targets = inputs.cuda(), targets.cuda()
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
+Four task formulations
 
-            # Backward pass and optimization
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+1. $P(z | X)$
+    - Directly regress scalar value $z$ from $X$
+    - Train a model $f_{\theta}(X) = \hat{z} \approx z$
+2. $P(z | \hat{y})$
+    - Train a model $f_{\theta}(\hat{y}) = \hat{z} \approx z$
+3. $P(z | X, \hat{y})$
+    - Train a model $f_{\theta}(X, \hat{y}) = \hat{z} \approx z$
+4.  $P(z | X) + P(z | \hat{y})$
+    - Predict $z = (z_1 + z_2) / 2$
 
-        # Check if the kill switch is activated
-        on_key_press()
+Table 1.
 
-    # Cleanup
-    print("Releasing GPU memory...")
-    torch.cuda.empty_cache()
-    del model, optimizer
-    print("Training stopped safely.")
-
-# Dummy example
-if __name__ == "__main__":
-    # Create dummy model, dataloader, optimizer, and criterion
-    model = torch.nn.Linear(10, 2).cuda()
-    dataloader = [(
-        torch.randn(16, 10).cuda(),
-        torch.randint(0, 2, (16,)).cuda()
-    ) for _ in range(100)]
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    criterion = torch.nn.CrossEntropyLoss()
-
-    print("Press 'q' to stop training safely.")
-    train_model(model, dataloader, optimizer, criterion, num_epochs=10)
+| Formulation | Eval L1 Loss |
+| :---: | :---: | 
+| --- | --- |
+| --- | --- |
+| --- | --- |
+| --- | --- |

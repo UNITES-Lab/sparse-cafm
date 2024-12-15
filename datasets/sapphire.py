@@ -26,6 +26,7 @@ class Formulation(Enum):
     P_Y_BAR_X_FIXED_GRID = 2
     P_Z_BAR_X_Y = 3
     P_Z_BAR_X_PLUS_Y_BAR_X = 4
+    P_Z_BAR_Y = 5
 
 
 class SapphireDataset(Dataset):
@@ -420,6 +421,8 @@ class SapphireDatasetFixedGridSampling(Dataset):
         self.topo_maps: tuple = None
         self.current_maps: tuple = None
         self.predicted_current_maps: tuple = None
+        self._raw_current_maps: tuple = None
+        
         # load all data from src files
         self._load_imgs()
 
@@ -427,11 +430,14 @@ class SapphireDatasetFixedGridSampling(Dataset):
         self.epsilon: Optional[float] = None
         self._calculate_epsilon()
 
-        # (B * 64, C, H, W)
+        # (N, 64, C/D, H, W)
         self.X_patches: tuple = None
         self.y_patches: tuple = None
+        # (N, 64, H, W)
+        self.y_raw_patches: tuple = None
         self._patchify_images()
-        
+
+        # (N, 64, C, H, W)
         self.y_hat_patches: tuple = None
         self._load_y_hat_patches()
 
@@ -497,7 +503,7 @@ class SapphireDatasetFixedGridSampling(Dataset):
         self.topo_maps = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_topo_imgs]
 
     def _load_y_hat_patches(self) -> None:
-        
+
         src_dir = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/full-sized-c-asm-data/target/y_hat"
         if self.split == "train":
             src_dir = os.path.join(src_dir, "train")
@@ -508,12 +514,12 @@ class SapphireDatasetFixedGridSampling(Dataset):
 
         all_img_file_paths = glob(src_dir + "/**.png")
         all_img_file_paths = sorted(all_img_file_paths)
-        
+
         y_hat_patches = []
         for fp in all_img_file_paths:
             arr = cv2.imread(fp)
             y_hat_patches.append(arr)
-            
+
         # (N, H, W, C)
         self.y_hat_patches = np.array(y_hat_patches)
 
@@ -522,14 +528,19 @@ class SapphireDatasetFixedGridSampling(Dataset):
         Split original (512, 512) data samples -> 64x (64, 64)
         """
 
-        # want to create three arrays; aligned by dim
+        # want to create four arrays; aligned by dim
         # X_patches:                        (N, 64, D, H, W)
         # y_patches:                        (N, 64, C, H, W)
         # y_hat_patches:                    (N, 64, C, H, W)
+        # y_raw_patches:                    (N, 64, H, W)
 
         self.topo_maps = torch.tensor(self.topo_maps).permute(0, 3, 1, 2)
         self.current_maps = torch.tensor(self.current_maps).permute(0, 3, 1, 2)
+        
+        # shape: (5, 512, 512)
+        self._raw_current_maps = torch.tensor(self._raw_current_maps)
 
+        # patchify X
         N, C, H, W = self.topo_maps.shape
         subimages = []
         for i in range(0, H, 64):
@@ -540,6 +551,7 @@ class SapphireDatasetFixedGridSampling(Dataset):
                 )
                 subimages.append(chunk)
 
+        # patchify y
         # (64, 5, 3, 64, 64)
         self.X_patches = np.array(subimages)
 
@@ -556,25 +568,34 @@ class SapphireDatasetFixedGridSampling(Dataset):
         # (64, 5, 3, 64, 64)
         # X -> controlnet -> y_hat
         self.y_patches = np.array(subimages)
+        
+        N, H, W = self._raw_current_maps.shape
+        subimages = []
+        for i in range(0, H, 64):
+            for j in range(0, W, 64):
+                # (N, 64, 64)
+                chunk = (
+                    self._raw_current_maps[:, i : i + 64, j : j + 64].detach().cpu().numpy()
+                )
+                subimages.append(chunk)
+
+        # (64, 5, 64, 64)
+        self.y_raw_patches = np.array(subimages)
 
     def _create_augmentation_pipeline(self, resize_to_og_height=True):
-        # HACK: optionaly resize image to original height after taking random crop.
-        # We do not resize images when training a ControlNet, hence the need for the conditional.
         return A.Compose(
             [
-                # I'm almost certain we are resizing somthing incorrectly
-                # But we're going to roll with the current config for now
                 A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+                A.Resize(
+                    width=self.original_image_size[0],
+                    height=self.original_image_size[1],
+                ),
             ],
-            additional_targets={
-                "y_hat": "image",
-                "y": "mask",
-            },
         )
 
     def __len__(self):
         """
-        len(self) == self.steps_per_epoch
+        Hard coded.
 
         HACK:
         - train:    64 * 4
@@ -591,49 +612,75 @@ class SapphireDatasetFixedGridSampling(Dataset):
 
     def get_item_p_z_bar_x(self, index: int) -> Dict:
         """
-        Get the next randomly sampled (64, 64) item from the dataset.
-
-        :param index: currently unused, necessiary for batch data-loading
+        Formulation 1/4: predict z from topography map X.
         :returns:
             ```
                 {
                     'X': torch.Tensor,      # topo-map w/ shape [C, H, W]
-                    'X_og': torch.Tensor,   # topo-map w/ shape [H, W, C]
                     'y': torch.Tensor,      # target current-map w/ shape [C, H, W]
                     'z': torch.Tensor,      # scalar-valued target denoting 'current-under-threshold'
                 }
         """
 
-        # x-patches shape: (64, 5, 3, 64, 64)
+        # x/y patches shape: (64, 5, 3, 64, 64)
         X_patches = self.X_patches
         y_patches = self.y_patches
+        
+        # raw current readings shape: (64, 5, 64, 64)
+        y_raw_patches = self.y_raw_patches
 
         # HACK: hard-coded train/val splits
         if self.split == TRAIN_SPLIT:
             X_patches: np.ndarray = X_patches[:, :5, :, :, :]
             y_patches: np.ndarray = y_patches[:, :5, :, :, :]
+            y_raw_patches: np.ndarray = y_raw_patches[:, :5, :, :]
         elif self.split == VAL_SPLIT:
             X_patches = X_patches[:, -1, :, :, :]
+            X_patches = np.expand_dims(X_patches, 1)
             y_patches = y_patches[:, -1, :, :, :]
+            y_patches = np.expand_dims(y_patches, 1)
+            y_raw_patches = y_raw_patches[:, -1, :, :]
+            y_raw_patches = np.expand_dims(y_raw_patches, 1)
         else:
             raise Exception(f"Invalid split: {self.split}")
-
+        
         whole_sample_idx = index // 64
         offset_idx = index - (64 * whole_sample_idx)
 
-        # get topography map with normalized depth dim
+        # shape: (3, 64, 64)
         X: np.ndarray = X_patches[offset_idx, whole_sample_idx, :, :, :]
-        y: np.ndarray = y_patches[offset_idx, whole_sample_idx, :, :, :]
+        # (3, 64, 64) -> (64, 64, 3)
+        X = np.transpose(X, axes=(1, 2, 0))
+        
+        # (64, 64)
+        # no need to augment this array, z will be unchanged by our current transforms
+        y_raw: np.ndarray = y_raw_patches[offset_idx, whole_sample_idx, :, :]
 
-        aug = self.augmentation_pipeline(image=X, y=y)
-        X = torch.tensor(aug["image"]).permute(1, 2, 0).float()
-        y = torch.tensor(aug["y"]).permute(1, 2, 0).float()
+        # apply augmentations to topo-map (X), current-map (y),
+        aug = self.augmentation_pipeline(image=X)
+        
+        # (64, 64, 3) -> (224, 224, 3) -> (3, 224, 224)
+        X = torch.tensor(aug["image"]).float().permute(2, 1, 0)
 
-        # X & y have shape: (3, 64, 64)
-        return dict(jpg=y, txt=" ", hint=X)
+        # calculate value of z
+        z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
+
+        # HACK: normalize Z
+        z = torch.tensor(z).float() * self.z_mult
+
+        # z should always be in range: [0, 1.0 * Z_MULT]
+        assert z >= 0.0 and z <= (1.0 * self.z_mult)
+
+        return {
+            "X": X,
+            "z": z,
+            "epsilon": self.epsilon,
+        }
 
     def get_item_p_y_bar_x(self, index: int) -> Dict:
         """
+        TODO: clean up this method
+
         Get item method for ControlNet models.
         Predict a current map y_hat from given topology map X.
 
@@ -670,7 +717,86 @@ class SapphireDatasetFixedGridSampling(Dataset):
         y = torch.tensor(aug["y"]).permute(1, 2, 0).float()
         y_hat = torch.tensor(aug["y_hat"]).permute(1, 2, 0).float()
 
+    def get_item_p_z_bar_y_hat(self, index: int) -> Dict:
+        """
+        Forumulation 2/4. Predict z from y_hat.
+
+        :param index: currently unused, necessiary for batch data-loading
+        :returns:
+            ```
+                {
+                    'X': torch.Tensor,      # topo-map w/ shape [C, H, W]
+                    'y_hat': torch.Tensor,  # ControlNet predicted current-map w/ shape [C, H, W]
+                    'z': torch.Tensor,      # scalar-valued target denoting 'current-under-threshold
+                }
+        """
         
+        # x/y patches shape: (64, 5, 3, 64, 64)
+        X_patches = self.X_patches
+        y_patches = self.y_patches
+        
+        # raw current readings shape: (64, 5, 64, 64)
+        y_raw_patches = self.y_raw_patches
+
+        # HACK: hard-coded train/val splits
+        if self.split == TRAIN_SPLIT:
+            X_patches: np.ndarray = X_patches[:, :5, :, :, :]
+            y_patches: np.ndarray = y_patches[:, :5, :, :, :]
+            y_raw_patches: np.ndarray = y_raw_patches[:, :5, :, :]
+        elif self.split == VAL_SPLIT:
+            X_patches = X_patches[:, -1, :, :, :]
+            X_patches = np.expand_dims(X_patches, 1)
+            y_patches = y_patches[:, -1, :, :, :]
+            y_patches = np.expand_dims(y_patches, 1)
+            y_raw_patches = y_raw_patches[:, -1, :, :]
+            y_raw_patches = np.expand_dims(y_raw_patches, 1)
+        else:
+            raise Exception(f"Invalid split: {self.split}")
+        
+        whole_sample_idx = index // 64
+        offset_idx = index - (64 * whole_sample_idx)
+
+        # shape: (3, 64, 64)
+        X: np.ndarray = X_patches[offset_idx, whole_sample_idx, :, :, :]
+        # (3, 64, 64) -> (64, 64, 3)
+        X = np.transpose(X, axes=(1, 2, 0))
+        
+        # (N * 64, 64, 64, 3) -> (64, 64, 3)
+        y_hat: np.ndarray = self.y_hat_patches[index, :, :, :]
+        
+        # (64, 64)
+        # no need to augment this array, z will be unchanged by our current transforms
+        y_raw: np.ndarray = y_raw_patches[offset_idx, whole_sample_idx, :, :]
+        
+        # apply augmentations predicted current-map (y_hat)
+        aug = self.augmentation_pipeline(image=y_hat)
+        
+        # (64, 64, 3) -> (224, 224, 3) -> (3, 224, 224)
+        y_hat = torch.tensor(aug["image"]).float().permute(2, 1, 0)
+        
+        # apply augmentations to topo-map (X), current-map (y),
+        aug = self.augmentation_pipeline(image=X)
+        
+        # (64, 64, 3) -> (224, 224, 3) -> (3, 224, 224)
+        X = torch.tensor(aug["image"]).float().permute(2, 1, 0)
+
+        # calculate value of z
+        z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
+
+        # HACK: normalize Z
+        z = torch.tensor(z).float() * self.z_mult
+
+        # z should always be in range: [0, 1.0 * Z_MULT]
+        assert z >= 0.0 and z <= (1.0 * self.z_mult)
+
+        return {
+            "X": X,
+            "y_hat": y_hat,
+            "z": z,
+            "epsilon": self.epsilon,
+        }
+        
+
     def __getitem__(self, index: int) -> Dict:
         """
         Get the next randomly sampled item from the dataset.
@@ -689,7 +815,7 @@ class SapphireDatasetFixedGridSampling(Dataset):
 
         fn_map = {
             Formulation.P_Z_BAR_X: self.get_item_p_z_bar_x,
-            Formulation.P_Y_BAR_X: self.get_item_p_y_bar_x,
+            Formulation.P_Z_BAR_Y: self.get_item_p_z_bar_y_hat,
         }
         if self.formulation not in fn_map:
             raise Exception(
