@@ -4,7 +4,7 @@ import sys
 import torch
 import torch.nn as nn
 
-from models.simple_z_predictor import SimpleZRegressionVisionTransformer
+from models.simple_z_predictor import EnsembleZRegressionVisionTransformer
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from datasets.sapphire import SapphireDatasetFixedGridSampling, Formulation
@@ -24,19 +24,15 @@ CONFIG_FP = (
 Z_MULT = 1
 
 """
-Formulation 3/4.
+Formulation 4/4.
 
 Models
-    1. conditional diffusion model:         X -> y_hat
-    2. simple regression model:     X + y_hat -> z_hat
+    1. conditional diffusion model:                  X -> y_hat
+    2. simple regression model:                 X + M1 -> z_hat_1
+    3. simple regression model:                 X + M2 -> z_hat_2
+    4. ensemble                      z_hat_1 + z_hat_2 -> z_hatd
     
 Training diffusion model will be a different procedure from eval.
-
-TODO: how to concat X, y_hat?
-- 1. E1 = preproc(X)
-- 2. E2 = preproc(y_hat)
-- 3. J = E1 + E2
-- 4. M(J) ~ z
 """
 
 
@@ -121,7 +117,7 @@ def train():
     logger.add_result_columns(config["logging"]["result_columns"])
 
     # load model
-    model: torch.nn.Module = SimpleZRegressionVisionTransformer()
+    model: torch.nn.Module = EnsembleZRegressionVisionTransformer()
 
     # create train/val datasets and dataloaders
     img_size = int(config["dataset"]["image_size"])

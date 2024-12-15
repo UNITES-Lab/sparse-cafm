@@ -1,0 +1,2 @@
+global_train_step,global_val_step,epoch,train_loss,val_loss,z
+0,,0,0.576515257358551,,0.0
