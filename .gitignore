@@ -5,9 +5,16 @@
 **.tif
 **.bmp
 **.pt
+**.npz
+**.npy
 
 SwinIR
 SwinIR/**
+
+ControlNet
+ControlNet/**
+__exps__/__controlnet_runs__
+__exps__/__controlnet_runs__/**
 
 __repos__
 __repos__/**

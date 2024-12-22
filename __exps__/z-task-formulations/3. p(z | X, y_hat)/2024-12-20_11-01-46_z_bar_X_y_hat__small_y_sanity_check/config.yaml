@@ -26,7 +26,7 @@ dataset:
 
 logging:
   root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/3. p(z | X, y_hat)"
-  exp_name: z_bar_X_y_hat__baseline_y_sanity_check
+  exp_name: z_bar_X_y_hat__small_y_sanity_check
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   save_weights: true
   save_only_best_weights: true
