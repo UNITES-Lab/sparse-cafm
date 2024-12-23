@@ -2,7 +2,7 @@ import yaml
 import torch
 import torch.nn as nn
 
-from util.loss import DiceLoss, FocalLoss
+from util.loss import DiceLoss, FocalLoss, VAELoss
 from torchvision.models import resnet152, swin_b, efficientnet_v2_l, vit_l_16
 from torchvision.models import (
     ResNet152_Weights,
@@ -12,6 +12,7 @@ from torchvision.models import (
 )
 from models.simple_z_predictor import SimpleZRegressionVisionTransformer
 from models.autoencoder import Autoencoder
+from models.vae import VAE
 
 
 def parse_config(fp: str) -> dict:
@@ -28,6 +29,7 @@ LOSS_FUNCTIONS = {
     "Dice": DiceLoss,
     "Focal": FocalLoss,
     "Huber": nn.HuberLoss,
+    "VAE": VAELoss,
 }
 
 MODELS = {
@@ -53,6 +55,10 @@ MODELS = {
     },
     "ae": {
         "fn": Autoencoder.get,
+        "weights": None
+    },
+    "vae": {
+        "fn": VAE.get,
         "weights": None
     }
 }

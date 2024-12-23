@@ -6,6 +6,20 @@ import numpy as np
 from typing import Optional, Sequence
 
 
+
+class VAELoss(nn.Module):
+    def __init__(self):
+        """
+        Variational Autoencoder Loss Function.
+        """
+        super(VAELoss, self).__init__()
+
+    def forward(self, output, target, mu, logvar):
+        recon_loss = F.mse_loss(output, target, reduction='sum') / target.size(0)
+        kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        return recon_loss + 0.002 * kl_loss
+
+
 # https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pytorch
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
@@ -24,8 +38,6 @@ class DiceLoss(nn.Module):
         dice = (2.0 * intersection + smooth) / (inputs.sum() + targets.sum() + smooth)
 
         return 1 - dice
-
-    import torch
 
 
 # https://discuss.pytorch.org/t/is-this-a-correct-implementation-for-focal-loss-in-pytorch/43327/8
@@ -153,3 +165,11 @@ def focal_loss(
         alpha=alpha, gamma=gamma, reduction=reduction, ignore_index=ignore_index
     )
     return fl
+
+
+# Define the loss function
+def vae_loss_function(output, x, mu, logvar):
+    # reconstruction loss
+    recon_loss = F.mse_loss(output, x, reduction="sum") / x.size(0)
+    kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return recon_loss + 0.002 * kl_loss

@@ -1,6 +1,11 @@
-# 1. P(y | y_sparse)
+# # 1. P(y | y_sparse)
+# export CUDA_VISIBLE_DEVICES=7
+# nohup python train_y_bar_y_sparse.py /dev/null 2>&1 &
+# exit
+
+# 2. P(y | y_sparse) – VAE flavored
 export CUDA_VISIBLE_DEVICES=7
-nohup python train_y_bar_y_sparse.py /dev/null 2>&1 &
+nohup python train_y_bar_y_sparse_vae.py > vae.out 2>&1 &
 exit
 
 # cd ControlNet
