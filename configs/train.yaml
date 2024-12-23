@@ -2,7 +2,7 @@ global:
   device: 0
 
 model:
-  name: vae
+  name: unet
   pretrained: True
 
 training:
@@ -26,9 +26,9 @@ dataset:
 
 logging:
   root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/1. P(y | y_sparse)"
-  exp_name: VAE_y_bar_y_sparse
+  exp_name: unet_y_bar_y_sparse
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
-  save_weights: true
+  save_weights: false
   save_only_best_weights: true
   enable_tensorboard: false
   log_figures: false

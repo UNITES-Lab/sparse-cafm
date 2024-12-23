@@ -13,6 +13,7 @@ from torchvision.models import (
 from models.simple_z_predictor import SimpleZRegressionVisionTransformer
 from models.autoencoder import Autoencoder
 from models.vae import VAE
+from models.unet.unet import UNet
 
 
 def parse_config(fp: str) -> dict:
@@ -59,6 +60,10 @@ MODELS = {
     },
     "vae": {
         "fn": VAE.get,
+        "weights": None
+    },
+    "unet": {
+        "fn": UNet.get ,
         "weights": None
     }
 }

@@ -26,7 +26,7 @@ class Autoencoder(nn.Module):
             nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1),   # (16, 32, 32)
             nn.ReLU(True),
             nn.ConvTranspose2d(16, channels, kernel_size=4, stride=2, padding=1),  # (channels, 64, 64)
-            nn.Sigmoid()  # To ensure the output is between 0 and 1
+            nn.Tanh()  # To ensure the output is between 0 and 1
         )
         
     def forward(self, x):

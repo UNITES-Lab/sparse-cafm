@@ -60,7 +60,7 @@ class VAE(nn.Module):
         x = F.relu(self.dec_conv1(x))
         x = F.relu(self.dec_conv2(x))
         x = F.relu(self.dec_conv3(x))
-        x = torch.sigmoid(self.dec_conv4(x))  # Sigmoid for output between 0 and 1
+        x = torch.tanh(self.dec_conv4(x))  # Sigmoid for output between 0 and 1
         return x
 
     def forward(self, x):
@@ -79,4 +79,4 @@ def vae_loss_function(output, x, mu, logvar):
     # reconstruction loss
     recon_loss = F.mse_loss(output, x, reduction="sum") / x.size(0)
     kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    return recon_loss + 0.002 * kl_loss
+    return (recon_loss + 0.002 * kl_loss) * .001
