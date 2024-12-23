@@ -11,7 +11,7 @@ from torchvision.models import (
     ViT_L_16_Weights,
 )
 from models.simple_z_predictor import SimpleZRegressionVisionTransformer
-from models.autoencoder import AutoEncoder
+from models.autoencoder import Autoencoder
 
 
 def parse_config(fp: str) -> dict:
@@ -52,7 +52,7 @@ MODELS = {
         "weights": ViT_L_16_Weights.IMAGENET1K_V1,
     },
     "ae": {
-        "fn": AutoEncoder.get,
+        "fn": Autoencoder.get,
         "weights": None
     }
 }
