@@ -3,6 +3,8 @@ import os
 import torch
 import datetime
 import pandas as pd
+import yaml
+import wandb
 
 from typing import List, Dict, Optional
 from torch.utils.tensorboard import SummaryWriter
@@ -22,24 +24,39 @@ class ExperimentLogger:
         exp_name: Optional[str] = "",
         log_interval: int = 100,
         enable_tensorboard=False,
+        enable_wandb=False,
+        wandb_proj_name: Optional[str] = None,
     ) -> None:
         """
-        :param config_fp: path to a `.yaml` config file containing all hps
-        :param exp_name: name of the experiment
-        :param log_interval: how often to write log results to .csv file
+        :param config_fp:           path to a `.yaml` config file containing all hps
+        :param root:                path to top experiment dir
+        :param exp_name:            name of the experiment
+        :param log_interval:        how often to write log results to .csv file
+        :param enable_tensorboard:  flag to enable tensorboard logging
+        :param enable_wandb:        flag to enable W&B logging [NOT SUPPORTED CURRENTLY]
+        :param wandb_project_name:  name of W&B project (e.g. "my-project")
         """
 
         assert config_fp.endswith(".yaml")
-        self.config_fp = config_fp
-        self.exp_name = exp_name
+        self.config_fp: str = config_fp
+        self.exp_name: str = exp_name
         self.results = pd.DataFrame()
-        self.log_interval = log_interval
+        self.log_interval: int = log_interval
         self.log_counter = 0
         self.root: str = root
-        self.enable_tensorboard = enable_tensorboard
+        self.enable_tensorboard: bool = enable_tensorboard
         self.exp_dir: Optional[str] = None
+        # tensorboard support
         self.results_out_path: Optional[str] = None
         self.summary_writer: Optional[SummaryWriter] = None
+        # wandb support
+        self.enable_wandb = enable_wandb
+        if self.enable_wandb == True:
+            assert (
+                wandb_proj_name != None
+            ), f"Error: must provide a valid name for wandb_proj_name"
+        self.wandb_proj_name = wandb_proj_name
+        self.wandb_run = None
         self._setup_exp_dir()
 
     def _update_csv(self):
@@ -65,11 +82,23 @@ class ExperimentLogger:
         # path to results csv file
         self.results_out_path = os.path.join(exp_out_dir, "results.csv")
 
-        # create a tensorboard writer object
+        # optional: create a tensorboard writer object
         if self.enable_tensorboard:
             tb_log_dir = os.path.join(self.exp_dir, "tensorboard")
             os.makedirs(tb_log_dir, exist_ok=True)
-            self.writer = SummaryWriter(log_dir=tb_log_dir)
+            self.summary_writer = SummaryWriter(log_dir=tb_log_dir)
+
+        # optional: create a wandb run
+        if self.enable_wandb:
+            with open(self.config_fp, "r") as f:
+                config_dict = yaml.safe_load(f)
+            wandb.init(
+                project=self.wandb_proj_name,
+                name=self.exp_name,
+                config=config_dict,
+                dir=self.exp_dir,
+            )
+            self.wandb_run = wandb.run
 
     def add_result_column(self, name: str):
         self.results[name] = None
@@ -88,14 +117,20 @@ class ExperimentLogger:
         if self.log_counter % self.log_interval == 0:
             self._update_csv()
         self.log_counter += 1
-
-        # log -> tensorboard
+        # optional: log -> tensorboard
         if self.enable_tensorboard:
             if step is None:
                 step = self.log_counter
             for k, v in kwargs.items():
                 if isinstance(v, (int, float)):
-                    self.writer.add_scalar(k, v, step)
+                    self.summary_writer.add_scalar(k, v, step)
+        # optional: log -> wandb
+        if self.enable_wandb:
+            step = self.log_counter
+            wandb_dict = {
+                k: v for k, v in kwargs.items() if isinstance(v, (int, float))
+            }
+            wandb.log(wandb_dict, step=step)
 
     def save_weights(self, x: torch.nn.Module, name: str = "best"):
         """

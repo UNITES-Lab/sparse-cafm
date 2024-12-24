@@ -164,40 +164,19 @@ class SapphireDataset(Dataset):
     def _create_augmentation_pipeline(self, resize_to_og_height=True):
         # HACK: optionaly resize image to original height after taking random crop.
         # We do not resize images when training a ControlNet, hence the need for the conditional.
-        if resize_to_og_height:
-            return A.Compose(
-                [
-                    A.HorizontalFlip(p=0.5),
-                    A.RandomCrop(
-                        width=self.side_length, height=self.side_length, p=1.0
-                    ),
-                    A.Resize(
-                        width=self.original_image_size[0],
-                        height=self.original_image_size[1],
-                    ),
-                    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-                ],
-                additional_targets={
-                    "y": "mask",
-                    "X_og": "mask",
-                    "y_og": "mask",
-                },
-            )
-        else:
-            return A.Compose(
-                [
-                    A.HorizontalFlip(p=0.5),
-                    A.RandomCrop(
-                        width=self.side_length, height=self.side_length, p=1.0
-                    ),
-                    # A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-                ],
-                additional_targets={
-                    "y": "mask",
-                    "X_og": "mask",
-                    "y_og": "mask",
-                },
-            )
+        return A.Compose(
+            [
+                A.HorizontalFlip(p=0.5),
+                A.RandomCrop(
+                    width=self.side_length, height=self.side_length, p=1.0
+                ),
+            ],
+            additional_targets={
+                "y": "mask",
+                "X_og": "mask",
+                "y_og": "mask",
+            },
+        )
 
     def __len__(self):
         """
@@ -221,62 +200,6 @@ class SapphireDataset(Dataset):
                 }
         """
 
-        # HACK: hard-coded train/val splits
-        # choose a random sample idx
-        if self.split == TRAIN_SPLIT:
-            # randint is inclusive: [a, b]
-            # select a random sample from self.data[:-1]
-            sample_idx = random.randint(0, len(self.current_maps) - 2)
-        elif self.split == VAL_SPLIT:
-            # select the final data sample: self.data[-1]
-            sample_idx = len(self.current_maps) - 1
-        else:
-            raise Exception(f"Invalid split: {self.split}")
-
-        # get topography map with normalized depth dim
-        X: np.ndarray = self.topo_maps[sample_idx]
-        # copy of original X for figure logging
-        X_og = X.copy()
-
-        y: np.ndarray = self.current_maps[sample_idx]
-        # copy of original y for figure logging
-        y_og = y.copy()
-        # raw (H, W) current map; unnormalized (very small) current values
-        y_raw: np.ndarray = self._raw_current_maps[sample_idx]
-
-        # augment samples
-        # X recieves pixel-value normalization, all other data do not
-        augmented = self.augmentation_pipeline(
-            image=X, mask=y_raw, y=y, X_og=X_og, y_og=y_og
-        )
-
-        # convert all data -> tensor
-        X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
-        y = torch.tensor(augmented["y"]).permute(2, 0, 1).float()
-        X_og = torch.tensor(augmented["X_og"])
-        y_og = torch.tensor(augmented["y_og"])
-        # stays as a np.ndarray
-        y_raw = augmented["mask"]
-
-        # MARK: calculate values of z
-        # z: sum(pixels < self.epsilon) / total num pixels
-        z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
-
-        # TODO: what is the ideal way to normalize z?
-        z = torch.tensor(z).float() * self.z_mult
-
-        # z should always be in range: [0, 1.0 * Z_MULT]
-        assert z >= 0.0 and z <= (1.0 * self.z_mult)
-
-        return {
-            "X": X,
-            "y": y,
-            "z": z,
-            "X_og": X_og,
-            "y_og": y_og,
-            "epsilon": self.epsilon,
-        }
-
     def get_item_p_y_bar_x_cn(self, index: int) -> Dict:
         """
         Get items for image -> image translation.
@@ -284,95 +207,14 @@ class SapphireDataset(Dataset):
 
         - Do NOT resize images after taking a random crop.
         """
-
-        p_y_bar_x_augmentation_pipeline = self._create_augmentation_pipeline(
-            resize_to_og_height=False
-        )
-
-        # TODO: we should only consider samples: [0, 1, 2, 3];
-        # 4th sample is collected under slightly different conditions
-
-        # HACK: hard-coded train/val splits
-        # choose a random sample idx
-        if self.split == TRAIN_SPLIT:
-            # randint is inclusive: [a, b]
-            # select a random sample from self.data[:-1]
-            sample_idx = random.randint(0, len(self.current_maps) - 2)
-        elif self.split == VAL_SPLIT:
-            # select the final data sample: self.data[-1]
-            sample_idx = len(self.current_maps) - 1
-        else:
-            raise Exception(f"Invalid split: {self.split}")
-
-        # get topography map with normalized depth dim
-        X: np.ndarray = self.topo_maps[sample_idx]
-        # copy of original X for figure logging
-        X_og = X.copy()
-
-        y: np.ndarray = self.current_maps[sample_idx]
-        # copy of original y for figure logging
-        y_og = y.copy()
-        # raw (H, W) current map; unnormalized (very small) current values
-        y_raw: np.ndarray = self._raw_current_maps[sample_idx]
-
-        # augment samples
-        # X recieves pixel-value normalization, all other data do not
-        # do not resize after random crop; 64x64 -> 64x64
-        augmented = p_y_bar_x_augmentation_pipeline(
-            image=X, mask=y_raw, y=y, X_og=X_og, y_og=y_og
-        )
-
-        # convert all data -> tensor
-        X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
-        y = torch.tensor(augmented["y"]).permute(2, 0, 1).float()
-        X_og = torch.tensor(augmented["X_og"])
-        y_og = torch.tensor(augmented["y_og"])
-        # remains a np.ndarray
-        y_raw = augmented["mask"]
-
-        # TODO: both X and y should be normalized by calculating the global
-        # mean + std of each respective dataset: (topo, curr)
-
-        # # normalize X between [0, 1]
-        # X = torch.stack(
-        #     [
-        #         (channel - channel.min()) / (channel.max() - channel.min())
-        #         for channel in X
-        #     ]
-        # )
-
-        X = (X - self.topo_maps_mean[:, None, None]) / self.topo_maps_std[:, None, None]
-
-        # TODO: add direct control over sparsity
-        # mask 50% of rows in y
-        y_sparse = y.clone()
-        y_sparse[::2, :, :] = 0
-
-        y = (y - self.current_maps_mean[:, None, None]) / self.current_maps_std[:, None, None]
-        y_sparse = (y_sparse - self.current_maps_mean[:, None, None]) / self.current_maps_std[:, None, None]
-
-        # # normalize y between [-1, 1]
-        # y = (y / 127.5) - 1.0
-        # y_sparse = (y_sparse / 127.5) - 1.0
-
-        # [C, H, W] -> [H, W, C]
-        X: torch.Tensor = X.permute(1, 2, 0)
-        y: torch.Tensor = y.permute(1, 2, 0)
-        y_sparse: torch.Tensor = y_sparse.permute(1, 2, 0)
-
-        # MARK: calculate values of z
-        # z: sum(pixels < self.epsilon) / total num pixels
-        z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
-
-        # TODO: what is the ideal way to normalize z?
-        z = torch.tensor(z).float() * self.z_mult
-
-        # z should always be in range: [0, 1.0 * Z_MULT]
-        assert z >= 0.0 and z <= (1.0 * self.z_mult)
-
-        breakpoint()
-
-        return dict(jpg=y, txt=" ", hint=y_sparse)
+        # TODO: is the text-encoder loaded?; how do we encode text?
+        items = self.get_item_p_y_bar_x(index)
+        y: torch.Tensor = items['y']
+        # modify conditional input value range: [-1, 1] -> [0, 1]
+        y_sparse: torch.Tensor = (items['y_sparse'] + 1) / 2
+        y = y.permute(2, 1, 0)
+        y_sparse = y_sparse.permute(2, 1, 0)
+        return dict(jpg=y, txt="", hint=y_sparse)
 
     def get_item_p_y_bar_x(self, index: int) -> Dict:
         """
@@ -424,20 +266,9 @@ class SapphireDataset(Dataset):
         y = torch.tensor(augmented["y"]).permute(2, 0, 1).float()
         X_og = torch.tensor(augmented["X_og"])
         y_og = torch.tensor(augmented["y_og"])
+        
         # remains a np.ndarray
         y_raw = augmented["mask"]
-
-        # TODO: both X and y should be normalized by calculating the global
-        # mean + std of each respective dataset: (topo, curr)
-
-        # # normalize X between [0, 1]
-        # X = torch.stack(
-        #     [
-        #         (channel - channel.min()) / (channel.max() - channel.min())
-        #         for channel in X
-        #     ]
-        # )
-
         X = (X - self.topo_maps_mean[:, None, None]) / self.topo_maps_std[:, None, None]
 
         # TODO: add direct control over sparsity
@@ -447,10 +278,6 @@ class SapphireDataset(Dataset):
 
         y = (y - self.current_maps_mean[:, None, None]) / self.current_maps_std[:, None, None]
         y_sparse = (y_sparse - self.current_maps_mean[:, None, None]) / self.current_maps_std[:, None, None]
-
-        # # normalize y between [-1, 1]
-        # y = (y / 127.5) - 1.0
-        # y_sparse = (y_sparse / 127.5) - 1.0
 
         # [C, H, W]
         X: torch.Tensor = X.float()

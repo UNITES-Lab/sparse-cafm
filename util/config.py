@@ -14,6 +14,7 @@ from models.simple_z_predictor import SimpleZRegressionVisionTransformer
 from models.autoencoder import Autoencoder
 from models.vae import VAE
 from models.unet.unet import UNet
+from models.UNETR.unetr import UNETR
 
 
 def parse_config(fp: str) -> dict:
@@ -64,6 +65,10 @@ MODELS = {
     },
     "unet": {
         "fn": UNet.get ,
+        "weights": None
+    },
+    "unetr": {
+        "fn": UNETR.get,
         "weights": None
     }
 }

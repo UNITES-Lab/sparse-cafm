@@ -14,9 +14,9 @@ from typing import Tuple, Union
 import torch
 import torch.nn as nn
 
-from monai.monai.networks.blocks import UnetrBasicBlock, UnetrPrUpBlock, UnetrUpBlock
-from monai.monai.networks.blocks.dynunet_block import UnetOutBlock
-from monai.monai.networks.nets import ViT
+from monai.networks.blocks import UnetrBasicBlock, UnetrPrUpBlock, UnetrUpBlock
+from monai.networks.blocks.dynunet_block import UnetOutBlock
+from monai.networks.nets import ViT
 
 
 class UNETR(nn.Module):
@@ -29,7 +29,7 @@ class UNETR(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        img_size: Tuple[int, int, int],
+        img_size: Tuple[int, int],
         feature_size: int = 16,
         hidden_size: int = 768,
         mlp_dim: int = 3072,
@@ -74,14 +74,14 @@ class UNETR(nn.Module):
             raise AssertionError("hidden size should be divisible by num_heads.")
 
         if pos_embed not in ["conv", "perceptron"]:
-            raise KeyError(f"Position embedding layer of type {pos_embed} is not supported.")
-
+            raise KeyError(
+                f"Position embedding layer of type {pos_embed} is not supported."
+            )
         self.num_layers = 12
-        self.patch_size = (16, 16, 16)
+        self.patch_size = (16, 16)
         self.feat_size = (
             img_size[0] // self.patch_size[0],
             img_size[1] // self.patch_size[1],
-            img_size[2] // self.patch_size[2],
         )
         self.hidden_size = hidden_size
         self.classification = False
@@ -96,9 +96,10 @@ class UNETR(nn.Module):
             pos_embed=pos_embed,
             classification=self.classification,
             dropout_rate=dropout_rate,
+            spatial_dims=2,
         )
         self.encoder1 = UnetrBasicBlock(
-            spatial_dims=3,
+            spatial_dims=2,
             in_channels=in_channels,
             out_channels=feature_size,
             kernel_size=3,
@@ -107,7 +108,7 @@ class UNETR(nn.Module):
             res_block=res_block,
         )
         self.encoder2 = UnetrPrUpBlock(
-            spatial_dims=3,
+            spatial_dims=2,
             in_channels=hidden_size,
             out_channels=feature_size * 2,
             num_layer=2,
@@ -119,7 +120,7 @@ class UNETR(nn.Module):
             res_block=res_block,
         )
         self.encoder3 = UnetrPrUpBlock(
-            spatial_dims=3,
+            spatial_dims=2,
             in_channels=hidden_size,
             out_channels=feature_size * 4,
             num_layer=1,
@@ -131,7 +132,7 @@ class UNETR(nn.Module):
             res_block=res_block,
         )
         self.encoder4 = UnetrPrUpBlock(
-            spatial_dims=3,
+            spatial_dims=2,
             in_channels=hidden_size,
             out_channels=feature_size * 8,
             num_layer=0,
@@ -143,7 +144,7 @@ class UNETR(nn.Module):
             res_block=res_block,
         )
         self.decoder5 = UnetrUpBlock(
-            spatial_dims=3,
+            spatial_dims=2,
             in_channels=hidden_size,
             out_channels=feature_size * 8,
             kernel_size=3,
@@ -152,7 +153,7 @@ class UNETR(nn.Module):
             res_block=res_block,
         )
         self.decoder4 = UnetrUpBlock(
-            spatial_dims=3,
+            spatial_dims=2,
             in_channels=feature_size * 8,
             out_channels=feature_size * 4,
             kernel_size=3,
@@ -161,7 +162,7 @@ class UNETR(nn.Module):
             res_block=res_block,
         )
         self.decoder3 = UnetrUpBlock(
-            spatial_dims=3,
+            spatial_dims=2,
             in_channels=feature_size * 4,
             out_channels=feature_size * 2,
             kernel_size=3,
@@ -170,7 +171,7 @@ class UNETR(nn.Module):
             res_block=res_block,
         )
         self.decoder2 = UnetrUpBlock(
-            spatial_dims=3,
+            spatial_dims=2,
             in_channels=feature_size * 2,
             out_channels=feature_size,
             kernel_size=3,
@@ -178,11 +179,14 @@ class UNETR(nn.Module):
             norm_name=norm_name,
             res_block=res_block,
         )
-        self.out = UnetOutBlock(spatial_dims=3, in_channels=feature_size, out_channels=out_channels)  # type: ignore
+        self.out = UnetOutBlock(
+            spatial_dims=2, in_channels=feature_size, out_channels=out_channels
+        )
+        self.tanh_activation = torch.nn.Tanh()
 
     def proj_feat(self, x, hidden_size, feat_size):
-        x = x.view(x.size(0), feat_size[0], feat_size[1], feat_size[2], hidden_size)
-        x = x.permute(0, 4, 1, 2, 3).contiguous()
+        x = x.view(x.size(0), feat_size[0], feat_size[1], hidden_size)
+        x = x.permute(0, 3, 1, 2).contiguous()
         return x
 
     def load_from(self, weights):
@@ -192,16 +196,22 @@ class UNETR(nn.Module):
             for i in weights["state_dict"]:
                 print(i)
             self.vit.patch_embedding.position_embeddings.copy_(
-                weights["state_dict"]["module.transformer.patch_embedding.position_embeddings_3d"]
+                weights["state_dict"][
+                    "module.transformer.patch_embedding.position_embeddings_3d"
+                ]
             )
             self.vit.patch_embedding.cls_token.copy_(
                 weights["state_dict"]["module.transformer.patch_embedding.cls_token"]
             )
             self.vit.patch_embedding.patch_embeddings[1].weight.copy_(
-                weights["state_dict"]["module.transformer.patch_embedding.patch_embeddings.1.weight"]
+                weights["state_dict"][
+                    "module.transformer.patch_embedding.patch_embeddings.1.weight"
+                ]
             )
             self.vit.patch_embedding.patch_embeddings[1].bias.copy_(
-                weights["state_dict"]["module.transformer.patch_embedding.patch_embeddings.1.bias"]
+                weights["state_dict"][
+                    "module.transformer.patch_embedding.patch_embeddings.1.bias"
+                ]
             )
 
             # copy weights from  encoding blocks (default: num of blocks: 12)
@@ -209,8 +219,12 @@ class UNETR(nn.Module):
                 print(block)
                 block.loadFrom(weights, n_block=bname)
             # last norm layer of transformer
-            self.vit.norm.weight.copy_(weights["state_dict"]["module.transformer.norm.weight"])
-            self.vit.norm.bias.copy_(weights["state_dict"]["module.transformer.norm.bias"])
+            self.vit.norm.weight.copy_(
+                weights["state_dict"]["module.transformer.norm.weight"]
+            )
+            self.vit.norm.bias.copy_(
+                weights["state_dict"]["module.transformer.norm.bias"]
+            )
 
     def forward(self, x_in):
         x, hidden_states_out = self.vit(x_in)
@@ -227,4 +241,10 @@ class UNETR(nn.Module):
         dec1 = self.decoder3(dec2, enc2)
         out = self.decoder2(dec1, enc1)
         logits = self.out(out)
-        return logits
+        final_output = self.tanh_activation(logits)
+        return final_output
+
+    @staticmethod
+    def get(weights=None):
+        model = UNETR(3, 3, img_size=(64, 64))
+        return model

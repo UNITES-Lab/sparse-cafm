@@ -9,7 +9,7 @@ training:
   batch_size: 16
   steps_per_epoch: 256
   epochs: 2000
-  loss: MSE
+  loss: L1
   lr: 1e-3
   optimizer: Adam
 
