@@ -11,5 +11,6 @@
 cd ControlNet
 export CUDA_VISIBLE_DEVICES=2
 python train.py
+
 # nohup python train.py > control_net.out 2>&1 &
 # exit

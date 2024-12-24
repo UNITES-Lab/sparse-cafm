@@ -1,0 +1,2 @@
+step,train_l1,train_psnr,val_l1,val_pnsr,val_psnr
+0,,,0.7555392384529114,,0.0
