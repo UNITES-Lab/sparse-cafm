@@ -167,9 +167,7 @@ class SapphireDataset(Dataset):
         return A.Compose(
             [
                 A.HorizontalFlip(p=0.5),
-                A.RandomCrop(
-                    width=self.side_length, height=self.side_length, p=1.0
-                ),
+                A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
             ],
             additional_targets={
                 "y": "mask",
@@ -209,9 +207,9 @@ class SapphireDataset(Dataset):
         """
         # TODO: is the text-encoder loaded?; how do we encode text?
         items = self.get_item_p_y_bar_x(index)
-        y: torch.Tensor = items['y']
+        y: torch.Tensor = items["y"]
         # modify conditional input value range: [-1, 1] -> [0, 1]
-        y_sparse: torch.Tensor = (items['y_sparse'] + 1) / 2
+        y_sparse: torch.Tensor = (items["y_sparse"] + 1) / 2
         y = y.permute(2, 1, 0)
         y_sparse = y_sparse.permute(2, 1, 0)
         return dict(jpg=y, txt="", hint=y_sparse)
@@ -266,7 +264,7 @@ class SapphireDataset(Dataset):
         y = torch.tensor(augmented["y"]).permute(2, 0, 1).float()
         X_og = torch.tensor(augmented["X_og"])
         y_og = torch.tensor(augmented["y_og"])
-        
+
         # remains a np.ndarray
         y_raw = augmented["mask"]
         X = (X - self.topo_maps_mean[:, None, None]) / self.topo_maps_std[:, None, None]
@@ -274,10 +272,44 @@ class SapphireDataset(Dataset):
         # TODO: add direct control over sparsity
         # mask 50% of rows in y
         y_sparse = y.clone()
+
+        ## 0% masking
+        # y_sparse = y_sparse
+
+        # # 10% masking
+        # y_sparse[::10, :, :] = 0
+
+        # # 25% masking
+        # y_sparse[::4, :, :] = 0
+
+        # 50% masking
         y_sparse[::2, :, :] = 0
 
-        y = (y - self.current_maps_mean[:, None, None]) / self.current_maps_std[:, None, None]
-        y_sparse = (y_sparse - self.current_maps_mean[:, None, None]) / self.current_maps_std[:, None, None]
+        # # 75% masking
+        # y_sparse[0::4, :, :] = 0
+        # y_sparse[1::4, :, :] = 0
+        # y_sparse[2::4, :, :] = 0
+
+        # # 90% masking
+        # y_sparse[0::10, :, :] = 0
+        # y_sparse[1::10, :, :] = 0
+        # y_sparse[2::10, :, :] = 0
+        # y_sparse[3::10, :, :] = 0
+        # y_sparse[4::10, :, :] = 0
+        # y_sparse[5::10, :, :] = 0
+        # y_sparse[6::10, :, :] = 0
+        # y_sparse[7::10, :, :] = 0
+        # y_sparse[8::10, :, :] = 0
+
+        # # 100% masking
+        # y_sparse[:, :, :] = 0
+
+        y = (y - self.current_maps_mean[:, None, None]) / self.current_maps_std[
+            :, None, None
+        ]
+        y_sparse = (
+            y_sparse - self.current_maps_mean[:, None, None]
+        ) / self.current_maps_std[:, None, None]
 
         # [C, H, W]
         X: torch.Tensor = X.float()

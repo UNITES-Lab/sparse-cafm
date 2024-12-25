@@ -10,6 +10,7 @@ from datasets.sapphire import SapphireDataset, Formulation as F
 from util.logger import ExperimentLogger
 from util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS, parse_config
 from models.regression_head import RegressionHead
+from models.unet.unet import ThickUNet
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
@@ -88,6 +89,9 @@ def train():
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
+            # feature: X
+            X: torch.Tensor = batch["X"]
+            X = X.cuda()
             # feature: y_sparse
             y_sparse: torch.Tensor = batch["y_sparse"]
             y_sparse = y_sparse.cuda(device)
@@ -96,8 +100,20 @@ def train():
             y = y.cuda(device)
             # zero gradients
             optimizer.zero_grad()
+            
             # forward
-            outputs = model(y_sparse)
+            # # P(y | y_sparse)
+            # outputs = model(y_sparse)
+            # # P(y | X)
+            # outputs = model(X)
+            # # P(y | X, y_sparse)
+            # assert isinstance(model, ThickUNet)
+            # outputs = model.wide_forward(X, y_sparse)
+            # P(y | X, y_sparse*c)
+            C = 0.00001
+            assert isinstance(model, ThickUNet)
+            outputs = model.wide_forward(X, y_sparse*C)
+            
             loss = train_loss(outputs, y)
             loss.backward()
             optimizer.step()
@@ -121,14 +137,29 @@ def train():
             for i, batch in enumerate(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
+                # feature: X
+                X: torch.Tensor = batch["X"]
+                X = X.cuda()
                 # feature: y_sparse
                 y_sparse: torch.Tensor = batch["y_sparse"]
                 y_sparse = y_sparse.cuda(device)
                 # target: y
                 y: torch.Tensor = batch["y"]
                 y = y.cuda(device)
+                
                 # forward
-                outputs = model(y_sparse)
+                # # P(y | y_sparse)
+                # outputs = model(y_sparse)
+                # # P(y | X)
+                # outputs = model(X)
+                # # P(y | X, y_sparse)
+                # assert isinstance(model, ThickUNet)
+                # outputs = model.wide_forward(X, y_sparse)
+                # P(y | X, y_sparse*c)
+                C = 0.00001
+                assert isinstance(model, ThickUNet)
+                outputs = model.wide_forward(X, y_sparse*C)
+                
                 loss = val_loss(outputs, y)
                 val_running_loss += loss.item() * y_sparse.size(0)
                 logger.log(

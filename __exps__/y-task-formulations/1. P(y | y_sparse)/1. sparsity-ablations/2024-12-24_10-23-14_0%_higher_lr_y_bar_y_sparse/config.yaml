@@ -2,7 +2,7 @@ global:
   device: 0
 
 model:
-  name: thick_unet
+  name: unet
   pretrained: True
 
 training:
@@ -10,7 +10,7 @@ training:
   steps_per_epoch: 256
   epochs: 2000
   loss: L1
-  lr: 1e-4
+  lr: 1e-2
   optimizer: Adam
 
 validation:
@@ -25,8 +25,8 @@ dataset:
   num_workers: 0
 
 logging:
-  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/2. y_sparse-importance"
-  exp_name: unet_y_bar_X_y*c_sparse
+  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/1. P(y | y_sparse)/1. sparsity-ablations"
+  exp_name: 0%_higher_lr_y_bar_y_sparse
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   save_weights: false
   save_only_best_weights: false

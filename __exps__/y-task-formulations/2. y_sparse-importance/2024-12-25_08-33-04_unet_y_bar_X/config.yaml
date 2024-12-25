@@ -2,7 +2,7 @@ global:
   device: 0
 
 model:
-  name: thick_unet
+  name: unet
   pretrained: True
 
 training:
@@ -26,7 +26,7 @@ dataset:
 
 logging:
   root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/2. y_sparse-importance"
-  exp_name: unet_y_bar_X_y*c_sparse
+  exp_name: unet_y_bar_X
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   save_weights: false
   save_only_best_weights: false

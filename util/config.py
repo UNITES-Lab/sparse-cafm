@@ -13,7 +13,7 @@ from torchvision.models import (
 from models.simple_z_predictor import SimpleZRegressionVisionTransformer
 from models.autoencoder import Autoencoder
 from models.vae import VAE
-from models.unet.unet import UNet
+from models.unet.unet import UNet, ThickUNet
 from models.UNETR.unetr import UNETR
 
 
@@ -65,6 +65,10 @@ MODELS = {
     },
     "unet": {
         "fn": UNet.get ,
+        "weights": None
+    },
+    "thick_unet": {
+        "fn": ThickUNet.get,
         "weights": None
     },
     "unetr": {
