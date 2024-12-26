@@ -15,6 +15,7 @@ from models.autoencoder import Autoencoder
 from models.vae import VAE
 from models.unet.unet import UNet, ThickUNet
 from models.UNETR.unetr import UNETR
+import hiera.hiera as H
 
 
 def parse_config(fp: str) -> dict:
@@ -73,6 +74,10 @@ MODELS = {
     },
     "unetr": {
         "fn": UNETR.get,
+        "weights": None
+    },
+    "hiera": {
+        "fn": H.mae_hiera_base_224(pretrained=True, checkpoint="mae_in1k"),
         "weights": None
     }
 }

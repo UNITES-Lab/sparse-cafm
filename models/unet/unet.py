@@ -84,7 +84,7 @@ class ThickUNet(nn.Module):
         self.up4 = Up(128, 64, bilinear)
 
         self.outc = OutConv(64, n_classes, activation=nn.Tanh())
-        
+
     def wide_forward(self, X, y_sparse):
         # [B, 3, H, W], [B, 3, H, W]
         x = torch.cat([X, y_sparse], dim=1)
@@ -118,4 +118,35 @@ class ThickUNet(nn.Module):
     @staticmethod
     def get(weights=None):
         model = ThickUNet(6, 3)
+        return model
+
+
+class HieraUNetDecoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Step 1: Reduce channels from 512 to something smaller
+        self.conv_reduce = nn.Conv2d(512, 128, kernel_size=1)
+        # Step 2: Upsample in stages
+        self.up1 = nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1)  # 14x14 -> 28x28
+        self.up2 = nn.ConvTranspose2d(64, 64, kernel_size=4, stride=2, padding=1)   # 28x28 -> 56x56
+        # Step 3: Special handling to go 56x56 -> 64x64 (can do partial upsample + conv)
+        self.conv_64 = nn.ConvTranspose2d(64, 64, kernel_size=9, stride=1, padding=1)
+        # Final: map 64 channels to 3 channels
+        self.conv_out = nn.Conv2d(64, 3, kernel_size=1)
+
+    def forward(self, x):
+        x = x.permute(0, 3, 1, 2)        # -> [B, 512, 14, 14]
+        x = self.conv_reduce(x)
+        x = F.relu(self.up1(x))
+        x = F.relu(self.up2(x))
+        # Maybe do an interpolation or partial upsample
+        x = F.interpolate(x, size=(64, 64), mode='bilinear', align_corners=False)
+        x = F.relu(self.conv_64(x))
+        x = self.conv_out(x)
+        x = F.tanh(x)
+        return x
+
+    @staticmethod
+    def get(weights=None):
+        model = HieraUNetDecoder()
         return model

@@ -1,6 +1,6 @@
 # 1. P(y | y_sparse)
-export CUDA_VISIBLE_DEVICES=2
-nohup python train_y_bar_y_sparse.py > unet_y_bar_X_y_sparse.out 2>&1 &
+export CUDA_VISIBLE_DEVICES=6
+nohup python train_y_bar_y_sparse.py > hiera.out 2>&1 &
 exit
 
 # 2. P(y | y_sparse) – VAE flavored

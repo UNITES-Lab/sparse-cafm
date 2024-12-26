@@ -5,16 +5,20 @@
 **.tif
 **.bmp
 **.pt
+**.pth
 **.npz
 **.npy
+**.pkl
+**.pack
 
 SwinIR
 SwinIR/**
 
 ControlNet
 ControlNet/**
+
 __exps__/__controlnet_runs__
-__exps__/__controlnet_runs__/**
+__exps__/__controlnet_runs__/**√
 
 __repos__
 __repos__/**

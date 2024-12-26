@@ -39,7 +39,14 @@ def train():
     # dynamically load model
     model_fn = MODELS[config["model"]["name"]]["fn"]
     model_weights = MODELS[config["model"]["name"]]["weights"]
-    model: torch.nn.Module = model_fn(weights=model_weights)
+    if model_weights != None:
+        model: torch.nn.Module = model_fn(weights=model_weights)
+    elif config["model"]["name"] == 'hiera':
+        # HACK
+        model: torch.nn.Module = model_fn
+        model.freeze()
+    else:
+        model: torch.nn.Module = model_fn()
 
     # create train/val datasets and dataloaders
     img_size = int(config["dataset"]["image_size"])
@@ -102,17 +109,17 @@ def train():
             optimizer.zero_grad()
             
             # forward
-            # # P(y | y_sparse)
-            # outputs = model(y_sparse)
+            # P(y | y_sparse)
+            outputs = model(y_sparse)
             # # P(y | X)
             # outputs = model(X)
             # # P(y | X, y_sparse)
             # assert isinstance(model, ThickUNet)
             # outputs = model.wide_forward(X, y_sparse)
             # P(y | X, y_sparse*c)
-            C = 0.00001
-            assert isinstance(model, ThickUNet)
-            outputs = model.wide_forward(X, y_sparse*C)
+            # C = 0.00001
+            # assert isinstance(model, ThickUNet)
+            # outputs = model.wide_forward(X, y_sparse*C)
             
             loss = train_loss(outputs, y)
             loss.backward()
@@ -148,17 +155,17 @@ def train():
                 y = y.cuda(device)
                 
                 # forward
-                # # P(y | y_sparse)
-                # outputs = model(y_sparse)
+                # P(y | y_sparse)
+                outputs = model(y_sparse)
                 # # P(y | X)
                 # outputs = model(X)
                 # # P(y | X, y_sparse)
                 # assert isinstance(model, ThickUNet)
                 # outputs = model.wide_forward(X, y_sparse)
-                # P(y | X, y_sparse*c)
-                C = 0.00001
-                assert isinstance(model, ThickUNet)
-                outputs = model.wide_forward(X, y_sparse*C)
+                # # P(y | X, y_sparse*c)
+                # C = 0.00001
+                # assert isinstance(model, ThickUNet)
+                # outputs = model.wide_forward(X, y_sparse*C)
                 
                 loss = val_loss(outputs, y)
                 val_running_loss += loss.item() * y_sparse.size(0)
