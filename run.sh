@@ -1,7 +1,7 @@
-# 1. P(y | y_sparse)
-export CUDA_VISIBLE_DEVICES=6
-nohup python train_y_bar_y_sparse.py > hiera.out 2>&1 &
-exit
+# # 1. P(y | y_sparse)
+# export CUDA_VISIBLE_DEVICES=2
+# nohup python train_y_bar_y_sparse.py > swinir.out 2>&1 &
+# exit
 
 # 2. P(y | y_sparse) – VAE flavored
 # export CUDA_VISIBLE_DEVICES=7
@@ -14,3 +14,8 @@ exit
 
 # nohup python train.py > control_net.out 2>&1 &
 # exit
+
+cd /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__benchmarks__/places-365
+wget http://data.csail.mit.edu/places/places365/train_large_places365standard.tar
+wget http://data.csail.mit.edu/places/places365/val_large.tar
+wget http://data.csail.mit.edu/places/places365/test_large.tar

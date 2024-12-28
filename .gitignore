@@ -17,6 +17,9 @@ SwinIR/**
 ControlNet
 ControlNet/**
 
+__benchmarks__
+__benchmarks__/**
+
 __exps__/__controlnet_runs__
 __exps__/__controlnet_runs__/**√
 

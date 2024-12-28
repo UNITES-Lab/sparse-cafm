@@ -15,7 +15,7 @@ from models.autoencoder import Autoencoder
 from models.vae import VAE
 from models.unet.unet import UNet, ThickUNet
 from models.UNETR.unetr import UNETR
-import hiera.hiera as H
+from _SwinIR.models.network_swinir import SwinIR
 
 
 def parse_config(fp: str) -> dict:
@@ -56,30 +56,12 @@ MODELS = {
         "fn": vit_l_16,
         "weights": ViT_L_16_Weights.IMAGENET1K_V1,
     },
-    "ae": {
-        "fn": Autoencoder.get,
-        "weights": None
-    },
-    "vae": {
-        "fn": VAE.get,
-        "weights": None
-    },
-    "unet": {
-        "fn": UNet.get ,
-        "weights": None
-    },
-    "thick_unet": {
-        "fn": ThickUNet.get,
-        "weights": None
-    },
-    "unetr": {
-        "fn": UNETR.get,
-        "weights": None
-    },
-    "hiera": {
-        "fn": H.mae_hiera_base_224(pretrained=True, checkpoint="mae_in1k"),
-        "weights": None
-    }
+    "ae": {"fn": Autoencoder.get, "weights": None},
+    "vae": {"fn": VAE.get, "weights": None},
+    "unet": {"fn": UNet.get, "weights": None},
+    "thick_unet": {"fn": ThickUNet.get, "weights": None},
+    "unetr": {"fn": UNETR.get, "weights": None},
+    "swinir": {"fn": SwinIR.get, "weights": None},
 }
 
 OPTIMIZERS = {

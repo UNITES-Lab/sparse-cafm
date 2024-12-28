@@ -169,8 +169,8 @@ class SapphireDataset(Dataset):
                 A.HorizontalFlip(p=0.5),
                 A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
                 A.Resize(
-                    width=224,
-                    height=224,
+                    width=128,
+                    height=128,
                     interpolation=cv2.INTER_AREA,
                 ),
             ],
@@ -268,8 +268,8 @@ class SapphireDataset(Dataset):
         X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
         y: np.ndarray = augmented["y"]
         
-        # HACK: resize y to 64x64
-        y_resized = cv2.resize(y, (CROPPED_IMG_SIDE_LENGTH, CROPPED_IMG_SIDE_LENGTH), interpolation=cv2.INTER_NEAREST)
+        # HACK: resize y to 128x128
+        y_resized = cv2.resize(y, (128, 128), interpolation=cv2.INTER_NEAREST)
         y_resized = torch.tensor(y_resized).permute(2, 0, 1).float()
         
         y = torch.tensor(y).permute(2, 0, 1).float()
@@ -325,7 +325,7 @@ class SapphireDataset(Dataset):
         y_sparse = (
             y_sparse - self.current_maps_mean[:, None, None]
         ) / self.current_maps_std[:, None, None]
-
+        
         # [C, H, W]
         X: torch.Tensor = X.float()
         y: torch.Tensor = y.float()
