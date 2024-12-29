@@ -11,21 +11,15 @@
 **.pkl
 **.pack
 
-src/_**
+src/_*
+places_standard_dataset/
+ControlNet/
+outputs/
+tb_logs/
 
-SwinIR
-SwinIR/**
-
-ControlNet
-ControlNet/**
-
-__benchmarks__
-__benchmarks__/**
-
-__exps__/__controlnet_runs__
-__exps__/__controlnet_runs__/**√
-
-__repos__
-__repos__/**
-__old__
-__old__/**
+_lama/
+__pycache__/
+__benchmarks__/
+__exps__/__controlnet_runs__/
+__repos__/
+__old__/
