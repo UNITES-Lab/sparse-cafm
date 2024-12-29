@@ -19,6 +19,7 @@ outputs/
 tb_logs/
 
 _lama/
+.vscode/
 __pycache__/
 __benchmarks__/
 __exps__/__controlnet_runs__/
