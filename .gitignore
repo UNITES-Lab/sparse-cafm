@@ -10,6 +10,7 @@
 **.npy
 **.pkl
 **.pack
+**.vscode
 
 src/_*
 places_standard_dataset/
