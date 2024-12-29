@@ -11,6 +11,8 @@
 **.pkl
 **.pack
 
+src/_**
+
 SwinIR
 SwinIR/**
 
