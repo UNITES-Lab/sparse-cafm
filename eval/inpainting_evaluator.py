@@ -32,7 +32,7 @@ class InpaintingEvaluator:
         ...
         """
         self.experiment_logger: ExperimentLogger = experiment_logger
-        self.model: torch.nn.Module = model
+        self.model: torch.nn.Module = model.to(device)
         self.dataset: InpaintingEvaluationDataset = dataset
         self.config: dict = config
         self.dataloader: DataLoader = DataLoader(
@@ -66,12 +66,14 @@ class InpaintingEvaluator:
             masked_image = image * (1 - mask)
             # forward
             predicted_pixels: torch.Tensor = self.model(masked_image)
-            predicted_image = (mask * predicted_pixels) + (1 - mask) * batch["image"]
+            
+            
+            predicted_image = (mask * predicted_pixels) + (1 - mask) * image
             # unpad image if needed
             unpad_to_size = batch["original_image_shape"]
             if unpad_to_size is not None:
                 orig_height, orig_width = unpad_to_size
-                cur_res = cur_res[:orig_height, :orig_width]
+                predicted_image = predicted_image[:orig_height, :orig_width]
 
 
 if __name__ == "__main__":

@@ -41,7 +41,6 @@ class InpaintingEvaluationDataset(Dataset):
     ):
         """
         ...
-
         Args:
             :param root_dir: path to dir of images to evaluate model on
             :param img_suffix: ext of images in `datadir`
