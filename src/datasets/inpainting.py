@@ -5,11 +5,15 @@ import random
 import albumentations as A
 import numpy as np
 
+from tqdm import tqdm
 from enum import Enum
 from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List, Union
 from glob import glob
 from PIL import Image
+
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
+from concurrent.futures import Future
 
 
 class ImageExtensions(Enum):
@@ -37,7 +41,7 @@ class InpaintingEvaluationDataset(Dataset):
     ):
         """
         ...
-        
+
         Args:
             :param root_dir: path to dir of images to evaluate model on
             :param img_suffix: ext of images in `datadir`
@@ -68,6 +72,15 @@ class InpaintingEvaluationDataset(Dataset):
 
         self.pad_img_to_mod_by: Optional[int] = pad_img_to_mod_by
         self.scale_img_by: Optional[int] = scale_img_by
+        
+        self._image_buffer: List[Optional[np.ndarray]] = [None] * len(self.mask_fps)
+        self._mask_buffer: List[Optional[np.ndarray]] = [None] * len(self.mask_fps)
+
+    def _load_img_and_mask(self, i: int, img_fp: str, mask_fp: str) -> None:
+        img = Image.open(img_fp).convert("RGB")
+        mask = Image.open(mask_fp).convert("L")
+        self._image_buffer[i] = np.array(img)
+        self._mask_buffer[i] = np.array(mask)
 
     def __len__(self) -> int:
         return len(self.mask_fps)
@@ -83,26 +96,29 @@ class InpaintingEvaluationDataset(Dataset):
         }
         ```
         """
-        # TODO: image loading could be a major bottlneck; consider pre-loading imgs/keeping a buffer
-        image = Image.open(self.img_fps[index]).convert("RGB")
-        mask = Image.open(self.mask_fps[index]).convert("L")
+        # load img/mask
+        if self._image_buffer[index] is None or self._mask_buffer[index] is None:
+            self._load_img_and_mask(index, self.img_fps[index], self.mask_fps[index])
         # (H, W, C)
-        image_arr = np.array(image)
+        image: np.ndarray = self._image_buffer[index]
+        # (1, H, W)
+        mask: np.ndarray = self._mask_buffer[index][None, ...]
         # [H, C]
-        original_image_shape: Tuple = image_arr.shape[1:]
+        original_image_shape: Tuple = image.shape[1:]
         # optionally pad image to modulo factor
         # need to make image shapes place nice with some models
         if self.pad_img_to_mod_by != None:
             # (H, W, C -> MOD)
-            image_arr = InpaintingEvaluationDataset.pad_img_to_modulo(
-                image_arr, self.pad_img_to_mod_by
+            image = InpaintingEvaluationDataset.pad_img_to_modulo(
+                image, self.pad_img_to_mod_by
             )
-        # (1, H, W)
-        mask_arr = np.array(mask)[None, ...]
+            mask = InpaintingEvaluationDataset.pad_img_to_modulo(
+                mask, self.pad_img_to_mod_by
+            )
         return {
             "original_image_shape": original_image_shape,
-            "image": torch.Tensor(image_arr),
-            "mask": torch.Tensor(mask_arr),
+            "image": torch.Tensor(image),
+            "mask": torch.Tensor(mask),
         }
 
     @staticmethod

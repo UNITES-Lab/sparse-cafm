@@ -10,7 +10,6 @@ def PSNR(preds: torch.tensor, target: torch.tensor, range: Optional[Tuple[float,
     """
     Source: https://www.geeksforgeeks.org/python-peak-signal-to-noise-ratio-psnr/
     """
-    
     val = peak_signal_noise_ratio(preds, target)
     return val
 

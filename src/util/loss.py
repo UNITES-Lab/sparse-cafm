@@ -6,7 +6,6 @@ import numpy as np
 from typing import Optional, Sequence
 
 
-
 class VAELoss(nn.Module):
     def __init__(self):
         """
@@ -15,7 +14,7 @@ class VAELoss(nn.Module):
         super(VAELoss, self).__init__()
 
     def forward(self, output, target, mu, logvar):
-        recon_loss = F.mse_loss(output, target, reduction='sum') / target.size(0)
+        recon_loss = F.mse_loss(output, target, reduction="sum") / target.size(0)
         kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return recon_loss + 0.002 * kl_loss
 
