@@ -18,7 +18,6 @@ ControlNet/
 outputs/
 tb_logs/
 
-_lama/
 .vscode/
 __pycache__/
 __benchmarks__/

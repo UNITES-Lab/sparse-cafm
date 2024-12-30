@@ -3,7 +3,7 @@
 
 import torch.utils
 import torch.utils.checkpoint
-from models.unet.unet_parts import *
+from src.models.unet.unet_parts import *
 
 
 class UNet(nn.Module):

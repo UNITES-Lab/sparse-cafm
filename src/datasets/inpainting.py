@@ -36,10 +36,13 @@ class InpaintingEvaluationDataset(Dataset):
         scale_img_by: Optional[int] = None,
     ):
         """
-        :root_dir: path to dir of images to evaluate model on
-        :param img_suffix: ext of images in `datadir`
-        :param pad_img_to_mod_by: no fucking clue
-        :param scale_img_by:
+        ...
+        
+        Args:
+            :param root_dir: path to dir of images to evaluate model on
+            :param img_suffix: ext of images in `datadir`
+            :param pad_img_to_mod_by: no fucking clue
+            :param scale_img_by:
         """
 
         self.root_dir = root_dir
@@ -80,6 +83,7 @@ class InpaintingEvaluationDataset(Dataset):
         }
         ```
         """
+        # TODO: image loading could be a major bottlneck; consider pre-loading imgs/keeping a buffer
         image = Image.open(self.img_fps[index]).convert("RGB")
         mask = Image.open(self.mask_fps[index]).convert("L")
         # (H, W, C)
@@ -95,7 +99,6 @@ class InpaintingEvaluationDataset(Dataset):
             )
         # (1, H, W)
         mask_arr = np.array(mask)[None, ...]
-        breakpoint()
         return {
             "original_image_shape": original_image_shape,
             "image": torch.Tensor(image_arr),

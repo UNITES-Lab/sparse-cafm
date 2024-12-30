@@ -1,8 +1,9 @@
+import os
 import yaml
 import torch
 import torch.nn as nn
 
-from util.loss import DiceLoss, FocalLoss, VAELoss
+from src.util.loss import DiceLoss, FocalLoss, VAELoss
 from torchvision.models import resnet152, swin_b, efficientnet_v2_l, vit_l_16
 from torchvision.models import (
     ResNet152_Weights,
@@ -10,15 +11,22 @@ from torchvision.models import (
     EfficientNet_V2_L_Weights,
     ViT_L_16_Weights,
 )
-from models.simple_z_predictor import SimpleZRegressionVisionTransformer
-from models.autoencoder import Autoencoder
-from models.vae import VAE
-from models.unet.unet import UNet, ThickUNet
-from models.UNETR.unetr import UNETR
+from src.models.simple_z_predictor import SimpleZRegressionVisionTransformer
+from src.models.autoencoder import Autoencoder
+from src.models.vae import VAE
+from src.models.unet.unet import UNet, ThickUNet
+from src.models.unetr.unetr import UNETR
 from _SwinIR.models.network_swinir import SwinIR
 
 
 def parse_config(fp: str) -> dict:
+    r"""
+    Args
+        :param fp: path to config file
+    Returns
+        :return: dict
+    """
+    assert os.path.isfile(fp), f"Error: config file @ {fp} does not exist"
     with open(fp, "r") as f:
         config = yaml.safe_load(f)
     return config
