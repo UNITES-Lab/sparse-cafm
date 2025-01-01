@@ -83,6 +83,12 @@ class SapphireDataset(Dataset):
         self.epsilon: Optional[float] = None
         self._calculate_epsilon()
 
+        breakpoint()
+        self._remove_gradients()
+
+        # find the mean/std of current and topo maps
+        self._calculate_mean_std()
+
     def _calculate_epsilon(self):
         """
         Calculate epsilon: the bottom 10th percentile of raw current-map readings.
@@ -106,6 +112,7 @@ class SapphireDataset(Dataset):
     def _load_imgs(self) -> None:
         """
         Load current-map + topo-images into memory from data source dir.
+        # TODO: no more image-like data
         """
 
         data_path_regex = f"{SRC_DIR}/*/*Current*.npy"
@@ -138,24 +145,64 @@ class SapphireDataset(Dataset):
         assert len(all_current_imgs) > 0, f"Error: no current-map images detected."
         assert len(all_topo_imgs) > 0, f"Error: no topography-map images detected."
 
-        # is this step necessiary?
         # convert all topo + current maps to np arrays
-        self.current_maps = [
+        self.current_maps: List[np.ndarray] = [
             cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_current_imgs
         ]
-        self.topo_maps = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_topo_imgs]
+        self.topo_maps: List[np.ndarray] = [
+            cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_topo_imgs
+        ]
+        
+        # convert maps to type -> float64
+        self.current_maps = [cm.astype(np.float64) for cm in self.current_maps]
+        self.topo_maps = [tm.astype(np.float64) for tm in self.topo_maps]
 
         # HACK: only use samples: [0, 1, 2, 3]
         self.current_maps = self.current_maps[:-1]
         self.topo_maps = self.topo_maps[:-1]
 
+    def __remove_gradient(self, current_map: np.ndarray) -> np.ndarray:
+        corrected_map = np.copy(current_map)
+        H, W, C = current_map.shape
+        # column indices from 0..W-1
+        x = np.arange(W)
+        for c in range(C):
+            # 1. compute column-wise mean for channel c
+            # shape: (W,)
+            column_means = np.mean(current_map[:, :, c], axis=0)
+            # 2. fit a line (degree=1 polynomial) to these means
+            # polyfit returns [slope, intercept] for a degree=1 polynomial
+            slope, intercept = np.polyfit(x, column_means, deg=1)
+            # evaluate the fitted line at each column index
+            # shape: (W,)
+            best_fit_line = slope * x + intercept
+            # 3. subtract the fitted line from each pixel in the column
+            # for column w, best_fit_line[w] is the "gradient" we want to remove
+            for w in range(W):
+                corrected_map[:, w, c] -= best_fit_line[w]
+        return corrected_map
+
+    def _remove_gradients(self):
+        """
+        Remove column-wise gradients from each map in self.current_maps by:
+        1. Computing column-wise mean of each channel.
+        2. Fitting a best-fit line to these means.
+        3. Subtracting that line (per column) from the original values.
+        """
+        for i, current_map in enumerate(self.current_maps):
+            self.current_maps[i] = self.__remove_gradient(current_map)
+
+    def _calculate_mean_std(self) -> None:
+        """
+        Calculate the mean and std of topo/curr maps.
+        Saves results as internal vars.
+        """
         c_stack = np.concatenate(
             [np.expand_dims(arr, axis=0) for arr in self.current_maps], axis=0
         )
         t_stack = np.concatenate(
             [np.expand_dims(arr, axis=0) for arr in self.topo_maps], axis=0
         )
-
         self.current_maps_mean = np.mean(c_stack, axis=(0, 1, 2))
         self.current_maps_std = np.std(c_stack, axis=(0, 1, 2))
         self.topo_maps_mean = np.mean(t_stack, axis=(0, 1, 2))
@@ -181,7 +228,7 @@ class SapphireDataset(Dataset):
             },
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         len(self) == self.steps_per_epoch
         """
@@ -205,9 +252,8 @@ class SapphireDataset(Dataset):
 
     def get_item_p_y_bar_x_cn(self, index: int) -> Dict:
         """
-        Get items for image -> image translation.
-        Predict a current map y_hat from given topology map X.
-
+        Get items for ControlNet (image -> image translation)
+        Predict a current map y_hat from given topology map X
         - Do NOT resize images after taking a random crop.
         """
         # TODO: is the text-encoder loaded?; how do we encode text?
@@ -267,13 +313,13 @@ class SapphireDataset(Dataset):
         # convert all data -> tensor
         X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
         y: np.ndarray = augmented["y"]
-        
+
         # HACK: resize y to 128x128
         y_resized = cv2.resize(y, (128, 128), interpolation=cv2.INTER_NEAREST)
         y_resized = torch.tensor(y_resized).permute(2, 0, 1).float()
-        
+
         y = torch.tensor(y).permute(2, 0, 1).float()
-        
+
         X_og = torch.tensor(augmented["X_og"])
         y_og = torch.tensor(augmented["y_og"])
 
@@ -319,13 +365,13 @@ class SapphireDataset(Dataset):
         y = (y - self.current_maps_mean[:, None, None]) / self.current_maps_std[
             :, None, None
         ]
-        y_resized = (y_resized - self.current_maps_mean[:, None, None]) / self.current_maps_std[
-            :, None, None
-        ]
+        y_resized = (
+            y_resized - self.current_maps_mean[:, None, None]
+        ) / self.current_maps_std[:, None, None]
         y_sparse = (
             y_sparse - self.current_maps_mean[:, None, None]
         ) / self.current_maps_std[:, None, None]
-        
+
         # [C, H, W]
         X: torch.Tensor = X.float()
         y: torch.Tensor = y.float()
