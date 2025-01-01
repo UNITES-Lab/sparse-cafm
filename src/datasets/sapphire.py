@@ -13,6 +13,7 @@ from glob import glob
 # hacky; should most likely be removed
 Z_MULT = 1
 ORIGINAL_IMAGE_SIZE = (224, 224)
+CURRENT_PERCENTILE_CUTOFF = 10
 CROPPED_IMG_SIDE_LENGTH = 64
 SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/11-19-24/2. MoS2 on Sapphire"
 EXT = "tiff"
@@ -70,6 +71,10 @@ class SapphireDataset(Dataset):
         self.current_maps: tuple = None
         self.topo_maps: tuple = None
 
+        # paths to un-normalized, high-precision current maps
+        self._raw_current_fps: Optional[List[str]] = None
+        self._raw_topo_fps: Optional[List[str]] = None
+
         # for normalizing X, y, respectively later
         self.current_maps_mean = 0.0
         self.current_maps_std = 0.0
@@ -94,12 +99,10 @@ class SapphireDataset(Dataset):
         Calculate epsilon: the bottom 10th percentile of raw current-map readings.
         """
         # currently, we calculate epsilon globally (i.e., using both training and validation data)
-        # persumably this is not an issue, as we expect to use a global epsilon value once ground-truth data is provided
-
+        # persumably this is not an issue; we will use a global epsilon value once ground-truth data is provided
         # all current readings (measured in nA) append as a 1D array
         all_current_readings = []
-        for fp in self._raw_current_fps:
-            data = np.load(fp)
+        for data in self.current_maps:
             all_current_readings.append(data)
         # reshape into 1d vector
         all_current_readings = np.array(all_current_readings).reshape(-1)
@@ -107,59 +110,55 @@ class SapphireDataset(Dataset):
             all_current_readings.ndim == 1
         ), f"Error: could not calculate global epsilon. Expected a 1D array, got {all_current_readings.ndim}"
         # calculate the bottom 10th percentile of epsilon readings
-        self.epsilon = np.percentile(all_current_readings, 10)
+        self.epsilon = np.percentile(all_current_readings, CURRENT_PERCENTILE_CUTOFF)
 
     def _load_imgs(self) -> None:
         """
-        Load current-map + topo-images into memory from data source dir.
-        # TODO: no more image-like data
+        Load current-map + topo-map data from source dir.
         """
 
-        data_path_regex = f"{SRC_DIR}/*/*Current*.npy"
-        self._raw_current_fps = glob(data_path_regex)
+        current_map_regex = f"{SRC_DIR}/*/*Current*.npy"
+        topo_map_regex = f"{SRC_DIR}/*/*Topo*.npy"
+
+        self._raw_current_fps = glob(current_map_regex)
+        self._raw_topo_fps = glob(topo_map_regex)
+
         assert (
             len(self._raw_current_fps) > 0
-        ), f"Error: could not load images using pattern: {data_path_regex}"
+        ), f"Error: could not load images using regex: {current_map_regex}"
+        assert (
+            len(self._raw_current_fps) > 0
+        ), f"Error: could not load images using regex: {current_map_regex}"
 
-        # load in current maps with shape...?
-        # TODO: can we be ABSOLUTELY sure that current maps are correctly paired with topo maps
-        self._raw_current_maps = [np.load(fp) for fp in self._raw_current_fps]
+        # (H, W)
+        self.current_maps: List[np.ndarray] = [
+            np.load(fp) for fp in self._raw_current_fps
+        ]
+        self.topo_maps: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_fps]
 
-        _current_fps = glob(f"{SRC_DIR}/*/*Current*{EXT}")
-        _topo_fps = glob(f"{SRC_DIR}/*/*Topo*{EXT}")
-
-        # HACK: use hard-coded substring to match up current, topo pairs
+        # validate current, topo map paris are aligned
         _current_fps_basenames = [
-            os.path.basename(fp).split("Current")[0] for fp in _current_fps
+            os.path.basename(fp).split("Current")[0] for fp in self._raw_current_fps
         ]
         _topo_fps_basenames = [
-            os.path.basename(fp).split("Topo")[0] for fp in _topo_fps
+            os.path.basename(fp).split("Topo")[0] for fp in self._raw_topo_fps
         ]
         assert (
             _current_fps_basenames == _topo_fps_basenames
         ), f"Error: misalignment of current maps and topo maps during dataloading"
 
-        # load in current + topography images with `.tiff` extentions from memory
-        all_current_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in _current_fps]
-        all_topo_imgs = [cv2.imread(path, cv2.IMREAD_COLOR) for path in _topo_fps]
-        assert len(all_current_imgs) > 0, f"Error: no current-map images detected."
-        assert len(all_topo_imgs) > 0, f"Error: no topography-map images detected."
-
-        # convert all topo + current maps to np arrays
-        self.current_maps: List[np.ndarray] = [
-            cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_current_imgs
-        ]
-        self.topo_maps: List[np.ndarray] = [
-            cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in all_topo_imgs
-        ]
-        
         # convert maps to type -> float64
         self.current_maps = [cm.astype(np.float64) for cm in self.current_maps]
         self.topo_maps = [tm.astype(np.float64) for tm in self.topo_maps]
+        
+        # (H, W) -> (C, H, W)
+        self.current_maps = [np.stack([cm]*3, axis=0) for cm in self.current_maps]
+        self.topo_maps = [np.stack([tm]*3, axis=0) for tm in self.topo_maps]
 
         # HACK: only use samples: [0, 1, 2, 3]
         self.current_maps = self.current_maps[:-1]
         self.topo_maps = self.topo_maps[:-1]
+        breakpoint()
 
     def __remove_gradient(self, current_map: np.ndarray) -> np.ndarray:
         corrected_map = np.copy(current_map)
@@ -277,7 +276,7 @@ class SapphireDataset(Dataset):
             resize_to_og_height=False
         )
 
-        # TODO: we should only consider samples: [0, 1, 2, 3];
+        # NOTE: we should only consider samples: [0, 1, 2, 3];
         # 4th sample is collected under slightly different conditions
 
         # HACK: hard-coded train/val splits
@@ -294,7 +293,7 @@ class SapphireDataset(Dataset):
 
         # get topography map with normalized depth dim
         X: np.ndarray = self.topo_maps[sample_idx]
-        # copy of original X for figure logging
+        # copy of original X for figure loging
         X_og = X.copy()
 
         y: np.ndarray = self.current_maps[sample_idx]
