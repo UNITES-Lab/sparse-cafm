@@ -42,8 +42,9 @@ class SapphireDataset(Dataset):
         self,
         split: str = "train",
         formulation: Formulation = Formulation.P_Y_BAR_X,
-        steps_per_epoch: int = 100,
         side_length: int = CROPPED_IMG_SIDE_LENGTH,
+        masking_ratio: int = 0,
+        steps_per_epoch: int = 100,
         device: int = 0,
         z_mult: Union[int, float] = Z_MULT,
         original_image_size: Tuple[int, int] = ORIGINAL_IMAGE_SIZE,
@@ -53,6 +54,7 @@ class SapphireDataset(Dataset):
         :param steps_per_epoch: data is sampled using random augmentations, therefore the # sample per epoch is arbitrary
         :param side_length: length of the side of the square crops taken from the original, full-sized image
         :param device: number of CUDA device, not currently used
+        :param masking_ratio: 1-in-{masking_ratio} pixels masked
         :param z_mult: scalar norm value for z; z = z * z_mult
         :param original_image_size: size of the original images in the dataset: e.g., (256, 256)
         """
@@ -64,6 +66,7 @@ class SapphireDataset(Dataset):
         self.formulation: Formulation = formulation
         self.device: int = device
         self.z_mult: int = z_mult
+        self.masking_ratio: int = masking_ratio
         self.original_image_size: Tuple[int, int] = original_image_size
         self.augmentation_pipeline = self._create_augmentation_pipeline()
 
@@ -84,15 +87,29 @@ class SapphireDataset(Dataset):
         # load all data from src files
         self._load_imgs()
 
+        # remove L -> R gradients
+        # self._remove_gradients()
+
+        # find the mean/std of current and topo maps
+        self._calculate_mean_std()
+
         # calculate the value of ε: the bottom 10th percentile of raw current-map readings
         self.epsilon: Optional[float] = None
         self._calculate_epsilon()
 
-        breakpoint()
-        self._remove_gradients()
-
-        # find the mean/std of current and topo maps
-        self._calculate_mean_std()
+    def _save_unnormalized_img(self, img: np.ndarray, to: str):
+        if isinstance(img, torch.Tensor):
+            img = img.detach().cpu().numpy()
+        # 1. normalize array to [0, 255]
+        img_min = np.min(img)
+        img_max = np.max(img)
+        img = (img - img_min) / (img_max - img_min)
+        img = img * 255
+        # 2. convert to uint8
+        img = img.astype(np.uint8)
+        img = img.transpose(1, 2, 0)
+        # 3. save
+        cv2.imwrite(to, img)
 
     def _calculate_epsilon(self):
         """
@@ -127,7 +144,7 @@ class SapphireDataset(Dataset):
             len(self._raw_current_fps) > 0
         ), f"Error: could not load images using regex: {current_map_regex}"
         assert (
-            len(self._raw_current_fps) > 0
+            len(self._raw_topo_fps) > 0
         ), f"Error: could not load images using regex: {current_map_regex}"
 
         # (H, W)
@@ -150,25 +167,24 @@ class SapphireDataset(Dataset):
         # convert maps to type -> float64
         self.current_maps = [cm.astype(np.float64) for cm in self.current_maps]
         self.topo_maps = [tm.astype(np.float64) for tm in self.topo_maps]
-        
-        # (H, W) -> (C, H, W)
-        self.current_maps = [np.stack([cm]*3, axis=0) for cm in self.current_maps]
-        self.topo_maps = [np.stack([tm]*3, axis=0) for tm in self.topo_maps]
+
+        # (H, W) -> (H, W, C)
+        self.current_maps = [np.stack([cm] * 3, axis=-1) for cm in self.current_maps]
+        self.topo_maps = [np.stack([tm] * 3, axis=-1) for tm in self.topo_maps]
 
         # HACK: only use samples: [0, 1, 2, 3]
-        self.current_maps = self.current_maps[:-1]
-        self.topo_maps = self.topo_maps[:-1]
-        breakpoint()
+        self.current_maps = self.current_maps[0:4]
+        self.topo_maps = self.topo_maps[0:4]
 
     def __remove_gradient(self, current_map: np.ndarray) -> np.ndarray:
         corrected_map = np.copy(current_map)
-        H, W, C = current_map.shape
+        C, H, W = current_map.shape
         # column indices from 0..W-1
         x = np.arange(W)
         for c in range(C):
             # 1. compute column-wise mean for channel c
             # shape: (W,)
-            column_means = np.mean(current_map[:, :, c], axis=0)
+            column_means = np.mean(current_map[c, :, :], axis=0)
             # 2. fit a line (degree=1 polynomial) to these means
             # polyfit returns [slope, intercept] for a degree=1 polynomial
             slope, intercept = np.polyfit(x, column_means, deg=1)
@@ -178,7 +194,7 @@ class SapphireDataset(Dataset):
             # 3. subtract the fitted line from each pixel in the column
             # for column w, best_fit_line[w] is the "gradient" we want to remove
             for w in range(W):
-                corrected_map[:, w, c] -= best_fit_line[w]
+                corrected_map[c, :, w] -= best_fit_line[w]
         return corrected_map
 
     def _remove_gradients(self):
@@ -215,8 +231,8 @@ class SapphireDataset(Dataset):
                 A.HorizontalFlip(p=0.5),
                 A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
                 A.Resize(
-                    width=128,
-                    height=128,
+                    width=self.side_length,
+                    height=self.side_length,
                     interpolation=cv2.INTER_AREA,
                 ),
             ],
@@ -224,6 +240,8 @@ class SapphireDataset(Dataset):
                 "y": "mask",
                 "X_og": "mask",
                 "y_og": "mask",
+                "y_unnormed": "mask",
+                "y_mask": "mask",
             },
         )
 
@@ -278,7 +296,6 @@ class SapphireDataset(Dataset):
 
         # NOTE: we should only consider samples: [0, 1, 2, 3];
         # 4th sample is collected under slightly different conditions
-
         # HACK: hard-coded train/val splits
         # choose a random sample idx
         if self.split == TRAIN_SPLIT:
@@ -291,96 +308,52 @@ class SapphireDataset(Dataset):
         else:
             raise Exception(f"Invalid split: {self.split}")
 
-        # get topography map with normalized depth dim
+        # get un-normed topography map
         X: np.ndarray = self.topo_maps[sample_idx]
         # copy of original X for figure loging
         X_og = X.copy()
 
+        # get mask based on masking ratio
+        # mask w/ shape [H, W, C]
+        y_mask = np.ones(tuple(X.shape))
+        y_mask[:, :: self.masking_ratio + 1, :] = 0
+
+        # get un-normed current map
         y: np.ndarray = self.current_maps[sample_idx]
         # copy of original y for figure logging
         y_og = y.copy()
-        # raw (H, W) current map; unnormalized (very small) current values
-        y_raw: np.ndarray = self._raw_current_maps[sample_idx]
+        y_unnormed = y.copy()
 
         # augment samples
         # X recieves pixel-value normalization, all other data do not
         # do not resize after random crop; 64x64 -> 64x64
         augmented = p_y_bar_x_augmentation_pipeline(
-            image=X, mask=y_raw, y=y, X_og=X_og, y_og=y_og
+            image=X, y=y, X_og=X_og, y_og=y_og, y_unnormed=y_unnormed, y_mask=y_mask
         )
 
         # convert all data -> tensor
-        X = torch.tensor(augmented["image"]).permute(2, 0, 1).float()
+        X: np.ndarray = augmented["image"]
+        X = torch.tensor(X).permute(2, 0, 1).float()
         y: np.ndarray = augmented["y"]
-
-        # HACK: resize y to 128x128
-        y_resized = cv2.resize(y, (128, 128), interpolation=cv2.INTER_NEAREST)
-        y_resized = torch.tensor(y_resized).permute(2, 0, 1).float()
-
         y = torch.tensor(y).permute(2, 0, 1).float()
+        X_og = torch.tensor(augmented["X_og"]).float()
+        y_og = torch.tensor(augmented["y_og"]).float()
+        y_mask: torch.Tensor = torch.Tensor(augmented["y_mask"]).permute(2, 0, 1).bool()
+        y_unnormed: np.ndarray = augmented["y_unnormed"]
 
-        X_og = torch.tensor(augmented["X_og"])
-        y_og = torch.tensor(augmented["y_og"])
-
-        # remains a np.ndarray
-        y_raw = augmented["mask"]
+        # normalize X, y using standard normal
         X = (X - self.topo_maps_mean[:, None, None]) / self.topo_maps_std[:, None, None]
-
-        # TODO: add direct control over sparsity
-        # mask 50% of rows in y
-        y_sparse = y.clone()
-
-        ## 0% masking
-        # y_sparse = y_sparse
-
-        # # 10% masking
-        # y_sparse[::10, :, :] = 0
-
-        # # 25% masking
-        # y_sparse[::4, :, :] = 0
-
-        # 50% masking
-        y_sparse[::2, :, :] = 0
-
-        # # 75% masking
-        # y_sparse[0::4, :, :] = 0
-        # y_sparse[1::4, :, :] = 0
-        # y_sparse[2::4, :, :] = 0
-
-        # # 90% masking
-        # y_sparse[0::10, :, :] = 0
-        # y_sparse[1::10, :, :] = 0
-        # y_sparse[2::10, :, :] = 0
-        # y_sparse[3::10, :, :] = 0
-        # y_sparse[4::10, :, :] = 0
-        # y_sparse[5::10, :, :] = 0
-        # y_sparse[6::10, :, :] = 0
-        # y_sparse[7::10, :, :] = 0
-        # y_sparse[8::10, :, :] = 0
-
-        # # 100% masking
-        # y_sparse[:, :, :] = 0
-
         y = (y - self.current_maps_mean[:, None, None]) / self.current_maps_std[
             :, None, None
         ]
-        y_resized = (
-            y_resized - self.current_maps_mean[:, None, None]
-        ) / self.current_maps_std[:, None, None]
-        y_sparse = (
-            y_sparse - self.current_maps_mean[:, None, None]
-        ) / self.current_maps_std[:, None, None]
-
-        # [C, H, W]
-        X: torch.Tensor = X.float()
-        y: torch.Tensor = y.float()
-        y_sparse: torch.Tensor = y_sparse.float()
 
         # MARK: calculate values of z
         # z: sum(pixels < self.epsilon) / total num pixels
-        z = (y_raw.flatten() < self.epsilon).sum() / (y_raw.shape[0] * y_raw.shape[1])
+        z = (y_unnormed.flatten() < self.epsilon).sum() / (
+            y_unnormed.shape[0] * y_unnormed.shape[1] * y_unnormed.shape[2]
+        )
 
-        # TODO: what is the ideal way to normalize z?
+        # OPTIONAL: scale z by z_mult
         z = torch.tensor(z).float() * self.z_mult
 
         # z should always be in range: [0, 1.0 * Z_MULT]
@@ -388,9 +361,9 @@ class SapphireDataset(Dataset):
 
         return {
             "X": X,
-            "y": y_resized,
-            "y_sparse": y_sparse,
+            "y": y,
             "z": z,
+            "y_mask": y_mask,
             "X_og": X_og,
             "y_og": y_og,
             "epsilon": self.epsilon,

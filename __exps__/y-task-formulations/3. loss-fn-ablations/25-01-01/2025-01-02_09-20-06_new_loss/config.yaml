@@ -27,7 +27,7 @@ dataset:
 
 logging:
   root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/3. loss-fn-ablations"
-  exp_name: joint-loss
+  exp_name: new_loss
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   save_weights: false
   save_only_best_weights: false

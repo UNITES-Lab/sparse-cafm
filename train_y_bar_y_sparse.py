@@ -6,24 +6,17 @@ import torch.nn as nn
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from datasets.sapphire import SapphireDataset, Formulation as F
-from util.logger import ExperimentLogger
-from util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS, parse_config
-from models.regression_head import RegressionHead
-from models.unet.unet import ThickUNet
+from src.datasets.sapphire import SapphireDataset, Formulation as F
+from src.util.logger import ExperimentLogger
+from src.util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS, parse_config
+from src.models.regression_head import RegressionHead
+from src.models.unet.unet import ThickUNet
+from src.util.loss import ImageInpaintingL1Loss
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
 Z_MULT = 1
 
-"""
-Formulation 1/4.
-
-Models
-    1. simple regression model:     X -> z_hat
-
-Training diffusion model will be a different procedure from eval.
-"""
 
 def train():
 
@@ -41,7 +34,7 @@ def train():
     model_weights = MODELS[config["model"]["name"]]["weights"]
     if model_weights != None:
         model: torch.nn.Module = model_fn(weights=model_weights)
-    elif config["model"]["name"] == 'hiera':
+    elif config["model"]["name"] == "hiera":
         # HACK
         model: torch.nn.Module = model_fn
         model.freeze()
@@ -56,6 +49,7 @@ def train():
         steps_per_epoch=config["training"]["steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),
+        masking_ratio=int(config["dataset"]["masking_ratio"]),
     )
     train_dataloader = DataLoader(
         train_dataset,
@@ -69,6 +63,7 @@ def train():
         steps_per_epoch=config["validation"]["steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),
+        masking_ratio=int(config["dataset"]["masking_ratio"]),
     )
     val_dataloader = DataLoader(
         val_dataset,
@@ -78,8 +73,12 @@ def train():
     )
 
     # define loss function and optimizer
-    train_loss = LOSS_FUNCTIONS[config["training"]["loss"]]()
-    val_loss = LOSS_FUNCTIONS[config["validation"]["loss"]]()
+    # train_loss = LOSS_FUNCTIONS[config["training"]["loss"]]()
+    train_loss = ImageInpaintingL1Loss()
+    
+    # val_loss = LOSS_FUNCTIONS[config["validation"]["loss"]]()
+    val_loss = ImageInpaintingL1Loss()
+    
     optimizer: torch.optim.Optimizer = OPTIMIZERS[config["training"]["optimizer"]](
         model.parameters(), lr=float(config["training"]["lr"])
     )
@@ -97,31 +96,21 @@ def train():
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
             # feature: X
-            X: torch.Tensor = batch["X"]
-            X = X.cuda()
-            # feature: y_sparse
-            y_sparse: torch.Tensor = batch["y_sparse"]
-            y_sparse = y_sparse.cuda(device)
+            X: torch.Tensor = batch["X"].cuda(device)
             # target: y
-            y: torch.Tensor = batch["y"]
-            y = y.cuda(device)
+            y: torch.Tensor = batch["y"].cuda(device)
+            # mask
+            y_mask: torch.Tensor = batch["y_mask"].cuda(device)
+            y_sparse = (y * y_mask).float()
+            # forward
             # zero gradients
             optimizer.zero_grad()
-            
-            # forward
             # P(y | y_sparse)
             outputs = model(y_sparse)
-            # # P(y | X)
-            # outputs = model(X)
-            # # P(y | X, y_sparse)
-            # assert isinstance(model, ThickUNet)
-            # outputs = model.wide_forward(X, y_sparse)
-            # P(y | X, y_sparse*c)
-            # C = 0.00001
-            # assert isinstance(model, ThickUNet)
-            # outputs = model.wide_forward(X, y_sparse*C)
-            
-            loss = train_loss(outputs, y)
+            # loss = train_loss(outputs, y)
+            loss = train_loss(
+                predicted_image=outputs, target_image=y, mask=y_mask
+            )
             loss.backward()
             optimizer.step()
             running_loss += loss.item() * y_sparse.size(0)
@@ -145,29 +134,18 @@ def train():
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
                 # feature: X
-                X: torch.Tensor = batch["X"]
-                X = X.cuda()
-                # feature: y_sparse
-                y_sparse: torch.Tensor = batch["y_sparse"]
-                y_sparse = y_sparse.cuda(device)
+                X: torch.Tensor = batch["X"].cuda(device)
                 # target: y
-                y: torch.Tensor = batch["y"]
-                y = y.cuda(device)
-                
-                # forward
-                # P(y | y_sparse)
+                y: torch.Tensor = batch["y"].cuda(device)
+                # mask
+                y_mask: torch.Tensor = batch["y_mask"].cuda(device)
+                y_sparse = (y * y_mask).float()
+                # forward : p(y | y_sparse)
                 outputs = model(y_sparse)
-                # # P(y | X)
-                # outputs = model(X)
-                # # P(y | X, y_sparse)
-                # assert isinstance(model, ThickUNet)
-                # outputs = model.wide_forward(X, y_sparse)
-                # # P(y | X, y_sparse*c)
-                # C = 0.00001
-                # assert isinstance(model, ThickUNet)
-                # outputs = model.wide_forward(X, y_sparse*C)
-                
-                loss = val_loss(outputs, y)
+                # calc loss
+                loss = val_loss(
+                    predicted_image=outputs, target_image=y, mask=y_mask
+                )
                 val_running_loss += loss.item() * y_sparse.size(0)
                 logger.log(
                     **{

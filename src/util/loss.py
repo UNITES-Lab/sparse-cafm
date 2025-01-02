@@ -6,6 +6,31 @@ import numpy as np
 from typing import Optional, Sequence
 
 
+class ImageInpaintingL1Loss(nn.Module):
+
+    def __init__(self):
+        super(ImageInpaintingL1Loss, self).__init__()
+
+    def forward(
+        self,
+        predicted_image: torch.Tensor,
+        target_image: torch.Tensor,
+        mask: torch.Tensor,
+    ):
+        """
+        Final loss = || (given_pixels + pred_pixels) - (target) ||
+        :param original_image: (B, C, H, W)
+        :param predicted_image: (B, C, H, W)
+        :param target_image: (B, C, H, W)
+        :param mask: (B, C, H, W)
+        """
+        # mask = 0: obstructed
+        given_pixels = target_image * mask
+        pred_pixels = predicted_image * ~mask
+        final_prediction = given_pixels + pred_pixels
+        return torch.nn.functional.l1_loss(final_prediction, target_image)
+
+
 class VAELoss(nn.Module):
     def __init__(self):
         """
