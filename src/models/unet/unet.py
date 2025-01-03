@@ -7,26 +7,26 @@ from src.models.unet.unet_parts import *
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=False):
+    def __init__(self, n_channels, n_classes, bilinear=False, up_ks=1, down_ks=1):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
 
-        self.inc = DoubleConv(n_channels, 64)
+        self.inc = DoubleConv(n_channels, 64, kernel_size=down_ks)
 
         # what if this was a vit-enc
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
+        self.down1 = Down(64, 128, kernel_size=down_ks)
+        self.down2 = Down(128, 256, kernel_size=down_ks)
+        self.down3 = Down(256, 512, kernel_size=down_ks)
         factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor)
+        self.down4 = Down(512, 1024 // factor, kernel_size=down_ks)
 
         # ... and this was a vit-dec
-        self.up1 = Up(1024, 512 // factor, bilinear)
-        self.up2 = Up(512, 256 // factor, bilinear)
-        self.up3 = Up(256, 128 // factor, bilinear)
-        self.up4 = Up(128, 64, bilinear)
+        self.up1 = Up(1024, 512 // factor, bilinear, kernel_size=up_ks)
+        self.up2 = Up(512, 256 // factor, bilinear, kernel_size=up_ks)
+        self.up3 = Up(256, 128 // factor, bilinear, kernel_size=up_ks)
+        self.up4 = Up(128, 64, bilinear, kernel_size=up_ks)
 
         self.outc = OutConv(64, n_classes, activation=nn.Tanh())
 
@@ -57,7 +57,7 @@ class UNet(nn.Module):
 
     @staticmethod
     def get(weights=None):
-        model = UNet(3, 3)
+        model = UNet(3, 3, up_ks=5, down_ks=5)
         return model
 
 

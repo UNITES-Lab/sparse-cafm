@@ -1,7 +1,7 @@
-# 1. P(y | y_sparse)
-export CUDA_VISIBLE_DEVICES=6
-nohup python train_y_bar_y_sparse.py > swinir-new_loss.out 2>&1 &
-exit
+# # 1. P(y | y_sparse)
+# export CUDA_VISIBLE_DEVICES=6
+# nohup python train_y_bar_y_sparse.py > ks-abs.out 2>&1 &
+# exit
 
 # 2. P(y | y_sparse) – VAE flavored
 # export CUDA_VISIBLE_DEVICES=7

@@ -19,8 +19,17 @@ outputs/
 tb_logs/
 
 .vscode/
+.vscode/**
+**.vscode/**
+
+_SwinIR/
+_lama/
+_I2SB/
+_dsbm-pytorch/
+
 __pycache__/
 __benchmarks__/
 __exps__/__controlnet_runs__/
 __repos__/
 __old__/
+__exps__/

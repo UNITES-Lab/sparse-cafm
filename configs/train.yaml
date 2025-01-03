@@ -2,7 +2,7 @@ global:
   device: 0
 
 model:
-  name: swinir
+  name: unet
   pretrained: True
 
 training:
@@ -26,8 +26,8 @@ dataset:
   masking_ratio: 1
 
 logging:
-  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/3. loss-fn-ablations"
-  exp_name: joint-loss
+  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/5. receptive-field"
+  exp_name: up-5, down-5
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   save_weights: false
   save_only_best_weights: false

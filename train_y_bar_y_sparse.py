@@ -73,6 +73,7 @@ def train():
     )
 
     # define loss function and optimizer
+    # TODO: better way to handle inpainting loss
     # train_loss = LOSS_FUNCTIONS[config["training"]["loss"]]()
     train_loss = ImageInpaintingL1Loss()
     
@@ -107,10 +108,13 @@ def train():
             optimizer.zero_grad()
             # P(y | y_sparse)
             outputs = model(y_sparse)
+            
             # loss = train_loss(outputs, y)
+            # NOTE: inpainting loss
             loss = train_loss(
                 predicted_image=outputs, target_image=y, mask=y_mask
             )
+            
             loss.backward()
             optimizer.step()
             running_loss += loss.item() * y_sparse.size(0)
@@ -142,10 +146,13 @@ def train():
                 y_sparse = (y * y_mask).float()
                 # forward : p(y | y_sparse)
                 outputs = model(y_sparse)
-                # calc loss
+                
+                # loss = val_loss(outputs, y)
+                # NOTE: inpainting loss
                 loss = val_loss(
                     predicted_image=outputs, target_image=y, mask=y_mask
                 )
+                
                 val_running_loss += loss.item() * y_sparse.size(0)
                 logger.log(
                     **{
