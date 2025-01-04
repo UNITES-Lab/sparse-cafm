@@ -3,7 +3,7 @@ import yaml
 import torch
 import torch.nn as nn
 
-from src.util.loss import DiceLoss, FocalLoss, VAELoss
+from src.util.loss import DiceLoss, FocalLoss, VAELoss, ImageInpaintingL1Loss
 from torchvision.models import resnet152, swin_b, efficientnet_v2_l, vit_l_16
 from torchvision.models import (
     ResNet152_Weights,
@@ -41,6 +41,7 @@ LOSS_FUNCTIONS = {
     "Focal": FocalLoss,
     "Huber": nn.HuberLoss,
     "VAE": VAELoss,
+    "InpaintingL1": ImageInpaintingL1Loss,  
 }
 
 MODELS = {

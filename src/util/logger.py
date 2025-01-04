@@ -5,7 +5,7 @@ import datetime
 import pandas as pd
 import yaml
 import wandb
-
+import numpy as np
 from typing import List, Dict, Optional
 from torch.utils.tensorboard import SummaryWriter
 
@@ -143,16 +143,27 @@ class ExperimentLogger:
         )
         torch.save(x, model_out_path)
 
-    def save_sample(self, X: torch.Tensor, epoch: int, name: Optional[str] = ""):
+    def save_sample(self, name: str, data: torch.Tensor, subdir: Optional[str] = None) -> None:
         """
-        :param X: (B, H, W, C)
-        :param epoch: int
-        :param name: str
+        Log any data locally.
+        
+        Currently supports:
+            - `.npy`
+        
+        :param name: name of the image
+        :param img_like: image to log
+        :param subdir: subdirectory to save to
         """
-        figures_dir = os.path.join(self.exp_dir, "figures")
-        os.makedirs(figures_dir, exist_ok=True)
-        x_out_path = os.path.join(self.exp_dir, "figures", f"{name}_{epoch}.png")
-        # save img
-        X_np = X.detach().cpu().numpy()
-        X_np = X_np[0, :, :, :]
-        cv2.imwrite(x_out_path, X_np)
+        
+        outdir = os.path.join(self.exp_dir, "figures")
+        os.makedirs(outdir, exist_ok=True)
+        if subdir is not None:
+            outdir = os.path.join(outdir, subdir)
+            os.makedirs(outdir, exist_ok=True)
+        out_fp = os.path.join(outdir, name)
+        
+        if isinstance(data, torch.Tensor):
+            data = data.detach().cpu().numpy()
+        
+        if name.endswith(".npy"):
+            np.save(out_fp, data)

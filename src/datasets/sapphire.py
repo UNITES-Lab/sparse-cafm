@@ -316,7 +316,6 @@ class SapphireDataset(Dataset):
         # get mask based on masking ratio
         # mask w/ shape [H, W, C]
         y_mask = np.ones(tuple(X.shape))
-        
         y_mask[:, :: self.masking_ratio + 1, :] = 0
         
         # # HACK ---------------
