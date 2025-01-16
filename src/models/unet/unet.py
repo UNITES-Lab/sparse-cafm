@@ -28,9 +28,20 @@ class UNet(nn.Module):
         self.up3 = Up(256, 128 // factor, bilinear, kernel_size=up_ks)
         self.up4 = Up(128, 64, bilinear, kernel_size=up_ks)
 
-        self.outc = OutConv(64, n_classes, activation=nn.Tanh())
+        # downsample channel dim 3 -> 1
+        # self.final_downsample_channel = nn.Conv2d(in_channels=3, out_channels=1, kernel_size=1, stride=1, bias=True)
+        
+        self.outc = OutConv(64, n_classes, activation=nn.Sigmoid())
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
+        
+        # HACK: pad the channel dim
+        B = x.shape[0]
+        pad_tensor = torch.zeros(B, 1, 224, 224).cuda()
+        
+        # (B, 2, 224 224) -> (B, 3, 224, 224)
+        x = torch.cat([x, pad_tensor], dim=1)
+        
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -40,8 +51,11 @@ class UNet(nn.Module):
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
-        logits = self.outc(x)
-        return logits
+        x = self.outc(x)
+        
+        # (B, 3, 128, 128) -> (B, 1, 128, 128)
+        # x = self.final_downsample_channel(x)
+        return x
 
     def use_checkpointing(self):
         self.inc = torch.utils.checkpoint(self.inc)
