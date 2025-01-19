@@ -18,9 +18,7 @@ EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
 Z_MULT = 1
 
 
-@torch.no_grad()
-def eval(config: dict) -> None:
-
+def setup_logger(config: dict) -> ExperimentLogger:
     logger = ExperimentLogger(
         config_fp=TRAIN_CONFIG_FP,
         root=config["logging"]["root"],
@@ -28,38 +26,47 @@ def eval(config: dict) -> None:
         log_interval=config["logging"]["log_interval"],
     )
     logger.add_result_columns(config["logging"]["result_columns"])
+    return logger
 
-    # dynamically load model
+
+def create_model(config: dict) -> nn.Module:
     model_fn = MODELS[config["model"]["name"]]["fn"]
     model_weights = MODELS[config["model"]["name"]]["weights"]
-
-    if model_weights != None:
-        model: torch.nn.Module = model_fn(weights=model_weights)
+    if model_weights:
+        model = model_fn(weights=model_weights)
     elif config["model"]["name"] == "hiera":
-        # HACK
-        model: torch.nn.Module = model_fn
+        model = model_fn
         model.freeze()
     else:
-        model: torch.nn.Module = model_fn()
+        model = model_fn()
+    assert type(model) == nn.Module
+    return model.cuda(config["global"]["device"]).float()
 
-    # create train/val datasets and dataloaders
+
+def create_dataloader(config: dict, split: str) -> DataLoader:
     img_size = int(config["dataset"]["image_size"])
-    val_dataset = SapphireDataset(
-        split="val",
-        formulation=F.P_Y_BAR_X,
-        steps_per_epoch=config["validation"]["steps_per_epoch"],
+    dataset = SapphireDataset(
+        split=split,
+        formulation=F.get_formulation_from_str(config["global"]["formulation"]),
+        steps_per_epoch=config[f"{split}_steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),
         masking_ratio=int(config["dataset"]["masking_ratio"]),
     )
-    val_dataloader = DataLoader(
-        val_dataset,
-        batch_size=config["validation"]["batch_size"],
+    return DataLoader(
+        dataset,
+        batch_size=config[f"{split}_batch_size"],
         shuffle=False,
         num_workers=config["dataset"]["num_workers"],
     )
-    print(val_dataset.current_maps_std, val_dataset.current_maps_mean)
-    return
+
+
+@torch.no_grad()
+def eval(config: dict) -> None:
+
+    logger = setup_logger(config)
+    model = create_model(config)
+    val_dataloader = create_dataloader(config, "val")
 
     # define loss function and optimizer
     val_loss = LOSS_FUNCTIONS[config["validation"]["loss"]]()
@@ -67,9 +74,6 @@ def eval(config: dict) -> None:
     best_loss = sys.maxsize
     num_epochs = config["training"]["epochs"]
     device = config["global"]["device"]
-
-    model.cuda(device)
-    model.float()
 
     # load weights from checkpoint
     if config["model"]["weights"] != None:
@@ -121,57 +125,10 @@ def eval(config: dict) -> None:
 
 def train(config: dict) -> None:
 
-    config = parse_config(TRAIN_CONFIG_FP)
-    logger = ExperimentLogger(
-        config_fp=TRAIN_CONFIG_FP,
-        root=config["logging"]["root"],
-        exp_name=config["logging"]["exp_name"],
-        log_interval=config["logging"]["log_interval"],
-    )
-    logger.add_result_columns(config["logging"]["result_columns"])
-
-    # dynamically load model
-    model_fn = MODELS[config["model"]["name"]]["fn"]
-    model_weights = MODELS[config["model"]["name"]]["weights"]
-    if model_weights != None:
-        model: torch.nn.Module = model_fn(weights=model_weights)
-    elif config["model"]["name"] == "hiera":
-        # HACK
-        model: torch.nn.Module = model_fn
-        model.freeze()
-    else:
-        model: torch.nn.Module = model_fn()
-
-    # create train/val datasets and dataloaders
-    img_size = int(config["dataset"]["image_size"])
-    train_dataset = SapphireDataset(
-        split="train",
-        formulation=F.get_formulation_from_str(config["global"]["formulation"]),
-        steps_per_epoch=config["training"]["steps_per_epoch"],
-        device=config["global"]["device"],
-        original_image_size=(img_size, img_size),
-        masking_ratio=int(config["dataset"]["masking_ratio"]),
-    )
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=config["training"]["batch_size"],
-        shuffle=False,
-        num_workers=config["dataset"]["num_workers"],
-    )
-    val_dataset = SapphireDataset(
-        split="val",
-        formulation=F.get_formulation_from_str(config["global"]["formulation"]),
-        steps_per_epoch=config["validation"]["steps_per_epoch"],
-        device=config["global"]["device"],
-        original_image_size=(img_size, img_size),
-        masking_ratio=int(config["dataset"]["masking_ratio"]),
-    )
-    val_dataloader = DataLoader(
-        val_dataset,
-        batch_size=config["validation"]["batch_size"],
-        shuffle=False,
-        num_workers=config["dataset"]["num_workers"],
-    )
+    logger = setup_logger(config)
+    model = create_model(config)
+    train_dataloader = create_dataloader(config, "train")
+    val_dataloader = create_dataloader(config, "val")
 
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config["training"]["loss"]]()
