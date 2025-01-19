@@ -15,14 +15,14 @@ class UNet(nn.Module):
 
         self.inc = DoubleConv(n_channels, 64, kernel_size=down_ks)
 
-        # what if this was a vit-enc
+        # what if this was a vit-enc?
         self.down1 = Down(64, 128, kernel_size=down_ks)
         self.down2 = Down(128, 256, kernel_size=down_ks)
         self.down3 = Down(256, 512, kernel_size=down_ks)
         factor = 2 if bilinear else 1
         self.down4 = Down(512, 1024 // factor, kernel_size=down_ks)
 
-        # ... and this was a vit-dec
+        # ... and this was a vit-dec?
         self.up1 = Up(1024, 512 // factor, bilinear, kernel_size=up_ks)
         self.up2 = Up(512, 256 // factor, bilinear, kernel_size=up_ks)
         self.up3 = Up(256, 128 // factor, bilinear, kernel_size=up_ks)
@@ -37,7 +37,8 @@ class UNet(nn.Module):
         
         # HACK: pad the channel dim
         B = x.shape[0]
-        pad_tensor = torch.zeros(B, 1, 224, 224).cuda()
+        H, W = x.shape[2: ]
+        pad_tensor = torch.zeros(B, 1, H, W).cuda()
         
         # (B, 2, 224 224) -> (B, 3, 224, 224)
         x = torch.cat([x, pad_tensor], dim=1)

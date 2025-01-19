@@ -146,7 +146,7 @@ def train(config: dict) -> None:
     img_size = int(config["dataset"]["image_size"])
     train_dataset = SapphireDataset(
         split="train",
-        formulation=F.P_Y_BAR_X,
+        formulation=F.get_formulation_from_str(config["global"]["formulation"]),
         steps_per_epoch=config["training"]["steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),
@@ -160,7 +160,7 @@ def train(config: dict) -> None:
     )
     val_dataset = SapphireDataset(
         split="val",
-        formulation=F.P_Y_BAR_X,
+        formulation=F.get_formulation_from_str(config["global"]["formulation"]),
         steps_per_epoch=config["validation"]["steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),

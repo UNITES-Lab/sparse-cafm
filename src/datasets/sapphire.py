@@ -25,6 +25,21 @@ class Formulation(Enum):
     P_Z_BAR_X = 0
     P_Y_BAR_X = 1
     P_Y_BAR_X_CN = 2
+    P_Y_BAR_Y_SPARSE = 3
+
+    @staticmethod
+    def get_formulation_from_str(formulation_str: str) -> Enum:
+        formulation_str = formulation_str.lower()
+        if formulation_str == "p(z|x)":
+            return Formulation.P_Z_BAR_X
+        elif formulation_str == "p(y|x)":
+            return Formulation.P_Y_BAR_X
+        elif formulation_str == "p(y|x_cn)":
+            return Formulation.P_Y_BAR_X_CN
+        elif formulation_str == "p(y|y_sparse)":
+            return Formulation.P_Y_BAR_Y_SPARSE
+        else:
+            raise KeyError
 
 
 class SapphireDataset(Dataset):
@@ -284,9 +299,10 @@ class SapphireDataset(Dataset):
 
     def get_item_p_y_bar_x(self, index: int) -> Dict:
         """
+        TODO: this method is misleading, does not do what it is titled to do.
+
         Get items for image -> image translation.
         Predict a current map y_hat from given topology map X.
-
         - Do NOT resize images after taking a random crop.
         """
 
@@ -317,7 +333,104 @@ class SapphireDataset(Dataset):
         # mask w/ shape [H, W, C]
         y_mask = np.ones(tuple(X.shape))
         y_mask[:, :: self.masking_ratio + 1, :] = 0
-        
+
+        # # HACK ---------------
+        # y_mask[:, 0::10, :] = 0
+        # y_mask[:, 1::10, :] = 0
+        # y_mask[:, 2::10, :] = 0
+        # y_mask[:, 3::10, :] = 0
+        # y_mask[:, 4::10, :] = 0
+        # y_mask[:, 5::10, :] = 0
+        # y_mask[:, 6::10, :] = 0
+        # y_mask[:, 7::10, :] = 0
+        # y_mask[:, 8::10, :] = 0
+        # # ---------------------
+
+        # get un-normed current map
+        y: np.ndarray = self.current_maps[sample_idx]
+        # copy of original y for figure logging
+        y_og = y.copy()
+        y_unnormed = y.copy()
+
+        # augment samples
+        # X recieves pixel-value normalization, all other data do not
+        # do not resize after random crop; 64x64 -> 64x64
+        augmented = p_y_bar_x_augmentation_pipeline(
+            image=X, y=y, X_og=X_og, y_og=y_og, y_unnormed=y_unnormed, y_mask=y_mask
+        )
+
+        # convert all data -> tensor
+        X: np.ndarray = augmented["image"]
+        X = torch.tensor(X).permute(2, 0, 1).float()
+        y: np.ndarray = augmented["y"]
+        y = torch.tensor(y).permute(2, 0, 1).float()
+        X_og = torch.tensor(augmented["X_og"]).float()
+        y_og = torch.tensor(augmented["y_og"]).float()
+        y_mask: torch.Tensor = torch.Tensor(augmented["y_mask"]).permute(2, 0, 1).bool()
+        y_unnormed: np.ndarray = augmented["y_unnormed"]
+
+        # normalize X, y using standard normal
+        X = (X - self.topo_maps_mean[:, None, None]) / self.topo_maps_std[:, None, None]
+        y = (y - self.current_maps_mean[:, None, None]) / self.current_maps_std[
+            :, None, None
+        ]
+
+        # MARK: calculate values of z
+        # z: sum(pixels < self.epsilon) / total num pixels
+        z = (y_unnormed.flatten() < self.epsilon).sum() / (
+            y_unnormed.shape[0] * y_unnormed.shape[1] * y_unnormed.shape[2]
+        )
+
+        # OPTIONAL: scale z by z_mult
+        z = torch.tensor(z).float() * self.z_mult
+
+        # z should always be in range: [0, 1.0 * Z_MULT]
+        assert z >= 0.0 and z <= (1.0 * self.z_mult)
+
+        return {
+            "X": X,
+            "y": y,
+            "z": z,
+            "y_mask": y_mask,
+            "X_og": X_og,
+            "y_og": y_og,
+            "epsilon": self.epsilon,
+        }
+
+    def get_item_p_y_bar_y_sparse(self, index: int) -> Dict:
+        """
+        Item getter method for p(y | y_sparse) formulation.
+        Partially mask the original current map y; currently row-wise masking.
+        """
+
+        p_y_bar_x_augmentation_pipeline = self._create_augmentation_pipeline(
+            resize_to_og_height=False
+        )
+
+        # NOTE: we should only consider samples: [0, 1, 2, 3];
+        # 4th sample is collected under slightly different conditions
+        # HACK: hard-coded train/val splits
+        # choose a random sample idx
+        if self.split == TRAIN_SPLIT:
+            # randint is inclusive: [a, b]
+            # select a random sample from self.data[:-1]
+            sample_idx = random.randint(0, len(self.current_maps) - 2)
+        elif self.split == VAL_SPLIT:
+            # select the final data sample: self.data[-1]
+            sample_idx = len(self.current_maps) - 1
+        else:
+            raise Exception(f"Invalid split: {self.split}")
+
+        # get un-normed topography map
+        X: np.ndarray = self.topo_maps[sample_idx]
+        # copy of original X for figure loging
+        X_og = X.copy()
+
+        # get mask based on masking ratio
+        # mask w/ shape [H, W, C]
+        y_mask = np.ones(tuple(X.shape))
+        y_mask[:, :: self.masking_ratio + 1, :] = 0
+
         # # HACK ---------------
         # y_mask[:, 0::10, :] = 0
         # y_mask[:, 1::10, :] = 0
@@ -396,11 +509,11 @@ class SapphireDataset(Dataset):
                     'z': torch.Tensor, # scalar-valued target denoting 'current-under-threshold'
                 }
         """
-
         fn_map = {
             Formulation.P_Z_BAR_X: self.get_item_p_z_bar_x,
             Formulation.P_Y_BAR_X: self.get_item_p_y_bar_x,
             Formulation.P_Y_BAR_X_CN: self.get_item_p_y_bar_x_cn,
+            Formulation.P_Y_BAR_Y_SPARSE: self.get_item_p_y_bar_y_sparse,
         }
         if self.formulation not in fn_map:
             raise Exception(

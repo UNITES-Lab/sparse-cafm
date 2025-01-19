@@ -1,6 +1,7 @@
 global:
   device: 0
-  mode: eval  # ['train', 'eval']
+  mode: train  # ['train', 'eval']
+  formulation: p(y|y_sparse)
 
 model:
   name: swinir
