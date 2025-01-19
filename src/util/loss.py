@@ -7,6 +7,10 @@ from typing import Optional, Sequence
 
 
 class ImageInpaintingL1Loss(nn.Module):
+    """
+    An inpainting loss where we use our free lunch!
+    Include the given signal (i.e., unmasked pixels) in the final model prediction.
+    """
 
     def __init__(self):
         super(ImageInpaintingL1Loss, self).__init__()

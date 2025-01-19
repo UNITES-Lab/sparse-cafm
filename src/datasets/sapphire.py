@@ -49,6 +49,7 @@ class SapphireDataset(Dataset):
     :Definitions:
     - X: topography map (height, width, depth)
     - y: current map (height, width, current)
+    - y_sparse: masked current map (height, width, current)
     - z: scalar, current-under-threshold
     - epsilon: bottom 10th percentile threshold of current values
     """
@@ -102,8 +103,8 @@ class SapphireDataset(Dataset):
         # load all data from src files
         self._load_imgs()
 
-        # remove L -> R gradients
-        # self._remove_gradients()
+        # remove L -> R gradients; remove back contact bias
+        self._remove_gradients()
 
         # find the mean/std of current and topo maps
         self._calculate_mean_std()
@@ -112,7 +113,7 @@ class SapphireDataset(Dataset):
         self.epsilon: Optional[float] = None
         self._calculate_epsilon()
 
-    def _save_unnormalized_img(self, img: np.ndarray, to: str):
+    def _save_unnormalized_img(self, img: np.ndarray, to: str) -> None:
         if isinstance(img, torch.Tensor):
             img = img.detach().cpu().numpy()
         # 1. normalize array to [0, 255]
@@ -126,7 +127,7 @@ class SapphireDataset(Dataset):
         # 3. save
         cv2.imwrite(to, img)
 
-    def _calculate_epsilon(self):
+    def _calculate_epsilon(self) -> None:
         """
         Calculate epsilon: the bottom 10th percentile of raw current-map readings.
         """
@@ -146,6 +147,7 @@ class SapphireDataset(Dataset):
 
     def _load_imgs(self) -> None:
         """
+        TODO: make less clunky and hard-coded.
         Load current-map + topo-map data from source dir.
         """
 
@@ -192,6 +194,11 @@ class SapphireDataset(Dataset):
         self.topo_maps = self.topo_maps[0:4]
 
     def __remove_gradient(self, current_map: np.ndarray) -> np.ndarray:
+        """
+        Find a line of best fit through the column-wise average current of a sample y.
+        This method helps to remove the bias create by the back-contact; a global bias
+        a model could not be expected to remove without additional information.
+        """
         corrected_map = np.copy(current_map)
         C, H, W = current_map.shape
         # column indices from 0..W-1
@@ -269,7 +276,6 @@ class SapphireDataset(Dataset):
     def get_item_p_z_bar_x(self, index: int) -> Dict:
         """
         Get the next randomly sampled item from the dataset.
-
         :param index: currently unused, necessiary for batch data-loading
         :returns:
             ```
@@ -281,6 +287,7 @@ class SapphireDataset(Dataset):
                     'z': torch.Tensor, # scalar-valued target denoting 'current-under-threshold'
                 }
         """
+        return None
 
     def get_item_p_y_bar_x_cn(self, index: int) -> Dict:
         """
@@ -458,12 +465,18 @@ class SapphireDataset(Dataset):
 
         # convert all data -> tensor
         X: np.ndarray = augmented["image"]
+        # (64, 64, 3) -> (3, 64, 64)
         X = torch.tensor(X).permute(2, 0, 1).float()
         y: np.ndarray = augmented["y"]
+        # (64, 64, 3) -> (3, 64, 64)
         y = torch.tensor(y).permute(2, 0, 1).float()
+        # (512, 512, 3)
         X_og = torch.tensor(augmented["X_og"]).float()
+        # (512, 512, 3)
         y_og = torch.tensor(augmented["y_og"]).float()
+        # (64, 64, 3) -> (3, 64, 64)
         y_mask: torch.Tensor = torch.Tensor(augmented["y_mask"]).permute(2, 0, 1).bool()
+        # (512, 512, 3)
         y_unnormed: np.ndarray = augmented["y_unnormed"]
 
         # normalize X, y using standard normal
@@ -472,7 +485,7 @@ class SapphireDataset(Dataset):
             :, None, None
         ]
 
-        # MARK: calculate values of z
+        # NOTE: calculate values of z
         # z: sum(pixels < self.epsilon) / total num pixels
         z = (y_unnormed.flatten() < self.epsilon).sum() / (
             y_unnormed.shape[0] * y_unnormed.shape[1] * y_unnormed.shape[2]

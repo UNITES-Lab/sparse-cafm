@@ -59,7 +59,7 @@ def eval(config: dict) -> None:
         num_workers=config["dataset"]["num_workers"],
     )
     print(val_dataset.current_maps_std, val_dataset.current_maps_mean)
-    return 
+    return
 
     # define loss function and optimizer
     val_loss = LOSS_FUNCTIONS[config["validation"]["loss"]]()
@@ -174,9 +174,8 @@ def train(config: dict) -> None:
     )
 
     # define loss function and optimizer
-    train_loss = LOSS_FUNCTIONS[config["training"]["loss"]]()
-    val_loss = LOSS_FUNCTIONS[config["validation"]["loss"]]()
-
+    train_loss: torch.nn.Module = LOSS_FUNCTIONS[config["training"]["loss"]]()
+    val_loss: torch.nn.Module = LOSS_FUNCTIONS[config["validation"]["loss"]]()
     optimizer: torch.optim.Optimizer = OPTIMIZERS[config["training"]["optimizer"]](
         model.parameters(), lr=float(config["training"]["lr"])
     )
@@ -211,10 +210,12 @@ def train(config: dict) -> None:
             # P(y | y_sparse)
             outputs = model(y_sparse)
 
+            # NOTE: standard loss (e.g., L1)
             # loss = train_loss(outputs, y)
             # NOTE: inpainting loss
-            loss = train_loss(predicted_image=outputs, target_image=y, mask=y_mask)
-
+            loss: torch.Tensor = train_loss(
+                predicted_image=outputs, target_image=y, mask=y_mask
+            )
             loss.backward()
             optimizer.step()
             running_loss += loss.item() * y_sparse.size(0)
