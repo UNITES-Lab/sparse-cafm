@@ -34,6 +34,15 @@ class ImageInpaintingL1Loss(nn.Module):
         final_prediction = given_pixels + pred_pixels
         return torch.nn.functional.l1_loss(final_prediction, target_image)
 
+    @staticmethod
+    def get_final_prediction(
+        predicted_image: torch.Tensor, target_image: torch.Tensor, mask: torch.Tensor
+    ):
+        given_pixels = target_image * mask
+        pred_pixels = predicted_image * ~mask
+        final_prediction = given_pixels + pred_pixels
+        return final_prediction
+
 
 class VAELoss(nn.Module):
     def __init__(self):

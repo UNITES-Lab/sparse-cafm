@@ -39,23 +39,24 @@ def create_model(config: dict) -> nn.Module:
         model.freeze()
     else:
         model = model_fn()
-    assert type(model) == nn.Module
+    assert isinstance(model, nn.Module)
     return model.cuda(config["global"]["device"]).float()
 
 
 def create_dataloader(config: dict, split: str) -> DataLoader:
+    split_str = "training" if split == "train" else "validation"
     img_size = int(config["dataset"]["image_size"])
     dataset = SapphireDataset(
         split=split,
         formulation=F.get_formulation_from_str(config["global"]["formulation"]),
-        steps_per_epoch=config[f"{split}_steps_per_epoch"],
+        steps_per_epoch=config[split_str]["steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),
         masking_ratio=int(config["dataset"]["masking_ratio"]),
     )
     return DataLoader(
         dataset,
-        batch_size=config[f"{split}_batch_size"],
+        batch_size=config[split_str]["batch_size"],
         shuffle=False,
         num_workers=config["dataset"]["num_workers"],
     )
@@ -166,7 +167,6 @@ def train(config: dict) -> None:
             optimizer.zero_grad()
             # P(y | y_sparse)
             outputs = model(y_sparse)
-
             # NOTE: standard loss (e.g., L1)
             # loss = train_loss(outputs, y)
             # NOTE: inpainting loss
@@ -185,6 +185,15 @@ def train(config: dict) -> None:
                     "val_loss": None,
                 }
             )
+            # log a triplet (original, masked, predicted) every 100 steps
+            if i % 100 == 0:
+                triplet_name = f"train_epoch_{epoch}_step_{i}.png"
+                final_pred = ImageInpaintingL1Loss.get_final_prediction(
+                    predicted_image=outputs, target_image=y, mask=y_mask
+                )
+                logger.log_original_masked_predicted_sample_triplet(
+                    y, y_sparse, final_pred, triplet_name
+                )
 
         # validation
         model.eval()
@@ -204,7 +213,6 @@ def train(config: dict) -> None:
                 y_sparse = (y * y_mask).float()
                 # forward : p(y | y_sparse)
                 outputs = model(y_sparse)
-
                 # loss = val_loss(outputs, y)
                 # NOTE: inpainting loss
                 loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
@@ -220,6 +228,16 @@ def train(config: dict) -> None:
                     }
                 )
                 num_val_steps += 1
+                
+                # log a triplet (original, masked, predicted) every 100 steps
+                if i % 100 == 0:
+                    triplet_name = f"val_epoch_{epoch}_step_{i}.png"
+                    final_pred = ImageInpaintingL1Loss.get_final_prediction(
+                        predicted_image=outputs, target_image=y, mask=y_mask
+                    )
+                    logger.log_original_masked_predicted_sample_triplet(
+                        y, y_sparse, final_pred, triplet_name
+                    )
 
             # optionally log best/epoch model weights
             avg_val_loss = val_running_loss / num_val_steps

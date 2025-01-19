@@ -6,15 +6,19 @@ import pandas as pd
 import yaml
 import wandb
 import numpy as np
-from typing import List, Dict, Optional
+import matplotlib.pyplot as plt
+from typing import List, Dict, Optional, Union
 from torch.utils.tensorboard import SummaryWriter
+from src.util.torch_helpers import convert_to_img_like
 
-EXPS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/1. p(z | X)"
+EXPS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/"
+FIGURES_DIR_NAME = "figures"
+RESULTS_CSV_NAME = "results.csv"
 
 
 class ExperimentLogger:
     """
-    A flexible logger used for recording and organizing experimental runs.
+    A flexible logger used to record and organize experimental runs.
     """
 
     def __init__(
@@ -33,7 +37,7 @@ class ExperimentLogger:
         :param exp_name:            name of the experiment
         :param log_interval:        how often to write log results to .csv file
         :param enable_tensorboard:  flag to enable tensorboard logging
-        :param enable_wandb:        flag to enable W&B logging [NOT SUPPORTED CURRENTLY]
+        :param enable_wandb:        flag to enable W&B logging [NOT SUPPORTED]
         :param wandb_project_name:  name of W&B project (e.g. "my-project")
         """
 
@@ -59,10 +63,10 @@ class ExperimentLogger:
         self.wandb_run = None
         self._setup_exp_dir()
 
-    def _update_csv(self):
+    def _update_csv(self) -> None:
         self.results.to_csv(self.results_out_path, index=False)
 
-    def _setup_exp_dir(self):
+    def _setup_exp_dir(self) -> None:
 
         # get date and time as a string
         date_time_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -80,7 +84,7 @@ class ExperimentLogger:
         self.config_fp = config_save_fp
 
         # path to results csv file
-        self.results_out_path = os.path.join(exp_out_dir, "results.csv")
+        self.results_out_path = os.path.join(exp_out_dir, RESULTS_CSV_NAME)
 
         # optional: create a tensorboard writer object
         if self.enable_tensorboard:
@@ -100,16 +104,16 @@ class ExperimentLogger:
             )
             self.wandb_run = wandb.run
 
-    def add_result_column(self, name: str):
+    def add_result_column(self, name: str) -> None:
         self.results[name] = None
         self._update_csv()
 
-    def add_result_columns(self, names: List[str]):
+    def add_result_columns(self, names: List[str]) -> None:
         for name in names:
             self.add_result_column(name)
         self._update_csv()
 
-    def log(self, **kwargs):
+    def log(self, **kwargs) -> None:
         # log -> csv
         self.results = pd.concat(
             [self.results, pd.DataFrame.from_records([kwargs])], ignore_index=True
@@ -132,38 +136,73 @@ class ExperimentLogger:
             }
             wandb.log(wandb_dict, step=step)
 
-    def save_weights(self, x: torch.nn.Module, name: str = "best"):
+    def save_weights(self, x: torch.nn.Module, name: str = "best") -> None:
         """
-        Save model weights.
+        Save model weights of a `torch.nn.Module` object to the current exp dir.
 
         :param x: model to save
         """
-        model_out_path = os.path.join(
-            self.exp_dir, f"{self.exp_name}_{name}_weights.pt"
-        )
+        model_out_path = os.path.join(self.exp_dir, f"{self.exp_name}_{name}.pt")
         torch.save(x, model_out_path)
 
-    def save_sample(self, name: str, data: torch.Tensor, subdir: Optional[str] = None) -> None:
+    def save_tensorlike_data(
+        self,
+        name: str,
+        data: Union[torch.Tensor, np.ndarray],
+        subdir: Optional[str] = None,
+    ) -> None:
         """
-        Log any data locally.
-        
+        Log `torch.Tensor`-like to data to the current exp dir.
+
         Currently supports:
             - `.npy`
-        
+
         :param name: name of the image
         :param img_like: image to log
         :param subdir: subdirectory to save to
         """
-        
-        outdir = os.path.join(self.exp_dir, "figures")
+
+        outdir = os.path.join(self.exp_dir, FIGURES_DIR_NAME)
+        # create the figures dir if it does not already exist
         os.makedirs(outdir, exist_ok=True)
+        # optionally, save in a subdir
         if subdir is not None:
             outdir = os.path.join(outdir, subdir)
             os.makedirs(outdir, exist_ok=True)
         out_fp = os.path.join(outdir, name)
-        
         if isinstance(data, torch.Tensor):
             data = data.detach().cpu().numpy()
-        
+        # TODO: support other data formats
         if name.endswith(".npy"):
             np.save(out_fp, data)
+
+    def log_original_masked_predicted_sample_triplet(
+        self, y: torch.Tensor, y_sparse: torch.Tensor, y_hat: torch.Tensor, name: str,
+    ) -> None:
+        """
+        Expect inputs with shapes (B, C, H, W).
+        """
+        y, y_sparse, y_hat = convert_to_img_like(y, y_sparse, y_hat)
+        y = y[0, ...]; y_sparse = y_sparse[0, ...]; y_hat = y_hat[0, ...]
+        # (B, C, H, W) -> (B, H, W, C)
+        y = np.transpose(y, (1, 2, 0))
+        y_sparse = np.transpose(y_sparse, (1, 2, 0))
+        y_hat = np.transpose(y_hat, (1, 2, 0))
+
+        combined_image = np.concatenate([y, y_sparse, y_hat], axis=1)
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.imshow(combined_image)
+        ax.axis('off')
+        h, w = y.shape[:2]
+        labels = ['original', 'masked', 'predicted']
+        for i, label in enumerate(labels):
+            x_pos = i * w + w // 2
+            ax.text(x_pos, -4, label, fontsize=14, ha='center', color='black')
+        
+        outdir = os.path.join(self.exp_dir, FIGURES_DIR_NAME)
+        # create the figures dir if it does not already exist
+        os.makedirs(outdir, exist_ok=True)
+        out_fp = os.path.join(outdir, name)
+        
+        plt.savefig(out_fp, bbox_inches='tight', pad_inches=0.1)
+        
