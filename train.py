@@ -48,6 +48,7 @@ def create_dataloader(config: dict, split: str) -> DataLoader:
     img_size = int(config["dataset"]["image_size"])
     dataset = SapphireDataset(
         split=split,
+        side_length=int(config['dataset']['crop_size']),
         formulation=F.get_formulation_from_str(config["global"]["formulation"]),
         steps_per_epoch=config[split_str]["steps_per_epoch"],
         device=config["global"]["device"],
@@ -147,7 +148,8 @@ def train(config: dict) -> None:
 
     # load weights from checkpoint
     if config["model"]["weights"] != None:
-        model.load_state_dict(torch.load(config["model"]["weights"]))
+        # model.load_state_dict(torch.load(config["model"]["weights"]), strict=False)
+        model = torch.load(config["model"]["weights"]).float().cuda()
 
     for epoch in range(num_epochs):
         model.train()

@@ -26,6 +26,7 @@ class Formulation(Enum):
     P_Y_BAR_X = 1
     P_Y_BAR_X_CN = 2
     P_Y_BAR_Y_SPARSE = 3
+    P_Y_BAR_Y_SPARSE_BENCHMARK = 4
 
     @staticmethod
     def get_formulation_from_str(formulation_str: str) -> Enum:
@@ -38,6 +39,8 @@ class Formulation(Enum):
             return Formulation.P_Y_BAR_X_CN
         elif formulation_str == "p(y|y_sparse)":
             return Formulation.P_Y_BAR_Y_SPARSE
+        elif formulation_str == "p(y|y_sparse_benchmark)":
+            return Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK
         else:
             raise KeyError
 
@@ -507,6 +510,30 @@ class SapphireDataset(Dataset):
             "epsilon": self.epsilon,
         }
 
+    def get_item_p_y_bar_y_sparse_deterministic(self, index: int) -> Dict:
+        """
+        Deterministic variant of the p(y|y_sparse) get item method.
+        """
+
+        # save current rng states
+        python_rng_state = random.getstate()
+        numpy_rng_state = np.random.get_state()
+        torch_rng_state = torch.get_rng_state()
+
+        seed = 12345 + index
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+
+        item = self.get_item_p_y_bar_y_sparse(index)
+
+        # restore previous rng states
+        random.setstate(python_rng_state)
+        np.random.set_state(numpy_rng_state)
+        torch.set_rng_state(torch_rng_state)
+
+        return item
+
     def __getitem__(self, index: int) -> Dict:
         """
         Get the next randomly sampled item from the dataset.
@@ -527,6 +554,7 @@ class SapphireDataset(Dataset):
             Formulation.P_Y_BAR_X: self.get_item_p_y_bar_x,
             Formulation.P_Y_BAR_X_CN: self.get_item_p_y_bar_x_cn,
             Formulation.P_Y_BAR_Y_SPARSE: self.get_item_p_y_bar_y_sparse,
+            Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK: self.get_item_p_y_bar_y_sparse_deterministic,
         }
         if self.formulation not in fn_map:
             raise Exception(

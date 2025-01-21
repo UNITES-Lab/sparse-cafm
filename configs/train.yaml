@@ -6,7 +6,7 @@ global:
 model:
   name: swinir
   pretrained: True
-  weights:
+  weights: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/4. pre-training/2025-01-19_13-08-57_swinir_p_y_bar_y_sparse_50/swinir_p_y_bar_y_sparse_50_best.pt
 
 training:
   batch_size: 4
@@ -24,13 +24,13 @@ validation:
 dataset:
   name: SapphireDataset
   image_size: 224
-  crop_size: 64
+  crop_size: 128
   num_workers: 0
   masking_ratio: 1
 
 logging:
-  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/4. pre-training"
-  exp_name: swinir_p_y_bar_y_sparse_50
+  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)"
+  exp_name: swinir_p_y_bar_y_sparse_50_128x128
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   save_weights: true
   save_only_best_weights: true

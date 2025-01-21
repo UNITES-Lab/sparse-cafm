@@ -1,0 +1,8 @@
+28cfbee61c6a2a3ddea580caa9324c03  amp_bgg_solver.py
+cfc9928339e419a0061c791d942c1822  aspmci_reconstructions.py
+b187dfa22c6bbc61f6d36964550acd33  extract_data.py
+6d4ee4b168fc97abf089a02e3792180c  extract_originals.py
+07fce9e4b6d30ae9096535e96e818fb4  extract_patterns.py
+c69916b538fe28e2748a4837f8c6e90a  extract_recon_imgs.py
+0c07f114f2a302e07d7733034ff8b9cb  analyse_data.ipynb
+2d438dfae3d83771b172cdad68319b4c  README.rst
