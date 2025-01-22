@@ -13,10 +13,10 @@ mask = np.zeros_like(channel_data, dtype=bool)
 mask[::2, :] = True  # keep every other row
 
 # Verify how many values were "kept" vs. masked
-num_pixels_total = channel_data.size
-num_pixels_kept = mask.sum()
-num_pixels_masked = num_pixels_total - num_pixels_kept
-print(f"Total pixels: {num_pixels_total}, Kept: {num_pixels_kept}, Masked: {num_pixels_masked}")
+# num_pixels_total = channel_data.size
+# num_pixels_kept = mask.sum()
+# num_pixels_masked = num_pixels_total - num_pixels_kept
+# print(f"Total pixels: {num_pixels_total}, Kept: {num_pixels_kept}, Masked: {num_pixels_masked}")
 
 # Coordinates of unmasked (kept) pixels
 rows, cols = np.where(mask)

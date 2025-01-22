@@ -83,30 +83,55 @@ def eval(config: dict) -> None:
     model.eval()
 
     for step, batch in enumerate(
-        tqdm(val_dataloader, desc=f"Evaluating... ")
+        tqdm(val_dataloader, desc=f"Evaluating...:")
     ):
         # target: y
         y: torch.Tensor = batch["y"].cuda(device)
+        
         # mask
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
+        
+        # # HACK: awesome way to handle one and two input models
+        # try:
+        #     # forward : p(y|y_sparse)
+        #     y_hat: torch.Tensor = model(y_sparse)
+        # except:
+        #     # forward : p(y|y_sparse)
+        #     y_hat: torch.Tensor = model(y_sparse, y_mask)
+        
         # forward : p(y|y_sparse)
         y_hat: torch.Tensor = model(y_sparse)
+            
+        # log final predicted image
+        triplet_name = f"eval_step_{step}.png"
+        final_pred = ImageInpaintingL1Loss.get_final_prediction(
+            predicted_image=y_hat, target_image=y, mask=y_mask
+        )
+        logger.log_original_masked_predicted_sample_triplet(
+            y, y_sparse, final_pred, triplet_name
+        )
+        
         # 1. MAE
-        mae = (y_hat - y).abs().mean()
+        mae = (final_pred - y).abs().mean()
+        
         # 2. MSE
-        mse = (y_hat - y).pow(2).mean()
+        mse = (final_pred - y).pow(2).mean()
+        
         # 3. PSNR
         #   psnr = 10 * log10( peak_val^2 / mse )
         #        = 20 * log10(peak_val) - 10 * log10(mse)
         psnr = 20 * torch.log10(torch.tensor(2.)) - 10 * torch.log10(mse)
+       
+        # TODO: SSIM seems a little wonky, values much lower than expected
         # 4. SSIM
         # Example using torchmetrics:
         ssim_val = ssim(
-            y_hat.clamp(-1, 1).float(),  # clamp just to be safe
+            final_pred.clamp(-1, 1).float(),  # clamp just to be safe
             y.clamp(-1, 1).float(),
             data_range=2.
         )
+        
         logger.log(
             **{
                 "step": step,
@@ -116,6 +141,7 @@ def eval(config: dict) -> None:
                 "ssim": ssim_val.item(),
             }
         )
+        
 
 
 def main():

@@ -1,0 +1,66 @@
+import gpim
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+
+
+class GPReconstuctionInpainter(nn.Module):
+    """
+    ...
+    """
+
+    def __init__(self,):
+        """
+        """
+        
+        super(GPReconstuctionInpainter, self).__init__()
+
+    @torch.enable_grad()
+    def forward(self, y_sparse: torch.Tensor) -> torch.Tensor:
+        """
+        Following the examples provided in gpim repo: https://github.com/ziatdinovmax/GPim/blob/master/examples/notebooks/GP_2D3D_images.ipynb.
+        """
+        
+        # HACK: assume that y_sparse has EXACTLY shape: [1, 3, 128, 128]
+        R = y_sparse.clone().cpu()[0, 0, :, :]
+        R = R.numpy().astype(float)
+        
+        # HACK: we hard coded the sparsity of incoming y_sparse, assume always 50%
+        R[:, ::2] = np.NaN
+        
+        # Get full (ideal) grid indices
+        X_full = gpim.utils.get_full_grid(R, dense_x=1)
+
+        # Get sparse grid indices
+        X_sparse = gpim.utils.get_sparse_grid(R)
+        
+        # run GP reconstruction to obtain mean prediction and uncertainty for each predictied point
+        recon = gpim.reconstructor(
+            X_sparse, 
+            R, X_full,
+            learning_rate=0.1, 
+            iterations=2,
+            use_gpu=True,
+            verbose=False
+        )
+        
+        # train + predict
+        mean, sd, hyperparams = recon.run()
+        
+        e1, e2 = R.shape
+        
+        # (128, 128)
+        pred = mean.reshape(e1, e2)
+        # (128, 128) -> (3, 128, 128)
+        pred = np.stack([pred] * 3, axis=0)
+        # (3, 128, 128) -> (1, 3, 128, 128)
+        pred = np.expand_dims(pred, 0)
+        # -> tensor -> gpu
+        pred = torch.Tensor(pred).cuda()
+
+        return pred
+
+    @staticmethod
+    def get(weights=None):
+        return GPReconstuctionInpainter()

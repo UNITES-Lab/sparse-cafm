@@ -16,6 +16,13 @@ from src.models.autoencoder import Autoencoder
 from src.models.vae import VAE
 from src.models.unet.unet import UNet, ThickUNet
 from src.models.unetr.unetr import UNETR
+from src.models.classic_recon import (
+    LinearInterpolationInpainter,
+    BicubicInterpolationInpainter,
+    AMPInpainter,
+    NearestNeighborsInpainter,
+)
+from src.models.guassian_process_regression import GPReconstuctionInpainter
 from _SwinIR.models.network_swinir import SwinIR
 
 
@@ -41,7 +48,7 @@ LOSS_FUNCTIONS = {
     "Focal": FocalLoss,
     "Huber": nn.HuberLoss,
     "VAE": VAELoss,
-    "InpaintingL1": ImageInpaintingL1Loss,  
+    "InpaintingL1": ImageInpaintingL1Loss,
 }
 
 MODELS = {
@@ -71,6 +78,14 @@ MODELS = {
     "thick_unet": {"fn": ThickUNet.get, "weights": None},
     "unetr": {"fn": UNETR.get, "weights": None},
     "swinir": {"fn": SwinIR.get, "weights": None},
+    "linear_interpolation": {"fn": LinearInterpolationInpainter.get, "weights": None},
+    "bicubic_interpolation": {"fn": BicubicInterpolationInpainter.get, "weights": None},
+    "amp_interpolation": {"fn": AMPInpainter.get, "weights": None},
+    "nn_interpolation": {"fn": NearestNeighborsInpainter.get, "weights": None},
+    "guass_proc_regression_interpolation": {
+        "fn": GPReconstuctionInpainter.get,
+        "weights": None,
+    },
 }
 
 OPTIMIZERS = {

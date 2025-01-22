@@ -54,7 +54,7 @@ import numpy as np
 from scipy import interpolate
 from matplotlib import mlab
 
-import utils as _utils
+import classic_reconstruction.utils as _utils
 
 
 def cubic_interpolation(var):
@@ -189,3 +189,6 @@ def nearestn_interpolation(var):
         reconstructed_coefficients_vec,
         None,
     )
+
+if __name__ == "__main__":
+    pass
