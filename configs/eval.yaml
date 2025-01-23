@@ -4,7 +4,7 @@ global:
   formulation: p(y|y_sparse_benchmark)
 
 model:
-  name: guass_proc_regression_interpolation
+  name: nn_interpolation
   pretrained: True
   weights:
 
@@ -21,8 +21,8 @@ dataset:
   masking_ratio: 1
 
 logging:
-  root: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6a. benchmarks
-  exp_name: gp_regress_128_50%-sparse
+  root: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6b. evals
+  exp_name: knn-50%-sparse
   result_columns: ["step", "mae","mse", "psnr", "ssim"]
   save_weights: true
   save_only_best_weights: true

@@ -13,7 +13,6 @@ class GPReconstuctionInpainter(nn.Module):
     def __init__(self,):
         """
         """
-        
         super(GPReconstuctionInpainter, self).__init__()
 
     @torch.enable_grad()
@@ -58,7 +57,7 @@ class GPReconstuctionInpainter(nn.Module):
         pred = np.expand_dims(pred, 0)
         # -> tensor -> gpu
         pred = torch.Tensor(pred).cuda()
-
+        
         return pred
 
     @staticmethod

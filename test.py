@@ -8,9 +8,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from src.datasets.sapphire import SapphireDataset, Formulation as F
 from src.util.logger import ExperimentLogger
-from src.util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS, parse_config
-from src.models.regression_head import RegressionHead
-from src.models.unet.unet import ThickUNet
+from src.util.config import MODELS, parse_config
 from src.util.loss import ImageInpaintingL1Loss
 from torchmetrics.functional.image.ssim import ssim
 
@@ -82,16 +80,14 @@ def eval(config: dict) -> None:
     # validation loop
     model.eval()
 
-    for step, batch in enumerate(
-        tqdm(val_dataloader, desc=f"Evaluating...:")
-    ):
+    for step, batch in enumerate(tqdm(val_dataloader, desc=f"Evaluating...:")):
         # target: y
         y: torch.Tensor = batch["y"].cuda(device)
-        
+
         # mask
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
-        
+
         # # HACK: awesome way to handle one and two input models
         # try:
         #     # forward : p(y|y_sparse)
@@ -99,10 +95,13 @@ def eval(config: dict) -> None:
         # except:
         #     # forward : p(y|y_sparse)
         #     y_hat: torch.Tensor = model(y_sparse, y_mask)
-        
+
         # forward : p(y|y_sparse)
-        y_hat: torch.Tensor = model(y_sparse)
-            
+        # y_hat: torch.Tensor = model(y_sparse)
+
+        # forward : p(y|y_sparse)
+        y_hat: torch.Tensor = model(y_sparse, y_mask)
+
         # log final predicted image
         triplet_name = f"eval_step_{step}.png"
         final_pred = ImageInpaintingL1Loss.get_final_prediction(
@@ -111,27 +110,27 @@ def eval(config: dict) -> None:
         logger.log_original_masked_predicted_sample_triplet(
             y, y_sparse, final_pred, triplet_name
         )
-        
+
         # 1. MAE
         mae = (final_pred - y).abs().mean()
-        
+
         # 2. MSE
         mse = (final_pred - y).pow(2).mean()
-        
+
         # 3. PSNR
         #   psnr = 10 * log10( peak_val^2 / mse )
         #        = 20 * log10(peak_val) - 10 * log10(mse)
-        psnr = 20 * torch.log10(torch.tensor(2.)) - 10 * torch.log10(mse)
-       
+        psnr = 20 * torch.log10(torch.tensor(2.0)) - 10 * torch.log10(mse)
+
         # TODO: SSIM seems a little wonky, values much lower than expected
         # 4. SSIM
         # Example using torchmetrics:
         ssim_val = ssim(
             final_pred.clamp(-1, 1).float(),  # clamp just to be safe
             y.clamp(-1, 1).float(),
-            data_range=2.
+            data_range=2.0,
         )
-        
+
         logger.log(
             **{
                 "step": step,
@@ -141,7 +140,6 @@ def eval(config: dict) -> None:
                 "ssim": ssim_val.item(),
             }
         )
-        
 
 
 def main():
