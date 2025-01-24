@@ -39,7 +39,7 @@ def apply_color_palette(map_like: np.ndarray) -> np.ndarray:
     --------
     colored_image : np.ndarray
         An array of shape (H, W, C), where each pixel has RGB values
-        in the [0, 255] range.
+        in the [0, 1] range.
     """
     # -> [0, 1]
     map_like = map_like.astype(np.float32)
@@ -52,8 +52,7 @@ def apply_color_palette(map_like: np.ndarray) -> np.ndarray:
     cmap = cm.get_cmap("viridis")
     colored_map = cmap(normalized_map)
     colored_image = colored_map[..., :3]
-    # -> [0, 255]
-    return colored_image * 255
+    return colored_image
 
 
 def convert_to_img_like(*args: torch.Tensor) -> List[np.ndarray]:

@@ -194,7 +194,6 @@ def train(config: dict) -> None:
                 logger.log_original_masked_predicted_sample_triplet(
                     y, y_sparse, final_pred, triplet_name
                 )
-                breakpoint()
 
         # validation
         model.eval()
