@@ -1,5 +1,8 @@
 import torch
 import numpy as np
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+
 from typing import List
 
 
@@ -19,6 +22,38 @@ def move_to(obj, device):
         return res
     else:
         raise TypeError("Invalid type for move_to")
+
+
+def apply_color_palette(map_like: torch.Tensor) -> np.ndarray:
+    """
+    Applies a color palette to a 2D input array (H, W) and returns
+    an RGB image (H, W, C).
+
+    Parameters:
+    -----------
+    map_tensor : np.ndarray
+        A  NumPy array or tensor-like structure representing
+        some feature map or heatmap data.
+
+    Returns:
+    --------
+    colored_image : np.ndarray
+        An array of shape (H, W, C), where each pixel has RGB values
+        in the [0, 255] range.
+    """
+    # -> [0, 1]
+    map_like = map_like.astype(np.float32)
+    min_val, max_val = np.min(map_like), np.max(map_like)
+    if max_val > min_val:
+        normalized_map = (map_like - min_val) / (max_val - min_val)
+    else:
+        # edge case: map has all the same value
+        normalized_map = np.zeros_like(map_like, dtype=np.float32)
+    cmap = cm.get_cmap("viridis")
+    colored_map = cmap(normalized_map)
+    colored_image = colored_map[..., :3]
+    # -> [0, 255]
+    return colored_image * 255
 
 
 def convert_to_img_like(*args: torch.Tensor) -> List[np.ndarray]:
