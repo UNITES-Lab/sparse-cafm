@@ -24,7 +24,7 @@ def move_to(obj, device):
         raise TypeError("Invalid type for move_to")
 
 
-def apply_color_palette(map_like: torch.Tensor) -> np.ndarray:
+def apply_color_palette(map_like: np.ndarray) -> np.ndarray:
     """
     Applies a color palette to a 2D input array (H, W) and returns
     an RGB image (H, W, C).
@@ -32,7 +32,7 @@ def apply_color_palette(map_like: torch.Tensor) -> np.ndarray:
     Parameters:
     -----------
     map_tensor : np.ndarray
-        A  NumPy array or tensor-like structure representing
+        A  NumPy array representing
         some feature map or heatmap data.
 
     Returns:
@@ -63,10 +63,6 @@ def convert_to_img_like(*args: torch.Tensor) -> List[np.ndarray]:
     """
     results = []
     for x in args:
-        min_val = x.min()
-        max_val = x.max()
-        x = (x - min_val) / (max_val - min_val)
-        x = x * 255
-        x = x.detach().cpu().int().numpy()
-        results.append(x)
+        x = x.detach().cpu().numpy()
+        results.append(apply_color_palette(x))
     return results

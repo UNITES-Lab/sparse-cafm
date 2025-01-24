@@ -6,11 +6,9 @@ import torch.nn as nn
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from src.datasets.sapphire import SapphireDataset, Formulation as F
+from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
 from src.util.logger import ExperimentLogger
 from src.util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS, parse_config
-from src.models.regression_head import RegressionHead
-from src.models.unet.unet import ThickUNet
 from src.util.loss import ImageInpaintingL1Loss
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
@@ -46,7 +44,7 @@ def create_model(config: dict) -> nn.Module:
 def create_dataloader(config: dict, split: str) -> DataLoader:
     split_str = "training" if split == "train" else "validation"
     img_size = int(config["dataset"]["image_size"])
-    dataset = SapphireDataset(
+    dataset = MOS2SEFDataset(
         split=split,
         side_length=int(config['dataset']['crop_size']),
         formulation=F.get_formulation_from_str(config["global"]["formulation"]),
@@ -196,6 +194,7 @@ def train(config: dict) -> None:
                 logger.log_original_masked_predicted_sample_triplet(
                     y, y_sparse, final_pred, triplet_name
                 )
+                breakpoint()
 
         # validation
         model.eval()

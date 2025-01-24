@@ -180,14 +180,12 @@ class ExperimentLogger:
         self, y: torch.Tensor, y_sparse: torch.Tensor, y_hat: torch.Tensor, name: str,
     ) -> None:
         """
-        Expect inputs with shapes (B, C, H, W).
+        Expect inputs with shapes (B, H, W).
         """
+        # (B, H, W) -> (B, H, W, C)
         y, y_sparse, y_hat = convert_to_img_like(y, y_sparse, y_hat)
+        # (B, H, W, C) -> (H, W, C)
         y = y[0, ...]; y_sparse = y_sparse[0, ...]; y_hat = y_hat[0, ...]
-        # (B, C, H, W) -> (B, H, W, C)
-        y = np.transpose(y, (1, 2, 0))
-        y_sparse = np.transpose(y_sparse, (1, 2, 0))
-        y_hat = np.transpose(y_hat, (1, 2, 0))
 
         combined_image = np.concatenate([y, y_sparse, y_hat], axis=1)
         fig, ax = plt.subplots(figsize=(12, 6))
@@ -198,7 +196,6 @@ class ExperimentLogger:
         for i, label in enumerate(labels):
             x_pos = i * w + w // 2
             ax.text(x_pos, -4, label, fontsize=14, ha='center', color='black')
-        
         outdir = os.path.join(self.exp_dir, FIGURES_DIR_NAME)
         # create the figures dir if it does not already exist
         os.makedirs(outdir, exist_ok=True)

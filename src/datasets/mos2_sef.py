@@ -14,7 +14,7 @@ from glob import glob
 SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/1-23-25"
 TRAIN_SPLIT = "train"
 VAL_SPLIT = "val"
-ORIGINAL_IMAGE_SIZE = (512, 512)
+ORIGINAL_IMAGE_SIZE = (224, 224)
 CROPPED_IMG_SIDE_LENGTH = 128
 
 
@@ -103,8 +103,6 @@ class MOS2SEFDataset(Dataset):
 
         # find the mean/std of current and topo maps
         self._calculate_mean_std()
-        
-        breakpoint()
 
     def _save_unnormalized_img(self, img: np.ndarray, to: str) -> None:
         if isinstance(img, torch.Tensor):
@@ -197,16 +195,10 @@ class MOS2SEFDataset(Dataset):
         Calculate the mean and std of topo/curr maps.
         Saves results as internal vars.
         """
-        c_stack = np.concatenate(
-            [np.expand_dims(arr, axis=0) for arr in self.current_maps], axis=0
-        )
-        t_stack = np.concatenate(
-            [np.expand_dims(arr, axis=0) for arr in self.topo_maps], axis=0
-        )
-        self.current_maps_mean = np.mean(c_stack, axis=(0, 1))
-        self.current_maps_std = np.std(c_stack, axis=(0, 1))
-        self.topo_maps_mean = np.mean(t_stack, axis=(0, 1))
-        self.topo_maps_std = np.std(t_stack, axis=(0, 1))
+        self.current_maps_mean = np.mean(np.array(self.current_maps))
+        self.current_maps_std = np.std(np.array(self.current_maps))
+        self.topo_maps_mean = np.mean(np.array(self.topo_maps))
+        self.topo_maps_std = np.std(np.array(self.topo_maps))
 
     def _create_augmentation_pipeline(self, resize_to_og_height=True):
         # HACK: optionaly resize image to original height after taking random crop.
@@ -324,9 +316,9 @@ class MOS2SEFDataset(Dataset):
         y_unnormed: np.ndarray = augmented["y_unnormed"]
 
         # normalize X, y using standard normal
-        X = (X - self.topo_maps_mean[:, None, None]) / self.topo_maps_std[:, None, None]
-        y = (y - self.current_maps_mean[:, None, None]) / self.current_maps_std[
-            :, None, None
+        X = (X - self.topo_maps_mean[:, None]) / self.topo_maps_std[:, None]
+        y = (y - self.current_maps_mean[:, None]) / self.current_maps_std[
+            :, None
         ]
 
         # MARK: calculate values of z
@@ -381,9 +373,9 @@ class MOS2SEFDataset(Dataset):
         X_og = X.copy()
 
         # get mask based on masking ratio
-        # mask w/ shape [H, W, C]
+        # mask w/ shape [H, W]
         y_mask = np.ones(tuple(X.shape))
-        y_mask[:, :: self.masking_ratio + 1, :] = 0
+        y_mask[:: self.masking_ratio + 1, :] = 0
 
         # # HACK ---------------
         # y_mask[:, 0::10, :] = 0
@@ -427,10 +419,8 @@ class MOS2SEFDataset(Dataset):
         y_unnormed: np.ndarray = augmented["y_unnormed"]
 
         # normalize X, y using standard normal
-        X = (X - self.topo_maps_mean[:, None, None]) / self.topo_maps_std[:, None, None]
-        y = (y - self.current_maps_mean[:, None, None]) / self.current_maps_std[
-            :, None, None
-        ]
+        X = (X - self.topo_maps_mean) / self.topo_maps_std
+        y = (y - self.current_maps_mean) / self.current_maps_std
 
         return {
             "X": X,
@@ -480,7 +470,6 @@ class MOS2SEFDataset(Dataset):
                 }
         """
         fn_map = {
-            Formulation.P_Z_BAR_X: self.get_item_p_z_bar_x,
             Formulation.P_Y_BAR_X: self.get_item_p_y_bar_x,
             Formulation.P_Y_BAR_X_CN: self.get_item_p_y_bar_x_cn,
             Formulation.P_Y_BAR_Y_SPARSE: self.get_item_p_y_bar_y_sparse,

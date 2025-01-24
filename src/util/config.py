@@ -23,6 +23,7 @@ from src.models.classic_recon import (
     NearestNeighborsInpainter,
 )
 from src.models.guassian_process_regression import GPReconstuctionInpainter
+from src.models.our_method.swin_cafm import SwinCAFM
 from _SwinIR.models.network_swinir import SwinIR
 
 
@@ -52,6 +53,11 @@ LOSS_FUNCTIONS = {
 }
 
 MODELS = {
+    "ours":
+        {
+            "fn": SwinCAFM.get,
+            "weights": None,
+        },
     "simple_z_reg_vit": {
         "fn": SimpleZRegressionVisionTransformer.get,
         "weights": None,
