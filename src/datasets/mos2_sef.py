@@ -10,15 +10,12 @@ from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List, Union
 from glob import glob
 
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
 
-ORIGINAL_IMAGE_SIZE = (224, 224)
-CROPPED_IMG_SIDE_LENGTH = 64
 SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/1-23-25"
-EXT = "tiff"
 TRAIN_SPLIT = "train"
 VAL_SPLIT = "val"
+ORIGINAL_IMAGE_SIZE = (512, 512)
+CROPPED_IMG_SIDE_LENGTH = 128
 
 
 class Formulation(Enum):
@@ -415,18 +412,18 @@ class MOS2SEFDataset(Dataset):
 
         # convert all data -> tensor
         X: np.ndarray = augmented["image"]
-        # (64, 64, 3) -> (3, 64, 64)
-        X = torch.tensor(X).permute(2, 0, 1).float()
+        # (64, 64)
+        X = torch.tensor(X).float()
         y: np.ndarray = augmented["y"]
-        # (64, 64, 3) -> (3, 64, 64)
-        y = torch.tensor(y).permute(2, 0, 1).float()
-        # (512, 512, 3)
+        # (64, 64)
+        y = torch.tensor(y).float()
+        # (512, 512)
         X_og = torch.tensor(augmented["X_og"]).float()
-        # (512, 512, 3)
+        # (512, 512)
         y_og = torch.tensor(augmented["y_og"]).float()
-        # (64, 64, 3) -> (3, 64, 64)
-        y_mask: torch.Tensor = torch.Tensor(augmented["y_mask"]).permute(2, 0, 1).bool()
-        # (512, 512, 3)
+        # (64, 64)
+        y_mask: torch.Tensor = torch.Tensor(augmented["y_mask"]).bool()
+        # (512, 512)
         y_unnormed: np.ndarray = augmented["y_unnormed"]
 
         # normalize X, y using standard normal
@@ -435,26 +432,12 @@ class MOS2SEFDataset(Dataset):
             :, None, None
         ]
 
-        # NOTE: calculate values of z
-        # z: sum(pixels < self.epsilon) / total num pixels
-        z = (y_unnormed.flatten() < self.epsilon).sum() / (
-            y_unnormed.shape[0] * y_unnormed.shape[1] * y_unnormed.shape[2]
-        )
-
-        # OPTIONAL: scale z by z_mult
-        z = torch.tensor(z).float() * self.z_mult
-
-        # z should always be in range: [0, 1.0 * Z_MULT]
-        assert z >= 0.0 and z <= (1.0 * self.z_mult)
-
         return {
             "X": X,
             "y": y,
-            "z": z,
             "y_mask": y_mask,
             "X_og": X_og,
             "y_og": y_og,
-            "epsilon": self.epsilon,
         }
 
     def get_item_p_y_bar_y_sparse_deterministic(self, index: int) -> Dict:
