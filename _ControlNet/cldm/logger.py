@@ -12,20 +12,11 @@ from cv2 import log
 from PIL import Image
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from torchmetrics.functional.image.ssim import ssim
 from src.util.logger import ExperimentLogger
 from src.util.torch_helpers import convert_to_img_like, grayscale_to_2d
-
-
-# TODO: create a custom callback
-# 1. MSE train loss @ each step
-# 2. MSE (i.e., pixel-loss) validation loss @ each epoch
-# 3. PSNR @ each epoch
-
-
-# TODO: implement
-class Logger:
-    def __init__(self) -> None:
-        pass
+from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
+from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 
 
 class ScuffedLogger:
@@ -158,9 +149,13 @@ class ImageLogger(Callback):
         self.log_first_step = log_first_step
         self.global_step = 0
         self.logger: Optional[ExperimentLogger] = None
+        self.dataset: Optional[MOS2SEFDataset] = None
 
     def register_logger(self, logger: ExperimentLogger) -> None:
         self.logger = logger
+        
+    def register_dataset(self, dataset: MOS2SEFDataset) -> None:
+        self.dataset = dataset
 
     @rank_zero_only
     def log_local(
@@ -202,35 +197,76 @@ class ImageLogger(Callback):
         # "samples_cfg_scale_9.00": [-1, 1]
         # --- model predicition
 
-        l1 = F.l1_loss(pred, vae_og_recon).item()
-        mse = F.mse_loss(pred, vae_og_recon).item()
-        psnr = calc_psnr(pred, vae_og_recon)
-
-        self.logger.log(
-            **{
-                "step": self.global_step,
-                "train_l1": l1 if split == "train" else None,
-                "train_psnr": psnr if split == "train" else None,
-                "val_l1": l1 if split == "val" else None,
-                "val_psnr": psnr if split == "val" else None,
-            }
-        )
-
         # [C, H, W] -> [H, W, C]
         pred = pred.permute(1, 2, 0)
         vae_og_recon = vae_og_recon.permute(1, 2, 0)
         control: torch.Tensor = control.permute(1, 2, 0)
-        
+
         # [H, W, C] -> [H, W]
         y = grayscale_to_2d(vae_og_recon)
         y_sparse = grayscale_to_2d(control)
         y_hat = grayscale_to_2d(pred)
-        
+
         # [H, W] -> [B, H, W]
         y = y.unsqueeze(0)
         y_sparse = y_sparse.unsqueeze(0)
         y_hat = y_hat.unsqueeze(0)
+
+        # 1. MAE
+        mae = (y_hat - y).abs().mean()
+        # 2. MSE
+        mse = (y_hat - y).pow(2).mean()
+        # 3. PSNR
+        psnr = 20 * torch.log10(torch.tensor(2.0)) - 10 * torch.log10(mse)
+
+        # (B, H, W) -> (B, 1, H, W)
+        final_pred_img_like = y_hat.clone()
+        final_pred_img_like = final_pred_img_like.unsqueeze(1)
+        # (B, 1, H, W) -> (B, 3, H, W)
+        final_pred_img_like = final_pred_img_like.repeat(1, 3, 1, 1)
+
+        # (B, H, W) -> (B, 1, H, W)
+        y_img_like = y.clone()
+        y_img_like = y_img_like.unsqueeze(1)
+        # (B, 1, H, W) -> (B, 3, H, W)
+        y_img_like = y_img_like.repeat(1, 3, 1, 1)
+
+        # 4. SSIM
+        ssim_val = ssim(
+            final_pred_img_like.clamp(-1, 1).float(),  # clamp just to be safe
+            y_img_like.clamp(-1, 1).float(),
+            data_range=2.0,
+        )
         
+        # 5a. characterize(y)
+        mean, std = self.dataset.current_maps_mean,  self.dataset.current_maps_std
+        data = (y - mean) / std
+        y_char = celano_lab_characterization(
+            data, self.dataset.img_size_um
+        )
+        
+        # 5b. characterize(y_sparse)
+        data = (y_hat - mean) / std
+        y_sparse_char = celano_lab_characterization(
+            data, self.dataset.img_size_um
+        )
+
+        # log metrics
+        self.logger.log(
+            **{
+                "step": self.global_step,
+                "train_l1": mae if split == "train" else None,
+                "val_l1": mae if split == "val" else None,
+                "train_mse": mse if split == "train" else None,
+                "val_mse": mse if split == "val" else None,
+                "train_psnr": psnr if split == "train" else None,
+                "val_psnr": psnr if split == "val" else None,
+                "train_ssim": ssim_val if split == "train" else None,
+                "val_ssim": ssim_val if split == "val" else None,
+                "val_celano_script_y": y_char if split == "val" else None,
+                "val_celano_script_y_sparse": y_sparse_char if split == "val" else None,
+            }
+        )
         self.logger.log_original_masked_predicted_sample_triplet(
             y, y_sparse, y_hat, f"{current_epoch}.png"
         )

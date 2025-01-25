@@ -22,7 +22,7 @@ def parse_config(fp: str) -> dict:
     return config
 
 
-def create_dataloader(config: dict, split: str) -> DataLoader:
+def create_dataset(config: dict, split: str) -> MOS2SEFDataset:
     split_str = "training" if split == "train" else "validation"
     img_size = int(config["dataset"]["image_size"])
     dataset = MOS2SEFDataset(
@@ -34,6 +34,11 @@ def create_dataloader(config: dict, split: str) -> DataLoader:
         original_image_size=(img_size, img_size),
         masking_ratio=int(config["dataset"]["masking_ratio"]),
     )
+    return dataset
+
+def create_dataloader(config: dict, split: str) -> DataLoader:
+    split_str = "training" if split == "train" else "validation"
+    dataset = create_dataset(config, split)
     return DataLoader(
         dataset,
         batch_size=config[split_str]["batch_size"],
@@ -80,6 +85,7 @@ def main() -> None:
     train_dataloader, val_dataloader = create_dataloader(
         config, "train"
     ), create_dataloader(config, "val")
+    val_dataset = val_dataloader.dataset
 
     logger = ExperimentLogger(
         config_fp=TRAIN_CONFIG_FP,
@@ -90,6 +96,7 @@ def main() -> None:
     logger.add_result_columns(["step", "train_l1", "train_psnr", "val_l1", "val_pnsr"])
     img_logger = ImageLogger(batch_frequency=logger_freq)
     img_logger.register_logger(logger)
+    img_logger.register_dataset(val_dataset)
 
     # start training
     trainer = pl.Trainer(gpus=[0], precision=32, callbacks=[img_logger])

@@ -106,10 +106,8 @@ def eval(config: dict) -> None:
 
         # 1. MAE
         mae = (final_pred - y).abs().mean()
-
         # 2. MSE
         mse = (final_pred - y).pow(2).mean()
-
         # 3. PSNR
         psnr = 20 * torch.log10(torch.tensor(2.0)) - 10 * torch.log10(mse)
 
