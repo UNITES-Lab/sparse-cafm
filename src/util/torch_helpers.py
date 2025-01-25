@@ -1,3 +1,4 @@
+from signal import siginterrupt
 import torch
 import numpy as np
 import matplotlib.cm as cm
@@ -45,7 +46,7 @@ def apply_color_palette(map_like: np.ndarray) -> np.ndarray:
     map_like = map_like.astype(np.float32)
     min_val, max_val = np.min(map_like), np.max(map_like)
     if max_val > min_val:
-        normalized_map = (map_like - min_val) / (max_val - min_val)
+        normalized_map = siginterrupt()
     else:
         # edge case: map has all the same value
         normalized_map = np.zeros_like(map_like, dtype=np.float32)

@@ -16,14 +16,16 @@ TRAIN_SPLIT = "train"
 VAL_SPLIT = "val"
 ORIGINAL_IMAGE_SIZE = (224, 224)
 CROPPED_IMG_SIDE_LENGTH = 128
+IMG_SIZE_UM = 2.0
 
 
 class Formulation(Enum):
     P_Z_BAR_X = 0
     P_Y_BAR_X = 1
     P_Y_BAR_X_CN = 2
-    P_Y_BAR_Y_SPARSE = 3
+    P_Y_BAR_Y_SPARSE_CN = 3
     P_Y_BAR_Y_SPARSE_BENCHMARK = 4
+    P_Y_BAR_Y_SPARSE = 5
 
     @staticmethod
     def get_formulation_from_str(formulation_str: str) -> Enum:
@@ -38,6 +40,8 @@ class Formulation(Enum):
             return Formulation.P_Y_BAR_Y_SPARSE
         elif formulation_str == "p(y|y_sparse_benchmark)":
             return Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK
+        elif formulation_str == "p(y|y_sparse_cn)":
+            return Formulation.P_Y_BAR_Y_SPARSE_CN
         else:
             raise KeyError
 
@@ -94,6 +98,10 @@ class MOS2SEFDataset(Dataset):
         self.current_maps_std = 0.0
         self.topo_maps_mean = 0.0
         self.topo_maps_std = 0.0
+        
+        # hard-coded global constant
+        # original sample size is 2um
+        self.img_size_um = IMG_SIZE_UM
 
         # load all data from src files
         self._load_imgs()
@@ -228,20 +236,36 @@ class MOS2SEFDataset(Dataset):
         """
         return self.steps_per_epoch
 
-    def get_item_p_y_bar_x_cn(self, index: int) -> Dict:
+    def get_item_p_y_bar_y_sparse_cn(self, index: int) -> Dict:
         """
         Get items for ControlNet (image -> image translation)
         Predict a current map y_hat from given topology map X
         - Do NOT resize images after taking a random crop.
         """
-        # TODO: is the text-encoder loaded?; how do we encode text?
-        items = self.get_item_p_y_bar_x(index)
+        items = self.get_item_p_y_bar_y_sparse(index)
         y: torch.Tensor = items["y"]
-        # modify conditional input value range: [-1, 1] -> [0, 1]
-        y_sparse: torch.Tensor = (items["y_sparse"] + 1) / 2
-        y = y.permute(2, 1, 0)
-        y_sparse = y_sparse.permute(2, 1, 0)
-        return dict(jpg=y, txt="", hint=y_sparse)
+        
+        # [-1, 1] -> [0, 1]
+        y_sig = (y - y.min()) / (y.max() - y.min())
+        y_mask: torch.Tensor = items["y_mask"]
+        y_sparse = (y_sig * y_mask).float()
+        
+        # -> [H, W, C]
+        # [H, W] -> [H, W, 1]
+        y_img_like = y_sig.clone()
+        y_img_like = y_img_like.unsqueeze(-1)
+        # [H, W, 1] -> [H, W, 3]
+        y_img_like = y_img_like.repeat(1, 1, 3)
+        # [H, W] -> [H, W, 1]
+        y_sparse_img_like = y_sparse.clone()
+        y_sparse_img_like = y_sparse_img_like.unsqueeze(-1)
+        # [H, W, 1] -> [H, W, 3]
+        y_sparse_img_like = y_sparse_img_like.repeat(1, 1, 3)
+        
+        # [0, 1] -> [-1, 1]
+        y_img_like = (y_img_like * 2) - 1
+
+        return dict(jpg=y_img_like, txt="", hint=y_sparse_img_like)
 
     def get_item_p_y_bar_x(self, index: int) -> Dict:
         """
@@ -317,9 +341,7 @@ class MOS2SEFDataset(Dataset):
 
         # normalize X, y using standard normal
         X = (X - self.topo_maps_mean[:, None]) / self.topo_maps_std[:, None]
-        y = (y - self.current_maps_mean[:, None]) / self.current_maps_std[
-            :, None
-        ]
+        y = (y - self.current_maps_mean[:, None]) / self.current_maps_std[:, None]
 
         # MARK: calculate values of z
         # z: sum(pixels < self.epsilon) / total num pixels
@@ -391,6 +413,7 @@ class MOS2SEFDataset(Dataset):
 
         # get un-normed current map
         y: np.ndarray = self.current_maps[sample_idx]
+        
         # copy of original y for figure logging
         y_og = y.copy()
         y_unnormed = y.copy()
@@ -471,8 +494,8 @@ class MOS2SEFDataset(Dataset):
         """
         fn_map = {
             Formulation.P_Y_BAR_X: self.get_item_p_y_bar_x,
-            Formulation.P_Y_BAR_X_CN: self.get_item_p_y_bar_x_cn,
             Formulation.P_Y_BAR_Y_SPARSE: self.get_item_p_y_bar_y_sparse,
+            Formulation.P_Y_BAR_Y_SPARSE_CN: self.get_item_p_y_bar_y_sparse_cn,
             Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK: self.get_item_p_y_bar_y_sparse_deterministic,
         }
         if self.formulation not in fn_map:

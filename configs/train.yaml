@@ -1,7 +1,7 @@
 global:
   device: 0
   mode: train  # ['train', 'eval']
-  formulation: p(y|y_sparse)
+  formulation: p(y|y_sparse_cn)
 
 model:
   name: ours
@@ -9,7 +9,7 @@ model:
   weights:
 
 training:
-  batch_size: 4
+  batch_size: 1
   steps_per_epoch: 1024
   epochs: 2000
   loss: InpaintingL1

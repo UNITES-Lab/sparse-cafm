@@ -1,12 +1,11 @@
 import os
-import yaml
-import sys
 import torch
 import torch.nn as nn
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from src.datasets.sapphire import SapphireDataset, Formulation as F
+from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
+from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.logger import ExperimentLogger
 from src.util.config import MODELS, parse_config
 from src.util.loss import ImageInpaintingL1Loss
@@ -42,24 +41,19 @@ def create_model(config: dict) -> nn.Module:
     return model.cuda(config["global"]["device"]).float()
 
 
-def create_dataloader(config: dict, split: str) -> DataLoader:
+def create_dataset(config: dict, split: str) -> MOS2SEFDataset:
     split_str = "training" if split == "train" else "validation"
     img_size = int(config["dataset"]["image_size"])
-    dataset = SapphireDataset(
+    dataset = MOS2SEFDataset(
         split=split,
-        side_length=int(config["dataset"]["crop_size"]),
         formulation=F.get_formulation_from_str(config["global"]["formulation"]),
+        side_length=int(config["dataset"]["crop_size"]),
+        masking_ratio=int(config["dataset"]["masking_ratio"]),
         steps_per_epoch=config[split_str]["steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),
-        masking_ratio=int(config["dataset"]["masking_ratio"]),
     )
-    return DataLoader(
-        dataset,
-        batch_size=config[split_str]["batch_size"],
-        shuffle=False,
-        num_workers=config["dataset"]["num_workers"],
-    )
+    return dataset
 
 
 @torch.no_grad()
@@ -67,7 +61,13 @@ def eval(config: dict) -> None:
 
     logger = setup_logger(config)
     model = create_model(config)
-    val_dataloader = create_dataloader(config, "val")
+    val_dataset = create_dataset(config, "val")
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=config["validation"]["batch_size"],
+        shuffle=False,
+        num_workers=config["dataset"]["num_workers"],
+    )
 
     device = config["global"]["device"]
 
@@ -81,6 +81,7 @@ def eval(config: dict) -> None:
     model.eval()
 
     for step, batch in enumerate(tqdm(val_dataloader, desc=f"Evaluating...:")):
+
         # target: y
         y: torch.Tensor = batch["y"].cuda(device)
 
@@ -88,19 +89,11 @@ def eval(config: dict) -> None:
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
 
-        # # HACK: awesome way to handle one and two input models
-        # try:
-        #     # forward : p(y|y_sparse)
-        #     y_hat: torch.Tensor = model(y_sparse)
-        # except:
-        #     # forward : p(y|y_sparse)
-        #     y_hat: torch.Tensor = model(y_sparse, y_mask)
-
         # forward : p(y|y_sparse)
-        # y_hat: torch.Tensor = model(y_sparse)
+        y_hat: torch.Tensor = model(y_sparse)
 
-        # forward : p(y|y_sparse)
-        y_hat: torch.Tensor = model(y_sparse, y_mask)
+        # # forward : p(y|y_sparse)
+        # y_hat: torch.Tensor = model(y_sparse, y_mask)
 
         # log final predicted image
         triplet_name = f"eval_step_{step}.png"
@@ -118,17 +111,38 @@ def eval(config: dict) -> None:
         mse = (final_pred - y).pow(2).mean()
 
         # 3. PSNR
-        #   psnr = 10 * log10( peak_val^2 / mse )
-        #        = 20 * log10(peak_val) - 10 * log10(mse)
         psnr = 20 * torch.log10(torch.tensor(2.0)) - 10 * torch.log10(mse)
 
-        # TODO: SSIM seems a little wonky, values much lower than expected
+        # (B, H, W) -> (B, 1, H, W)
+        final_pred_img_like = final_pred.clone()
+        final_pred_img_like = final_pred_img_like.unsqueeze(1)
+        # (B, 1, H, W) -> (B, 3, H, W)
+        final_pred_img_like = final_pred_img_like.repeat(1, 3, 1, 1)
+
+        # (B, H, W) -> (B, 1, H, W)
+        y_img_like = y.clone()
+        y_img_like = y_img_like.unsqueeze(1)
+        # (B, 1, H, W) -> (B, 3, H, W)
+        y_img_like = y_img_like.repeat(1, 3, 1, 1)
+
         # 4. SSIM
-        # Example using torchmetrics:
         ssim_val = ssim(
-            final_pred.clamp(-1, 1).float(),  # clamp just to be safe
-            y.clamp(-1, 1).float(),
+            final_pred_img_like.clamp(-1, 1).float(),  # clamp just to be safe
+            y_img_like.clamp(-1, 1).float(),
             data_range=2.0,
+        )
+
+        # 5a. characterize(y)
+        mean, std = val_dataset.current_maps_mean, val_dataset.current_maps_std
+        data = (y - mean) / std
+        y_char = celano_lab_characterization(
+            data, val_dataset.img_size_um
+        )
+        
+        # 5b. characterize(y_sparse)
+        data = (final_pred - mean) / std
+        y_sparse_char = celano_lab_characterization(
+            data, val_dataset.img_size_um
         )
 
         logger.log(
@@ -138,6 +152,8 @@ def eval(config: dict) -> None:
                 "mse": mse.item(),
                 "psnr": psnr.item(),
                 "ssim": ssim_val.item(),
+                "celano_script_y": y_char,
+                "celano_script_y_sparse": y_sparse_char,
             }
         )
 
