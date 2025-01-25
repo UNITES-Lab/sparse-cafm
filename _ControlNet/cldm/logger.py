@@ -13,6 +13,7 @@ from PIL import Image
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from src.util.logger import ExperimentLogger
+from src.util.torch_helpers import convert_to_img_like, grayscale_to_2d
 
 
 # TODO: create a custom callback
@@ -71,7 +72,7 @@ class ScuffedLogger:
         self.curr_mse = 0.0
         self.curr_psnr = 0.0
         self.initialized = True
-        
+
     def set_log_path(self, fp):
         self.csv_out_path = fp
 
@@ -171,8 +172,8 @@ class ImageLogger(Callback):
         current_epoch,
         batch_idx,
     ):
-
         # TODO: make this code great again
+        # idk what exactly what is happening here; don't really care either
         root = os.path.join(save_dir, "image_log", split)
         for k in images:
             grid = torchvision.utils.make_grid(images[k], nrow=4)
@@ -188,28 +189,52 @@ class ImageLogger(Callback):
             os.makedirs(os.path.split(path)[0], exist_ok=True)
             Image.fromarray(grid).save(path)
 
-        # (B, C, H, W ) -> (3, 512, 512)
-        # conditioning: just an array of 1s?
-        breakpoint()
         pred: torch.Tensor = images["samples_cfg_scale_9.00"].squeeze(0).detach().cpu()
-        target: torch.Tensor = images["reconstruction"].squeeze(0).detach().cpu()
+        vae_og_recon: torch.Tensor = images["reconstruction"].squeeze(0).detach().cpu()
+        control = images["control"].squeeze(0).detach().cpu()
 
-        # control: [-1, 1]
-            # target img (y)
-        # pred: [-1, 1]
-        # target: [-1, 1]
-        l1 = F.l1_loss(pred, target).item()
-        mse = F.mse_loss(pred, target).item()
-        psnr = calc_psnr(pred, target)
+        # images.keys(): ['reconstruction', 'control', 'conditioning', 'samples_cfg_scale_9.00']
+        # "control": [1, 1]
+        # --- original target image
+        # "reconstruction": [-1, 1]
+        # --- actual target image reconstructed from VAE
+        # "conditioning": silly torch.ones() block
+        # "samples_cfg_scale_9.00": [-1, 1]
+        # --- model predicition
+
+        l1 = F.l1_loss(pred, vae_og_recon).item()
+        mse = F.mse_loss(pred, vae_og_recon).item()
+        psnr = calc_psnr(pred, vae_og_recon)
+
+        self.logger.log(
+            **{
+                "step": self.global_step,
+                "train_l1": l1 if split == "train" else None,
+                "train_psnr": psnr if split == "train" else None,
+                "val_l1": l1 if split == "val" else None,
+                "val_psnr": psnr if split == "val" else None,
+            }
+        )
+
+        # [C, H, W] -> [H, W, C]
+        pred = pred.permute(1, 2, 0)
+        vae_og_recon = vae_og_recon.permute(1, 2, 0)
+        control: torch.Tensor = control.permute(1, 2, 0)
         
-        assert isinstance(self.logger, ExperimentLogger)
-        self.logger.log(**{
-            'step': self.global_step,
-            'train_l1': l1 if split == 'train' else None,
-            'train_psnr': psnr if split == 'train' else None,
-            'val_l1': l1 if split == 'val' else None,
-            'val_psnr': psnr if split == 'val' else None,
-        })
+        # [H, W, C] -> [H, W]
+        y = grayscale_to_2d(vae_og_recon)
+        y_sparse = grayscale_to_2d(control)
+        y_hat = grayscale_to_2d(pred)
+        
+        # [H, W] -> [B, H, W]
+        y = y.unsqueeze(0)
+        y_sparse = y_sparse.unsqueeze(0)
+        y_hat = y_hat.unsqueeze(0)
+        
+        self.logger.log_original_masked_predicted_sample_triplet(
+            y, y_sparse, y_hat, f"{current_epoch}.png"
+        )
+
         self.global_step += 1
 
     def log_img(self, pl_module, batch, batch_idx, split="train"):
@@ -240,9 +265,7 @@ class ImageLogger(Callback):
                         images[k] = torch.clamp(images[k], -1.0, 1.0)
 
             # TODO: FIX ME.
-            img_out_dir = os.path.join(
-                os.path.dirname(""), "samples"
-            )
+            img_out_dir = os.path.join(os.path.dirname(""), "samples")
             os.makedirs(img_out_dir, exist_ok=True)
 
             # self.log_local(pl_module.logger.save_dir, split, images,
@@ -268,7 +291,7 @@ class ImageLogger(Callback):
     ):
         if not self.disabled:
             self.log_img(pl_module, batch, batch_idx, split="train")
-            
+
     def on_validation_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0
     ):

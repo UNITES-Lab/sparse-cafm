@@ -42,27 +42,37 @@ def apply_color_palette(map_like: np.ndarray) -> np.ndarray:
         An array of shape (H, W, C), where each pixel has RGB values
         in the [0, 1] range.
     """
-    # -> [0, 1]
     map_like = map_like.astype(np.float32)
     min_val, max_val = np.min(map_like), np.max(map_like)
-    if max_val > min_val:
-        normalized_map = siginterrupt()
-    else:
-        # edge case: map has all the same value
-        normalized_map = np.zeros_like(map_like, dtype=np.float32)
+    # -> [0, 1]
+    normalized_map = (map_like - min_val) / (max_val - min_val)
     cmap = cm.get_cmap("viridis")
     colored_map = cmap(normalized_map)
-    colored_image = colored_map[..., :3]
+    # HACK:
+    if len(colored_map.shape) == 4:
+        colored_image = colored_map[:, :, :, 0]
+    else:
+        colored_image = colored_map[..., :3]
     return colored_image
 
 
 def convert_to_img_like(*args: torch.Tensor) -> List[np.ndarray]:
     """
-    Convert one or more tensors from any range to [0, 255].
+    Convert one or more tensors from any range to [0, 1].
     Cast to int, move to CPU, and return them all as NumPy arrays.
     """
     results = []
     for x in args:
-        x = x.detach().cpu().numpy()
+        if isinstance(x, torch.Tensor):
+            x = x.detach().cpu().numpy()
         results.append(apply_color_palette(x))
     return results
+
+
+def grayscale_to_2d(grayscale_like: torch.Tensor) -> torch.Tensor:
+    """
+    Converts a 'grayscale' tensor of shape (128, 128, 3)
+    to shape (128, 128) by averaging across the last dimension.
+    """
+    tensor_2d = torch.mean(grayscale_like, axis=-1)
+    return tensor_2d

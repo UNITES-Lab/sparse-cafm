@@ -42,7 +42,7 @@ def create_dataloader(config: dict, split: str) -> DataLoader:
     )
 
 
-def main():
+def main() -> None:
     """
     Train a ControlNet to predict y_sparse -> model -> y_hat.
     """

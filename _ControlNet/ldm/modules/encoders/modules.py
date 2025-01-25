@@ -91,7 +91,6 @@ class FrozenT5Embedder(AbstractEncoder):
         tokens = batch_encoding["input_ids"].to(self.device)
         outputs = self.transformer(input_ids=tokens)
         z = outputs.last_hidden_state
-        breakpoint()
         return z
 
     def encode(self, text):

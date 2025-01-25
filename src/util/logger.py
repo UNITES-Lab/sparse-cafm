@@ -206,3 +206,28 @@ class ExperimentLogger:
         os.makedirs(outdir, exist_ok=True)
         out_fp = os.path.join(outdir, name)
         plt.savefig(out_fp, bbox_inches='tight', pad_inches=0.1, dpi=300)
+
+    def log_original_masked_predicted_sample_triplet_controlnet(
+        self,
+        y: torch.Tensor,
+        y_sparse: torch.Tensor,
+        y_hat: torch.Tensor,
+        name: str,
+    ) -> None:
+        """
+        Expect img-like inputs with shapes (H, W, C).
+        """
+        combined_image = np.concatenate([y, y_sparse, y_hat], axis=1)
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.imshow(combined_image)
+        ax.axis("off")
+        h, w = y.shape[:2]
+        labels = ["Original", "Masked", "Predicted"]
+        for i, label in enumerate(labels):
+            x_pos = i * w + w // 2
+            ax.text(x_pos, -4, label, fontsize=14, ha="center", color="black")
+        outdir = os.path.join(self.exp_dir, FIGURES_DIR_NAME)
+        # create the figures dir if it does not already exist
+        os.makedirs(outdir, exist_ok=True)
+        out_fp = os.path.join(outdir, name)
+        plt.savefig(out_fp, bbox_inches='tight', pad_inches=0.1, dpi=300)
