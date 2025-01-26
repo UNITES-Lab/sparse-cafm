@@ -1,19 +1,41 @@
 import torch
-import cv2 
-import numpy as np 
+import numpy as np
 
-from math import log10, sqrt 
-from torchmetrics.functional.image import peak_signal_noise_ratio
+from torchmetrics.functional.image.psnr import psnr
 from typing import Optional, Tuple
-  
-def PSNR(preds: torch.tensor, target: torch.tensor, range: Optional[Tuple[float, float]] = (-1., 1.)):
+
+
+def PSNR(
+    preds: torch.tensor,
+    target: torch.tensor,
+    range: Optional[Tuple[float, float]] = (-1.0, 1.0),
+):
     """
     Source: https://www.geeksforgeeks.org/python-peak-signal-to-noise-ratio-psnr/
     """
-    val = peak_signal_noise_ratio(preds, target)
+    val = psnr(preds, target, data_range=range)
     return val
 
+
+def OLDER(y_char: dict, y_sparse_char: dict) -> float:
+    """
+    Offline Domain-Expert Rating.
+    
+    A weighted average of percent difference of characterization of two current-maps using Celano labs scripts.
+    """
+    
+    diffs = []
+    for k1, k2 in zip(y_char.keys(), y_sparse_char.keys()):
+        val1, val2 = y_char[k1], y_sparse_char[k2]
+        if val1 == 0 and val2 == 0:
+            diffs.append(0.0)
+        else:
+            avg_val = (val1 + val2) / 2.0
+            # % diff = 2 * || val1 - val2 || / (val1 + val2)
+            pdiff = abs(val1 - val2) / avg_val
+            diffs.append(pdiff)
+    return np.mean(diffs)
+
+
 if __name__ == "__main__":
-    original = cv2.imread("/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__repos__/ControlNet/image_log/64x64-crop-lr-1e-5/reconstruction_gs-071185_e-000619_b-000000.png")
-    compressed = cv2.imread("/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__repos__/ControlNet/image_log/64x64-crop-lr-1e-5/samples_cfg_scale_9.00_gs-071185_e-000619_b-000000.png")
-    print(PSNR(original, compressed))
+    pass

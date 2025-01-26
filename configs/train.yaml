@@ -1,10 +1,10 @@
 global:
   device: 0
   mode: train  # ['train', 'eval']
-  formulation: p(y|y_sparse_cn)
+  formulation: p(y|y_sparse)
 
 model:
-  name: ours
+  name: unet
   pretrained: True
   weights:
 
@@ -30,7 +30,7 @@ dataset:
 
 logging:
   root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6a. train-runs"
-  exp_name: ours_128x128_new_ds
+  exp_name: unet_sigmoid_128x128_new_ds_no_logger_renorm
   result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
   save_weights: true
   save_only_best_weights: true

@@ -90,14 +90,20 @@ def eval(config: dict) -> None:
     ):
         # target: y
         y: torch.Tensor = batch["y"].cuda(device)
+        
         # mask
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
+        
         # forward : p(y | y_sparse)
         outputs: torch.Tensor = model(y_sparse)
-        # loss = val_loss(outputs, y)
-        # NOTE: inpainting loss
-        loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
+       
+       # NOTE: standard loss (e.g., L1)
+        loss = val_loss(outputs, y)
+        
+        # # NOTE: inpainting loss
+        # loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
+       
         val_running_loss += loss.item() * y_sparse.size(0)
         logger.log(
             **{
@@ -146,7 +152,9 @@ def train(config: dict) -> None:
 
     # load weights from checkpoint
     if config["model"]["weights"] != None:
+        # load weights only:
         # model.load_state_dict(torch.load(config["model"]["weights"]), strict=False)
+        # load enitre model object:
         model = torch.load(config["model"]["weights"]).float().cuda()
 
     for epoch in range(num_epochs):
@@ -156,7 +164,7 @@ def train(config: dict) -> None:
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
             # feature: X
-            X: torch.Tensor = batch["X"].cuda(device)
+            # X: torch.Tensor = batch["X"].cuda(device)
             # target: y
             y: torch.Tensor = batch["y"].cuda(device)
             # mask
@@ -167,12 +175,15 @@ def train(config: dict) -> None:
             optimizer.zero_grad()
             # P(y | y_sparse)
             outputs = model(y_sparse)
-            # NOTE: standard loss (e.g., L1)
+            
+            # # NOTE: standard loss (e.g., L1)
             # loss = train_loss(outputs, y)
+            
             # NOTE: inpainting loss
             loss: torch.Tensor = train_loss(
                 predicted_image=outputs, target_image=y, mask=y_mask
             )
+            
             loss.backward()
             optimizer.step()
             running_loss += loss.item() * y_sparse.size(0)
@@ -205,7 +216,7 @@ def train(config: dict) -> None:
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
                 # feature: X
-                X: torch.Tensor = batch["X"].cuda(device)
+                # X: torch.Tensor = batch["X"].cuda(device)
                 # target: y
                 y: torch.Tensor = batch["y"].cuda(device)
                 # mask
@@ -213,7 +224,10 @@ def train(config: dict) -> None:
                 y_sparse = (y * y_mask).float()
                 # forward : p(y | y_sparse)
                 outputs = model(y_sparse)
+                
+                # # NOTE: standard loss (e.g., L1)
                 # loss = val_loss(outputs, y)
+               
                 # NOTE: inpainting loss
                 loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
 

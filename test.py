@@ -4,12 +4,13 @@ import torch.nn as nn
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader
+from torchmetrics.functional.image.ssim import ssim
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.logger import ExperimentLogger
 from src.util.config import MODELS, parse_config
 from src.util.loss import ImageInpaintingL1Loss
-from torchmetrics.functional.image.ssim import ssim
+from src.util.metrics import OLDER
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
@@ -68,42 +69,39 @@ def eval(config: dict) -> None:
         shuffle=False,
         num_workers=config["dataset"]["num_workers"],
     )
-
     device = config["global"]["device"]
 
     # load weights from checkpoint
     if config["model"]["weights"] != None:
         model = torch.load(config["model"]["weights"])
-
     assert isinstance(model, torch.nn.Module)
 
     # validation loop
     model.eval()
 
     for step, batch in enumerate(tqdm(val_dataloader, desc=f"Evaluating...:")):
-
+        
         # target: y
         y: torch.Tensor = batch["y"].cuda(device)
-
         # mask
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
-
-        # forward : p(y|y_sparse)
-        y_hat: torch.Tensor = model(y_sparse)
-
+        
         # # forward : p(y|y_sparse)
-        # y_hat: torch.Tensor = model(y_sparse, y_mask)
-
+        # y_hat: torch.Tensor = model(y_sparse)
+        
+        # forward : p(y|y_sparse)
+        y_hat: torch.Tensor = model(y_sparse, y_mask)
+        
         # log final predicted image
         triplet_name = f"eval_step_{step}.png"
         final_pred = ImageInpaintingL1Loss.get_final_prediction(
             predicted_image=y_hat, target_image=y, mask=y_mask
         )
+        
         logger.log_original_masked_predicted_sample_triplet(
             y, y_sparse, final_pred, triplet_name
         )
-
         # 1. MAE
         mae = (final_pred - y).abs().mean()
         # 2. MSE
@@ -130,15 +128,24 @@ def eval(config: dict) -> None:
             data_range=2.0,
         )
 
-        # 5a. characterize(y)
         mean, std = val_dataset.current_maps_mean, val_dataset.current_maps_std
-        data = (y - mean) / std
+        
+        # 5a. characterize(y)
+        # z: [0, 1] -> [-1, 1] (i.e., standard normal)
+        z = (y * 2) - 1
+        # [-1, 1] -> original dist
+        # x' = mu + (sigma * z) 
+        data = mean + (std * z)
         y_char = celano_lab_characterization(
             data, val_dataset.img_size_um
         )
         
         # 5b. characterize(y_sparse)
-        data = (final_pred - mean) / std
+        # z: [0, 1] -> [-1, 1] (i.e., standard normal)
+        z = (final_pred * 2) - 1
+        # [-1, 1] -> original dist
+        # x' = mu + (sigma * z) 
+        data = mean + (std * z)
         y_sparse_char = celano_lab_characterization(
             data, val_dataset.img_size_um
         )
@@ -150,6 +157,7 @@ def eval(config: dict) -> None:
                 "mse": mse.item(),
                 "psnr": psnr.item(),
                 "ssim": ssim_val.item(),
+                "older": OLDER(y_char, y_sparse_char),
                 "celano_script_y": y_char,
                 "celano_script_y_sparse": y_sparse_char,
             }

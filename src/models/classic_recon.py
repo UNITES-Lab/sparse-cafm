@@ -125,44 +125,65 @@ class LinearInterpolationInpainter(nn.Module):
 
     def forward(self, target_image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """
-        Given a target image and a mask, produce a 'predicted_image' that has
-        nonzero values only for the missing region (mask=0). In that missing
-        region, we fill values by a simple average interpolation of neighbors.
+    Simple linear inpainter for data shaped (B, H, W).
+    It performs a 3x3 average over known neighbors and
+    fills in the missing pixels.
+    """
 
-        :param target_image: (B, C, H, W) ground truth image
-        :param mask: (B, C, H, W) boolean or {0,1},
-                     1 => known region, 0 => missing region
-        :return predicted_image: (B, C, H, W) with nonzero values only for mask=0
+    def __init__(self):
+        super(LinearInterpolationInpainter, self).__init__()
+
+    def forward(self, target_image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """
-        # 1) Zero out the missing region in the image.
-        #    This leaves the known pixels as is, and 0 for missing region.
-        masked_image = target_image * mask  # B,C,H,W
+        Given:
+          - target_image: (B, H, W) ground-truth image
+          - mask: (B, H, W) boolean or {0,1}, where 1 => known, 0 => missing
+
+        Returns:
+          - predicted_image: (B, H, W), with nonzero values only for mask=0.
+            The known region is zeroed out, and the missing region is filled
+            by linear interpolation of nearby known values.
+        """
+
+        # 1) Zero out missing pixels in the image.
+        #    masked_image is (B, H, W).
+        masked_image = target_image * mask  # (B, H, W)
+
         # 2) Create a normalized 3×3 kernel (sum=1).
         kernel = torch.ones(
-            1, 1, 3, 3, device=target_image.device, dtype=target_image.dtype
+            1, 1, 3, 3, 
+            device=target_image.device, 
+            dtype=target_image.dtype
         )
-        kernel = kernel / kernel.sum()  # Each element becomes 1/9
-        # 3) Convolve the masked image to get the sum of the known neighbors around each pixel.
-        #    We expand the kernel across channels and keep channels separate with groups=C.
-        B, C, H, W = masked_image.size()
+        kernel = kernel / kernel.sum()  # Each element 1/9
+
+        # 3) Use conv2d with an extra channel dimension to sum known neighbors.
+        #    The result shape after conv2d is (B, 1, H, W).
         sum_of_neighbors = F.conv2d(
-            masked_image, kernel.expand(C, 1, 3, 3), padding=1, groups=C
+            masked_image.unsqueeze(1),  # (B, 1, H, W)
+            kernel,
+            padding=1
         )
-        # 4) Convolve the mask likewise to determine how many neighbors contributed.
-        #    We'll convert mask to float for the convolution.
+
+        # 4) Convolve the mask (converted to float) likewise
+        #    to determine how many neighbors contributed.
         sum_of_masks = F.conv2d(
-            mask.float(), kernel.expand(C, 1, 3, 3), padding=1, groups=C
+            mask.float().unsqueeze(1),  # (B, 1, H, W)
+            kernel,
+            padding=1
         )
-        # 5) Compute average of neighbors. (Add small eps to avoid division by zero.)
+
+        # 5) Compute average of neighbors. Add small eps to avoid div-by-zero.
         eps = 1e-8
-        interpolated_values = sum_of_neighbors / (sum_of_masks + eps)
+        interpolated_values = sum_of_neighbors / (sum_of_masks + eps)  # (B, 1, H, W)
+
         # 6) We only want these interpolated values where mask=0.
-        #    Recall that ~mask is 1 in the missing region if mask is boolean.
-        #    If mask is {0,1} but not boolean, you can do (1 - mask) instead of ~mask.
-        predicted_image = (interpolated_values * ~mask) + masked_image
-        # The result is a tensor that is 0 for known pixels,
-        # and a linearly interpolated value for missing pixels.
-        return predicted_image
+        #    We'll multiply by ~mask to keep them only in the missing region.
+        #    Then add the known pixels (which remain zeroed in predicted_image).
+        predicted_image = interpolated_values * (~mask).unsqueeze(1) + masked_image.unsqueeze(1)
+        
+        # Squeeze out the extra channel dimension to return shape (B, H, W).
+        return predicted_image.squeeze(1)
 
     @staticmethod
     def get(weights=None):

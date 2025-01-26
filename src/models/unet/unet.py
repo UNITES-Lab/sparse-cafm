@@ -13,35 +13,31 @@ class UNet(nn.Module):
         self.n_classes = n_classes
         self.bilinear = bilinear
 
-        self.inc = DoubleConv(n_channels, 64, kernel_size=down_ks)
+        self.inc = DoubleConv(n_channels, 128, kernel_size=down_ks)
 
-        # what if this was a vit-enc?
-        self.down1 = Down(64, 128, kernel_size=down_ks)
-        self.down2 = Down(128, 256, kernel_size=down_ks)
-        self.down3 = Down(256, 512, kernel_size=down_ks)
+        self.down1 = Down(128, 256, kernel_size=down_ks)
+        self.down2 = Down(256, 512, kernel_size=down_ks)
+        self.down3 = Down(512, 1024, kernel_size=down_ks)
         factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor, kernel_size=down_ks)
-
-        # ... and this was a vit-dec?
-        self.up1 = Up(1024, 512 // factor, bilinear, kernel_size=up_ks)
-        self.up2 = Up(512, 256 // factor, bilinear, kernel_size=up_ks)
-        self.up3 = Up(256, 128 // factor, bilinear, kernel_size=up_ks)
-        self.up4 = Up(128, 64, bilinear, kernel_size=up_ks)
+        self.down4 = Down(1024, 2048 // factor, kernel_size=down_ks)
+        
+        self.up1 = Up(2048, 1024 // factor, bilinear, kernel_size=up_ks)
+        self.up2 = Up(1024, 512 // factor, bilinear, kernel_size=up_ks)
+        self.up3 = Up(512, 256 // factor, bilinear, kernel_size=up_ks)
+        self.up4 = Up(256, 128, bilinear, kernel_size=up_ks)
 
         # downsample channel dim 3 -> 1
         # self.final_downsample_channel = nn.Conv2d(in_channels=3, out_channels=1, kernel_size=1, stride=1, bias=True)
         
-        self.outc = OutConv(64, n_classes, activation=nn.Sigmoid())
+        # -> [0, 1]
+        self.outc = OutConv(128, n_classes, activation=nn.Sigmoid())
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         
         # HACK: pad the channel dim
-        B = x.shape[0]
-        H, W = x.shape[2: ]
-        pad_tensor = torch.zeros(B, 1, H, W).cuda()
-        
-        # (B, 2, 224 224) -> (B, 3, 224, 224)
-        x = torch.cat([x, pad_tensor], dim=1)
+        # [B, H, W] -> [B, C, H, W]
+        if len(x.shape) == 3:
+            x = x.unsqueeze(1)
         
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -54,8 +50,9 @@ class UNet(nn.Module):
         x = self.up4(x, x1)
         x = self.outc(x)
         
-        # (B, 3, 128, 128) -> (B, 1, 128, 128)
-        # x = self.final_downsample_channel(x)
+        # [B, C, H, W] -> [B, H, W]
+        x = x.squeeze(1)
+        
         return x
 
     def use_checkpointing(self):
@@ -72,7 +69,7 @@ class UNet(nn.Module):
 
     @staticmethod
     def get(weights=None):
-        model = UNet(3, 3, up_ks=5, down_ks=5)
+        model = UNet(1, 1, up_ks=5, down_ks=5)
         return model
 
 

@@ -44,8 +44,11 @@ def apply_color_palette(map_like: np.ndarray) -> np.ndarray:
     """
     map_like = map_like.astype(np.float32)
     min_val, max_val = np.min(map_like), np.max(map_like)
+    
     # -> [0, 1]
-    normalized_map = (map_like - min_val) / (max_val - min_val)
+    # normalized_map = (map_like - min_val) / (max_val - min_val)
+    normalized_map = map_like
+    
     cmap = cm.get_cmap("viridis")
     colored_map = cmap(normalized_map)
     # HACK:
