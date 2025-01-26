@@ -260,6 +260,8 @@ def train(config: dict) -> None:
                     if avg_val_loss < best_loss:
                         best_loss = avg_val_loss
                         logger.save_weights(model, "best")
+                    else:
+                        logger.save_weights(model, f"latest_{epoch}")
                 else:
                     logger.save_weights(model, f"epoch_{epoch}")
 

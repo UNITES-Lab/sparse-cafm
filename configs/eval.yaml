@@ -4,9 +4,9 @@ global:
   formulation: p(y|y_sparse_benchmark)
 
 model:
-  name: linear_interpolation
+  name: unet
   pretrained: True
-  weights:
+  weights: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6a. train-runs/2025-01-26_14-32-37_unet_sigmoid_128x128_new_ds_no_logger_renorm/unet_sigmoid_128x128_new_ds_no_logger_renorm_best.pt
 
 validation:
   batch_size: 1
@@ -22,7 +22,7 @@ dataset:
 
 logging:
   root: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6b. evals
-  exp_name: linear-revisted-50%-sparse
+  exp_name: unet-revisted-50%-sparse
   result_columns: ["step", "mae", "mse", "psnr", "ssim", "older", "celano_script_y", "celano_script_y_sparse"]
   save_weights: true
   save_only_best_weights: true

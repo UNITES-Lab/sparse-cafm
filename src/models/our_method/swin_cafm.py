@@ -1077,10 +1077,8 @@ class SwinCAFM(nn.Module):
         # [B, C, H, W] -> [B, H, W]
         x = x[:, 1, :, :]
         
-        # TODO: migrate entire pipeline sigmoid activation
-        # clamp [-1, 1]
-        x = nn.functional.tanh(x)
-        
+        # clamp -> [0, 1]
+        x = nn.functional.sigmoid(x)
         return x
 
     def flops(self):
