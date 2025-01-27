@@ -12,7 +12,7 @@ import torch.nn as nn
 import numpy as np
 import pytorch_lightning as pl
 
-from typing import Optional
+from typing import Optional, List
 from torch.optim.lr_scheduler import LambdaLR
 from einops import rearrange, repeat
 from contextlib import contextmanager, nullcontext
@@ -65,7 +65,7 @@ class DDPM(pl.LightningModule):
     """
     Classic DDPM with Gaussian diffusion, in image space.
     """
-    
+
     def __init__(
         self,
         unet_config: dict,
@@ -106,21 +106,20 @@ class DDPM(pl.LightningModule):
         :param beta_schedule str:
             - e.g., "linear"
             - How much noise is added at each timestep t?
-            
+
         :param image_size int:
             - e.g., 64
             - is this the size of image out by VAE, or size of image in TO VAE?
-            
+
         :param v_posterior float:
             - [0-1]: sigma = (1-v) * beta_tilde + v * beta
             - default: 0.0
-            
+
         :param conditioning_key Optional[str]:
             - e.g., "crossattn"
         """
-        
+
         super().__init__()
-        breakpoint()
         assert parameterization in [
             "eps",
             "x0",
@@ -216,27 +215,27 @@ class DDPM(pl.LightningModule):
                 linear_end=linear_end,
                 cosine_s=cosine_s,
             )
-            
+
         # alpha_t: intuitively, how much signal is retained at each step
         # alpha_t = 1 - beta_t
         alphas = 1.0 - betas
-        
+
         # alphas_cumprod: an array of values corresponding to how much signal
         # to retain at each timestep; a lookup table we will use later
         # alphas_cumprod = cumprod_{i=1}^{t} alpha_i
         alphas_cumprod = np.cumprod(alphas, axis=0)
-        
+
         # alphas_cumprod but shifted 1x -> right; signal remaining @t-1
         alphas_cumprod_prev = np.append(1.0, alphas_cumprod[:-1])
 
         # linear: [0, 1, ...., 1000]
         (timesteps,) = betas.shape
         self.num_timesteps = int(timesteps)
-        
+
         # [beta_min, beta_max]; use for generating variance schedule
         self.linear_start = linear_start
         self.linear_end = linear_end
-        
+
         assert (
             alphas_cumprod.shape[0] == self.num_timesteps
         ), "alphas have to be defined for each timestep"
@@ -245,7 +244,7 @@ class DDPM(pl.LightningModule):
         to_torch = partial(torch.tensor, dtype=torch.float32)
 
         # allows us to save tensor to model state dict later
-        # without considering these tensors to be model params 
+        # without considering these tensors to be model params
         self.register_buffer("betas", to_torch(betas))
         self.register_buffer("alphas_cumprod", to_torch(alphas_cumprod))
         self.register_buffer("alphas_cumprod_prev", to_torch(alphas_cumprod_prev))
@@ -271,17 +270,17 @@ class DDPM(pl.LightningModule):
         posterior_variance = (1 - self.v_posterior) * betas * (
             1.0 - alphas_cumprod_prev
         ) / (1.0 - alphas_cumprod) + self.v_posterior * betas
-        
+
         # above: equal to 1. / (1. / (1. - alpha_cumprod_tm1) + alpha_t / beta_t)
         self.register_buffer("posterior_variance", to_torch(posterior_variance))
-        
+
         # clip to avoid log(0)=inf errors
         # below: log calculation clipped because the posterior variance is 0 at the beginning of the diffusion chain
         self.register_buffer(
             "posterior_log_variance_clipped",
             to_torch(np.log(np.maximum(posterior_variance, 1e-20))),
         )
-        
+
         # coefficients used to calcuate the mean of the posterior distribution
         # during the reverse process
         self.register_buffer(
@@ -324,11 +323,11 @@ class DDPM(pl.LightningModule):
             )
         else:
             raise NotImplementedError("mu not supported")
-        
+
         # avoid issues @t=0
         lvlb_weights[0] = lvlb_weights[1]
         self.register_buffer("lvlb_weights", lvlb_weights, persistent=False)
-        
+
         assert not torch.isnan(self.lvlb_weights).all()
 
     @contextmanager
@@ -523,7 +522,12 @@ class DDPM(pl.LightningModule):
             return_intermediates=return_intermediates,
         )
 
-    def q_sample(self, x_start, t, noise=None):
+    def q_sample(
+        self, x_start: torch.Tensor, t: torch.Tensor, noise=None
+    ) -> torch.Tensor:
+        """
+        Add noise to a clean latent x_start for a timestep t.
+        """
         noise = default(noise, lambda: torch.randn_like(x_start))
         return (
             extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
@@ -592,7 +596,6 @@ class DDPM(pl.LightningModule):
     def forward(self, x, *args, **kwargs):
         # b, c, h, w, device, img_size, = *x.shape, x.device, self.image_size
         # assert h == img_size and w == img_size, f'height and width of image must be {img_size}'
-        # breakpoint()
         t = torch.randint(
             0, self.num_timesteps, (x.shape[0],), device=self.device
         ).long()
@@ -955,12 +958,17 @@ class LatentDiffusion(DDPM):
             )
         return self.scale_factor * z
 
-    def get_learned_conditioning(self, c):
+    def get_learned_conditioning(self, c: List[str]) -> torch.Tensor:
+        """
+        Encode text prompts as tensors.
+        """
+
         if self.cond_stage_forward is None:
             if hasattr(self.cond_stage_model, "encode") and callable(
                 self.cond_stage_model.encode
             ):
-                c = self.cond_stage_model.encode(c)
+                # -> [B, 77, 1024]; encode text-prompt using a text-encoder (e.g., CLIP)
+                c: torch.Tensor = self.cond_stage_model.encode(c)
                 if isinstance(c, DiagonalGaussianDistribution):
                     c = c.mode()
             else:
@@ -968,6 +976,8 @@ class LatentDiffusion(DDPM):
         else:
             assert hasattr(self.cond_stage_model, self.cond_stage_forward)
             c = getattr(self.cond_stage_model, self.cond_stage_forward)(c)
+
+        # [B, 77, 1024]
         return c
 
     def meshgrid(self, h, w):
@@ -1180,10 +1190,25 @@ class LatentDiffusion(DDPM):
         loss = self(x, c)
         return loss
 
-    def forward(self, x, c, *args, **kwargs):
+    def forward(self, x: torch.Tensor, c: dict, *args, **kwargs):
+        """
+        Parameters
+        ---
+        :param x: [B, 4, 16, 16]
+        :param c dict:
+            - c['c_crossattn']: List[torch.Tensor]
+                - len: B
+                - [B, 77, 1024]
+            - c['c_crossattn']
+                - len: B
+                - [B, 3, H, W] (e.g., [1, 3, 128, 128])
+        """
+
+        # [1]
         t = torch.randint(
             0, self.num_timesteps, (x.shape[0],), device=self.device
         ).long()
+
         if self.model.conditioning_key is not None:
             assert c is not None
             if self.cond_stage_trainable:
@@ -1241,11 +1266,28 @@ class LatentDiffusion(DDPM):
         )
         return mean_flat(kl_prior) / np.log(2.0)
 
-    def p_losses(self, x_start, cond, t, noise=None):
+    def p_losses(self, x_start: torch.Tensor, cond: dict, t: torch.Tensor, noise=None):
+        """
+        Parameters
+        ---
+        :param x_start: [B, 4, 16, 16]
+        :param c dict:
+            - c['c_crossattn']: List[torch.Tensor]
+                - len: B
+                - [B, 77, 1024]
+            - c['c_crossattn']
+                - len: B
+                - [B, 3, H, W] (e.g., [1, 3, 128, 128])
+        :param t torch.Tensor: [1]
+        """
+
+        breakpoint()
+
+        # [B, 4, 16, 16]
         noise = default(noise, lambda: torch.randn_like(x_start))
+
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
 
-        # breakpoint()
         model_output = self.apply_model(x_noisy, t, cond)
 
         loss_dict = {}
@@ -1868,7 +1910,6 @@ class DiffusionWrapper(pl.LightningModule):
         self.sequential_cross_attn = diff_model_config.pop(
             "sequential_crossattn", False
         )
-        # breakpoint()
         self.diffusion_model = instantiate_from_config(diff_model_config)
         self.conditioning_key = conditioning_key
         assert self.conditioning_key in [

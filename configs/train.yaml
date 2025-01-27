@@ -1,7 +1,7 @@
 global:
   device: 0
   mode: train  # ['train', 'eval']
-  formulation: p(y|y_sparse)
+  formulation: p(y|y_sparse_cn)
 
 model:
   name: ours

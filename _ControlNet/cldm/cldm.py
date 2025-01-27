@@ -3,6 +3,8 @@ import torch
 import torch as th
 import torch.nn as nn
 
+from typing import List, Optional
+
 from ldm.modules.diffusionmodules.util import (
     conv_nd,
     linear,
@@ -90,12 +92,12 @@ class ControlledUnetModel(UNetModel):
 class ControlNet(nn.Module):
     def __init__(
         self,
-        image_size,
-        in_channels,
-        model_channels,
-        hint_channels,
-        num_res_blocks,
-        attention_resolutions,
+        image_size: int,
+        in_channels: int,
+        model_channels: int,
+        hint_channels: int,
+        num_res_blocks: int,
+        attention_resolutions: List[int],
         dropout=0,
         channel_mult=(1, 2, 4, 8),
         conv_resample=True,
@@ -110,7 +112,7 @@ class ControlNet(nn.Module):
         use_new_attention_order=False,
         use_spatial_transformer=False,  # custom transformer support
         transformer_depth=1,  # custom transformer support
-        context_dim=None,  # custom transformer support
+        context_dim: Optional[int] = None,  # custom transformer support
         n_embed=None,  # custom support for prediction of discrete ids into codebook of first stage vq model
         legacy=True,
         disable_self_attentions=None,
@@ -118,6 +120,24 @@ class ControlNet(nn.Module):
         disable_middle_self_attn=False,
         use_linear_in_transformer=False,
     ):
+        """
+        Parameters
+        ---
+
+        :param image_size int:
+            - e.g., 32
+
+        :param hint_channels int:
+            - e.g., 3
+
+        :param attention_resolutions List[int]:
+            - e.g., [4, 2, 1]
+
+        :param context_dim Optional[int]:
+            - e.g., 1024
+            - # dims for cross-attention conditioning
+        """
+
         super().__init__()
 
         if use_spatial_transformer:
@@ -165,6 +185,7 @@ class ControlNet(nn.Module):
         if disable_self_attentions is not None:
             # should be a list of booleans, indicating whether to disable self-attention in TransformerBlocks or not
             assert len(disable_self_attentions) == len(channel_mult)
+
         if num_attention_blocks is not None:
             assert len(num_attention_blocks) == len(self.num_res_blocks)
             assert all(
@@ -200,6 +221,8 @@ class ControlNet(nn.Module):
             linear(time_embed_dim, time_embed_dim),
         )
 
+        # input blocks are poorly named
+        # these are timestep embed blocks
         self.input_blocks = nn.ModuleList(
             [
                 TimestepEmbedSequential(
@@ -209,6 +232,9 @@ class ControlNet(nn.Module):
         )
         self.zero_convs = nn.ModuleList([self.make_zero_conv(model_channels)])
 
+        # hint: extra condition c_f to be processed by trainable copy of controlnet
+        # not sure why timestep embedding pipeline is different for conditional
+        # module vs the original, frozen module
         self.input_hint_block = TimestepEmbedSequential(
             conv_nd(dims, hint_channels, 16, 3, padding=1),
             nn.SiLU(),
@@ -229,9 +255,12 @@ class ControlNet(nn.Module):
 
         self._feature_size = model_channels
         input_block_chans = [model_channels]
+
         ch = model_channels
         ds = 1
 
+        # construct a UNet
+        # imo this should be a separate class... but who cares
         for level, mult in enumerate(channel_mult):
             for nr in range(self.num_res_blocks[level]):
                 layers = [
@@ -372,16 +401,35 @@ class ControlNet(nn.Module):
             zero_module(conv_nd(self.dims, channels, channels, 1, padding=0))
         )
 
-    def forward(self, x, hint, timesteps, context, **kwargs):
-        # breakpoint()
+    def forward(
+        self,
+        x: torch.Tensor,
+        hint: torch.Tensor,
+        timesteps: torch.Tensor,
+        context: torch.Tensor,
+        **kwargs,
+    ):
+        """
+        :param x: [B, 4, 16, 16]
+        :param hint: [B, C, H, W]
+        :param timesteps: [1]
+        :param context: [B, 77, 1024]
+        """
+        
+        # [B, 320]
         t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
+        
+        # [B, 320] -> [B, 1280]
         emb = self.time_embed(t_emb)
-        # timesteps: 1D tensor w/ the current timestep
+
+        # [B, 320, 16, 16]; zeros
         guided_hint = self.input_hint_block(hint, emb, context)
-        # hint: (N, 3, H, W)
+        
         outs = []
-        # h: (N, 4, 8, 8)
+        
+        # [B, 4, 16, 16]
         h = x.type(self.dtype)
+        
         for module, zero_conv in zip(self.input_blocks, self.zero_convs):
             if guided_hint is not None:
                 h = module(h, emb, context)
@@ -415,7 +463,6 @@ class ControlLDM(LatentDiffusion):
         :**kwargs dict: remainder of arguments from config file
         """
         super().__init__(*args, **kwargs)
-        breakpoint()
         self.control_model = instantiate_from_config(control_stage_config)
         self.control_key = control_key
         self.only_mid_control = only_mid_control

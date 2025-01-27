@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import math
-
+import torch
 import numpy as np
 import torch as th
 import torch.nn as nn
@@ -76,7 +76,7 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
     support it as an extra input.
     """
 
-    def forward(self, x, emb, context=None):
+    def forward(self, x: torch.Tensor, emb: torch.Tensor, context=None):
         for layer in self:
             if isinstance(layer, TimestepBlock):
                 x = layer(x, emb)
