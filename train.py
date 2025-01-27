@@ -1,5 +1,4 @@
 import os
-import yaml
 import sys
 import torch
 import torch.nn as nn
@@ -46,7 +45,7 @@ def create_dataloader(config: dict, split: str) -> DataLoader:
     img_size = int(config["dataset"]["image_size"])
     dataset = MOS2SEFDataset(
         split=split,
-        side_length=int(config['dataset']['crop_size']),
+        side_length=int(config["dataset"]["crop_size"]),
         formulation=F.get_formulation_from_str(config["global"]["formulation"]),
         steps_per_epoch=config[split_str]["steps_per_epoch"],
         device=config["global"]["device"],
@@ -90,20 +89,20 @@ def eval(config: dict) -> None:
     ):
         # target: y
         y: torch.Tensor = batch["y"].cuda(device)
-        
+
         # mask
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
-        
+
         # forward : p(y | y_sparse)
         outputs: torch.Tensor = model(y_sparse)
-       
-       # NOTE: standard loss (e.g., L1)
+
+        # NOTE: standard loss (e.g., L1)
         loss = val_loss(outputs, y)
-        
+
         # # NOTE: inpainting loss
         # loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
-       
+
         val_running_loss += loss.item() * y_sparse.size(0)
         logger.log(
             **{
@@ -152,6 +151,7 @@ def train(config: dict) -> None:
 
     # load weights from checkpoint
     if config["model"]["weights"] != None:
+
         # load weights only:
         # model.load_state_dict(torch.load(config["model"]["weights"]), strict=False)
         # load enitre model object:
@@ -175,15 +175,19 @@ def train(config: dict) -> None:
             optimizer.zero_grad()
             # P(y | y_sparse)
             outputs = model(y_sparse)
-            
-            # # NOTE: standard loss (e.g., L1)
-            # loss = train_loss(outputs, y)
-            
-            # NOTE: inpainting loss
-            loss: torch.Tensor = train_loss(
+
+            final_pred = ImageInpaintingL1Loss.get_final_prediction(
                 predicted_image=outputs, target_image=y, mask=y_mask
             )
-            
+
+            # # NOTE: standard loss (e.g., L1)
+            # loss = train_loss(outputs, y)
+
+            # # NOTE: inpainting loss
+            # loss: torch.Tensor = train_loss(
+            #     predicted_image=outputs, target_image=y, mask=y_mask
+            # )
+
             loss.backward()
             optimizer.step()
             running_loss += loss.item() * y_sparse.size(0)
@@ -224,10 +228,10 @@ def train(config: dict) -> None:
                 y_sparse = (y * y_mask).float()
                 # forward : p(y | y_sparse)
                 outputs = model(y_sparse)
-                
+
                 # # NOTE: standard loss (e.g., L1)
                 # loss = val_loss(outputs, y)
-               
+
                 # NOTE: inpainting loss
                 loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
 
@@ -242,7 +246,7 @@ def train(config: dict) -> None:
                     }
                 )
                 num_val_steps += 1
-                
+
                 # log a triplet (original, masked, predicted) every 100 steps
                 if i % 100 == 0:
                     triplet_name = f"val_epoch_{epoch}_step_{i}.png"

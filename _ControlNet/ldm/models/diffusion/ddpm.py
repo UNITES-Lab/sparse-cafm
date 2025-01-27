@@ -7,14 +7,16 @@ https://github.com/CompVis/taming-transformers
 """
 
 import torch
+import itertools
 import torch.nn as nn
 import numpy as np
 import pytorch_lightning as pl
+
+from typing import Optional
 from torch.optim.lr_scheduler import LambdaLR
 from einops import rearrange, repeat
 from contextlib import contextmanager, nullcontext
 from functools import partial
-import itertools
 from tqdm import tqdm
 from torchvision.utils import make_grid
 from pytorch_lightning.utilities.distributed import rank_zero_only
@@ -665,21 +667,73 @@ class LatentDiffusion(DDPM):
 
     def __init__(
         self,
-        first_stage_config,
-        cond_stage_config,
-        num_timesteps_cond=None,
+        first_stage_config: dict,
+        cond_stage_config: dict,
+        num_timesteps_cond: Optional[int] = None,
         cond_stage_key="image",
         cond_stage_trainable=False,
         concat_mode=True,
         cond_stage_forward=None,
-        conditioning_key=None,
+        conditioning_key: Optional[str] = None,
         scale_factor=1.0,
         scale_by_std=False,
         force_null_conditioning=False,
         *args,
         **kwargs,
     ):
-        # breakpoint()
+        """
+        Parameters
+        ---
+        :param first_stage_config dict:
+            - First stage is VAE image downsampling; target AutoencoderKL
+
+        :cond_stage_config dict:
+            - Cond stage is text-encoding; target frozen CLIP module
+
+        :param num_timesteps_cond Optional[int]:
+            - e.g., 1 ...
+
+        :param cond_stage_key str:
+            - e.g., "image", "txt", etc.
+
+        :param conditioning_key Optional[str]:
+            - e.g., "crossattn"
+
+        :param scale_factor float:
+            - scales ...?
+
+        Kwargs
+        ---
+        :param linear_start float:
+
+        :param linear_end float:
+            - Must likely a learning rate scheduler or something.
+
+        :param log_every_t int:
+
+        :param timesteps int:
+            - Number of diffusion timesteps
+
+        :param first_stage_key str:
+            - e.g., "jpg"
+
+        :param image_size int:
+            - e.g., 64
+
+        :param channels int:
+            - e.g., 4
+
+        :param monitor str:
+            - e.g., "val/loss_simple_ema"
+            - method for monitoring model weights/params...
+
+        :param use_ema bool:
+
+        :param unet_config dict:
+
+        """
+
+        breakpoint()
         self.force_null_conditioning = force_null_conditioning
         self.num_timesteps_cond = default(num_timesteps_cond, 1)
         self.scale_by_std = scale_by_std
@@ -707,6 +761,8 @@ class LatentDiffusion(DDPM):
         if not scale_by_std:
             self.scale_factor = scale_factor
         else:
+            # this essentially creates a new property of a torch.nn.Module object
+            # that does not have any associated parameters
             self.register_buffer("scale_factor", torch.tensor(scale_factor))
         self.instantiate_first_stage(first_stage_config)
         self.instantiate_cond_stage(cond_stage_config)
@@ -731,6 +787,7 @@ class LatentDiffusion(DDPM):
             assert self.use_ema
             self.model_ema.reset_num_updates()
 
+        # NOTE: i added this (:
         self.scuffed_logger = ScuffedLogger.get_instance()
 
     def make_cond_schedule(
@@ -1133,7 +1190,7 @@ class LatentDiffusion(DDPM):
     def p_losses(self, x_start, cond, t, noise=None):
         noise = default(noise, lambda: torch.randn_like(x_start))
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
-        
+
         # breakpoint()
         model_output = self.apply_model(x_noisy, t, cond)
 
