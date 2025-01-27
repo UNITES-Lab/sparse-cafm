@@ -62,14 +62,17 @@ def uniform_on_device(r1, r2, shape, device):
 
 
 class DDPM(pl.LightningModule):
-    # classic DDPM with Gaussian diffusion, in image space
+    """
+    Classic DDPM with Gaussian diffusion, in image space.
+    """
+    
     def __init__(
         self,
-        unet_config,
+        unet_config: dict,
         timesteps=1000,
         beta_schedule="linear",
         loss_type="l2",
-        ckpt_path=None,
+        ckpt_path: Optional[str] = None,
         ignore_keys=[],
         load_only_unet=False,
         monitor="val/loss",
@@ -86,7 +89,7 @@ class DDPM(pl.LightningModule):
         original_elbo_weight=0.0,
         v_posterior=0.0,  # weight for choosing posterior variance as sigma = (1-v) * beta_tilde + v * beta
         l_simple_weight=1.0,
-        conditioning_key=None,
+        conditioning_key: Optional[str] = None,
         parameterization="eps",  # all assuming fixed variance schedules
         scheduler_config=None,
         use_positional_encodings=False,
@@ -97,7 +100,27 @@ class DDPM(pl.LightningModule):
         reset_ema=False,
         reset_num_ema_updates=False,
     ):
+        """
+        Parameters
+        ---
+        :param beta_schedule str:
+            - e.g., "linear"
+            - How much noise is added at each timestep t?
+            
+        :param image_size int:
+            - e.g., 64
+            - is this the size of image out by VAE, or size of image in TO VAE?
+            
+        :param v_posterior float:
+            - [0-1]: sigma = (1-v) * beta_tilde + v * beta
+            - default: 0.0
+            
+        :param conditioning_key Optional[str]:
+            - e.g., "crossattn"
+        """
+        
         super().__init__()
+        breakpoint()
         assert parameterization in [
             "eps",
             "x0",
@@ -182,6 +205,7 @@ class DDPM(pl.LightningModule):
         linear_end=2e-2,
         cosine_s=8e-3,
     ):
+        # use user betas if provided, otherwise generate
         if exists(given_betas):
             betas = given_betas
         else:
@@ -192,24 +216,41 @@ class DDPM(pl.LightningModule):
                 linear_end=linear_end,
                 cosine_s=cosine_s,
             )
+            
+        # alpha_t: intuitively, how much signal is retained at each step
+        # alpha_t = 1 - beta_t
         alphas = 1.0 - betas
+        
+        # alphas_cumprod: an array of values corresponding to how much signal
+        # to retain at each timestep; a lookup table we will use later
+        # alphas_cumprod = cumprod_{i=1}^{t} alpha_i
         alphas_cumprod = np.cumprod(alphas, axis=0)
+        
+        # alphas_cumprod but shifted 1x -> right; signal remaining @t-1
         alphas_cumprod_prev = np.append(1.0, alphas_cumprod[:-1])
 
+        # linear: [0, 1, ...., 1000]
         (timesteps,) = betas.shape
         self.num_timesteps = int(timesteps)
+        
+        # [beta_min, beta_max]; use for generating variance schedule
         self.linear_start = linear_start
         self.linear_end = linear_end
+        
         assert (
             alphas_cumprod.shape[0] == self.num_timesteps
         ), "alphas have to be defined for each timestep"
 
+        # funky way of casting items -> torch.Tensor later
         to_torch = partial(torch.tensor, dtype=torch.float32)
 
+        # allows us to save tensor to model state dict later
+        # without considering these tensors to be model params 
         self.register_buffer("betas", to_torch(betas))
         self.register_buffer("alphas_cumprod", to_torch(alphas_cumprod))
         self.register_buffer("alphas_cumprod_prev", to_torch(alphas_cumprod_prev))
 
+        # save these calculations for later use in forward-diffusion (i.e., sampling)
         # calculations for diffusion q(x_t | x_{t-1}) and others
         self.register_buffer("sqrt_alphas_cumprod", to_torch(np.sqrt(alphas_cumprod)))
         self.register_buffer(
@@ -226,16 +267,23 @@ class DDPM(pl.LightningModule):
         )
 
         # calculations for posterior q(x_{t-1} | x_t, x_0)
+        # self.v_posterior: typically 0.0
         posterior_variance = (1 - self.v_posterior) * betas * (
             1.0 - alphas_cumprod_prev
         ) / (1.0 - alphas_cumprod) + self.v_posterior * betas
+        
         # above: equal to 1. / (1. / (1. - alpha_cumprod_tm1) + alpha_t / beta_t)
         self.register_buffer("posterior_variance", to_torch(posterior_variance))
+        
+        # clip to avoid log(0)=inf errors
         # below: log calculation clipped because the posterior variance is 0 at the beginning of the diffusion chain
         self.register_buffer(
             "posterior_log_variance_clipped",
             to_torch(np.log(np.maximum(posterior_variance, 1e-20))),
         )
+        
+        # coefficients used to calcuate the mean of the posterior distribution
+        # during the reverse process
         self.register_buffer(
             "posterior_mean_coef1",
             to_torch(betas * np.sqrt(alphas_cumprod_prev) / (1.0 - alphas_cumprod)),
@@ -247,6 +295,10 @@ class DDPM(pl.LightningModule):
             ),
         )
 
+        # ELBO loss weights (a.k.a., LVLB)
+        # eps: predict epsilon noise
+        # x0: predict x_0 (original image)
+        # v: predict velocity (we appear to have a toy impl for this form)
         if self.parameterization == "eps":
             lvlb_weights = self.betas**2 / (
                 2
@@ -272,8 +324,11 @@ class DDPM(pl.LightningModule):
             )
         else:
             raise NotImplementedError("mu not supported")
+        
+        # avoid issues @t=0
         lvlb_weights[0] = lvlb_weights[1]
         self.register_buffer("lvlb_weights", lvlb_weights, persistent=False)
+        
         assert not torch.isnan(self.lvlb_weights).all()
 
     @contextmanager
@@ -707,7 +762,8 @@ class LatentDiffusion(DDPM):
         :param linear_start float:
 
         :param linear_end float:
-            - Must likely a learning rate scheduler or something.
+            - Start and end to the variance schedule values (beta).
+            - Control how much noise is added at each timestep (t).
 
         :param log_every_t int:
 
@@ -732,8 +788,6 @@ class LatentDiffusion(DDPM):
         :param unet_config dict:
 
         """
-
-        breakpoint()
         self.force_null_conditioning = force_null_conditioning
         self.num_timesteps_cond = default(num_timesteps_cond, 1)
         self.scale_by_std = scale_by_std
