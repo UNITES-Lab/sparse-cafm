@@ -39,43 +39,54 @@ class ControlledUnetModel(UNetModel):
 
     def forward(
         self,
-        x,
-        timesteps=None,
-        context=None,
-        control=None,
+        x: torch.Tensor,
+        timesteps: Optional[torch.Tensor]=None,
+        context: Optional[torch.Tensor]=None,
+        control: Optional[List[torch.Tensor]]=None,
         only_mid_control=False,
         **kwargs,
     ):
-
-        # breakpoint()
+        """
+        Parameters
+        ---
+        :param x: [B, 4, 16, 16]
+        :param timesteps: [B]
+        :param context: [B, 77, 1024]
+        :param control: List[[B, 320, 16, 16]]
+        """
+        
         # hidden latents
         hs = []
 
         with torch.no_grad():
+            
+            # [B, 320]
             t_emb = timestep_embedding(
                 timesteps, self.model_channels, repeat_only=False
             )
+            
+            # [B, 320] -> [B, 1280]
             emb = self.time_embed(t_emb)
 
-            # type of hidden latents?
+            # [B, 4, 16, 16]
             h = x.type(self.dtype)
 
+            # self.input_blocks: List[12]
             for module in self.input_blocks:
 
-                # are we just concating all mods?
                 h = module(h, emb, context)
                 hs.append(h)
 
-            # h is a mod
+            # [B, 1280, 2, 2] -> [B, 1280, 2, 2]
             h = self.middle_block(h, emb, context)
 
-        # append control mod
+        # [B, 1280, 2, 2] -> [B, 1280, 2, 2]
         if control is not None:
             h += control.pop()
 
+        # [B, 1280, 2, 2] -> [B, 320, 16, 16]
         for i, module in enumerate(self.output_blocks):
 
-            # h: stack of all module blocks
             if only_mid_control or control is None:
                 h = torch.cat([h, hs.pop()], dim=1)
             else:
@@ -83,9 +94,10 @@ class ControlledUnetModel(UNetModel):
 
             h = module(h, emb, context)
 
+        # [B, 320, 16, 16]
         h = h.type(x.dtype)
 
-        # pass h through output layer
+        # [B, 320, 16, 16] -> [B, 4, 16, 16]
         return self.out(h)
 
 
@@ -415,21 +427,22 @@ class ControlNet(nn.Module):
         :param timesteps: [1]
         :param context: [B, 77, 1024]
         """
-        
+
         # [B, 320]
         t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
-        
+
         # [B, 320] -> [B, 1280]
         emb = self.time_embed(t_emb)
 
         # [B, 320, 16, 16]; zeros
         guided_hint = self.input_hint_block(hint, emb, context)
-        
+
         outs = []
-        
+
         # [B, 4, 16, 16]
         h = x.type(self.dtype)
-        
+
+        # List: [12 * B]
         for module, zero_conv in zip(self.input_blocks, self.zero_convs):
             if guided_hint is not None:
                 h = module(h, emb, context)
@@ -439,7 +452,10 @@ class ControlNet(nn.Module):
                 h = module(h, emb, context)
             outs.append(zero_conv(h, emb, context))
 
+        # [B, 4, 16, 16] -> [B, 1280, 2, 2]
         h = self.middle_block(h, emb, context)
+
+        # List: [12 * B] -> [13 * B]
         outs.append(self.middle_block_out(h, emb, context))
 
         return outs
@@ -479,10 +495,16 @@ class ControlLDM(LatentDiffusion):
         control = control.to(memory_format=torch.contiguous_format).float()
         return x, dict(c_crossattn=[c], c_concat=[control])
 
-    def apply_model(self, x_noisy, t, cond, *args, **kwargs):
+    def apply_model(
+        self, x_noisy: torch.Tensor, t: torch.Tensor, cond: dict, *args, **kwargs
+    ):
+
         assert isinstance(cond, dict)
+
+        # ControlledUnetModel
         diffusion_model = self.model.diffusion_model
 
+        # [2 * B, 77, 1024] -> [2 * B, 77, 1024]
         cond_txt = torch.cat(cond["c_crossattn"], 1)
 
         if cond["c_concat"] is None:
@@ -494,13 +516,16 @@ class ControlLDM(LatentDiffusion):
                 only_mid_control=self.only_mid_control,
             )
         else:
+            # ControlNet
             control = self.control_model(
                 x=x_noisy,
                 hint=torch.cat(cond["c_concat"], 1),
                 timesteps=t,
                 context=cond_txt,
             )
+            # [13, 1, 320, 16, 16] -> [13, 1, 320, 16, 16]
             control = [c * scale for c, scale in zip(control, self.control_scales)]
+            breakpoint()
             eps = diffusion_model(
                 x=x_noisy,
                 timesteps=t,
