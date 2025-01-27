@@ -12,7 +12,7 @@ import torch.nn as nn
 import numpy as np
 import pytorch_lightning as pl
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Union
 from torch.optim.lr_scheduler import LambdaLR
 from einops import rearrange, repeat
 from contextlib import contextmanager, nullcontext
@@ -546,6 +546,7 @@ class DDPM(pl.LightningModule):
         TODO:
             combined noise loss + complete reconstruction loss
         """
+        breakpoint()
         if self.loss_type == "l1":
             loss = (target - pred).abs()
             if mean:
@@ -1225,7 +1226,13 @@ class LatentDiffusion(DDPM):
         self.scuffed_logger.update_losess(loss, loss_dict)
         return loss_tup
 
-    def apply_model(self, x_noisy, t, cond, return_ids=False):
+    def apply_model(
+        self,
+        x_noisy: torch.Tensor,
+        t: torch.Tensor,
+        cond: Union[List, Dict],
+        return_ids=False,
+    ) -> torch.Tensor:
         if isinstance(cond, dict):
             # hybrid case, cond is expected to be a dict
             pass
@@ -1281,13 +1288,13 @@ class LatentDiffusion(DDPM):
         :param t torch.Tensor: [1]
         """
 
-        breakpoint()
-
         # [B, 4, 16, 16]
         noise = default(noise, lambda: torch.randn_like(x_start))
 
+        # [B, 4, 16, 16] -> [B, 4, 16, 16]
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
 
+        # [B, 4, 16, 16] 
         model_output = self.apply_model(x_noisy, t, cond)
 
         loss_dict = {}
@@ -1302,6 +1309,7 @@ class LatentDiffusion(DDPM):
         else:
             raise NotImplementedError()
 
+        breakpoint()
         loss_simple = self.get_loss(model_output, target, mean=False).mean([1, 2, 3])
         loss_dict.update({f"{prefix}/loss_simple": loss_simple.mean()})
 
