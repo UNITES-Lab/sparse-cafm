@@ -266,7 +266,7 @@ class ImageLogger(Callback):
             }
         )
         self.logger.log_original_masked_predicted_sample_triplet(
-            y, y_sparse, y_hat, f"{current_epoch}.png"
+            y, y_sparse, y_hat, f"e_{current_epoch}_batch_{batch_idx}.png"
         )
 
         self.global_step += 1
@@ -335,18 +335,14 @@ class ImageLogger(Callback):
         batch_idx,
         dataloader_idx=0,
     ):
-        # save weights from the most recent epoch
-        self.logger.save_weights(
-           trainer, f"last"
-        )
-
-        current_val_loss = trainer.callback_metrics.get("val_loss")
-        if not hasattr(self, "best_val_loss"):
-            self.best_val_loss = float("inf")
-
-        if current_val_loss is not None and current_val_loss < self.best_val_loss:
-            self.best_val_loss = current_val_loss
-            self.logger.save_weights(trainer, f"best")
-
         if not self.disabled:
             self.log_img(pl_module, batch, batch_idx, split="val")
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        # Save weights only at the end of the epoch
+        self.logger.save_weights(trainer, "last")
+
+        current_val_loss = trainer.callback_metrics.get("val_loss")
+        if current_val_loss is not None and current_val_loss < self.best_val_loss:
+            self.best_val_loss = current_val_loss
+            self.logger.save_weights(trainer, "best")

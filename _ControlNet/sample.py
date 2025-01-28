@@ -25,8 +25,8 @@ TRAIN_CONFIG_FP = (
     "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/train.yaml"
 )
 MODEL_PICKLE_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__repos__/ControlNet/__weights__/sd_21_controlnet.pkl"
-FT_CHECKPOINT_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6a. train-runs/2025-01-28_13-17-28_control_net_128x128/control_net_128x128_last_weights_batch_idx_0.pth"
 SD_CHECKPOINT = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__repos__/ControlNet/models/control_sd21_ini.ckpt"
+FT_CHECKPOINT_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6a. train-runs/2025-01-28_15-30-33_control_net_128x128/control_net_128x128_last.ckpt"
 
 
 def save_results_to_fp(
@@ -144,22 +144,14 @@ def main():
         log_interval=config["logging"]["log_interval"],
     )
 
-    # hyper params
-    batch_size = 1
-    logger_freq = 1000
-    learning_rate = 1e-4
     sd_locked = True
     only_mid_control = False
 
-    model: Optional[ControlLDM] = None
     model = create_model("./models/cldm_v21.yaml").cpu()
-    model.load_state_dict(
-        torch.load(FT_CHECKPOINT_FP, map_location="cpu", weights_only=True)
-    )
+    model.load_state_dict(load_state_dict(FT_CHECKPOINT_FP, location="cpu"))
 
     model.sd_locked = sd_locked
     model.only_mid_control = only_mid_control
-
     model.cuda()
     model.eval()
 
@@ -172,7 +164,7 @@ def main():
         steps_per_epoch=config[split_str]["steps_per_epoch"],
         device=config["global"]["device"],
         original_image_size=(img_size, img_size),
-        masking_ratio=int(config["dataset"]["masking_ratio"])
+        masking_ratio=int(config["dataset"]["masking_ratio"]),
     )
     val_dataloader = DataLoader(val_dataset, num_workers=0, batch_size=1, shuffle=False)
 

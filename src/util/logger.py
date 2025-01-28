@@ -148,10 +148,22 @@ class ExperimentLogger:
 
         :param x: model to save
         """
-
+        
+        # TODO:
+        # for some reason we can load ControlNet models from the first ckpt
+        # but not from subsequent saves.
+        # also, model weights appear to grow in size over training run, implying that we are saving some
+        # info that we shouldn't (e.g., logs).
+        
+        # NOTE: 
+        # 1. increased model size does not seem to be related to use appending to an existing file.
+        # 2. we CAN load weights from subsequent saves with DIFFERENT names.
+        # 3. we CAN load weights from subsequent saves with IDENTICAL names.
+        # 4. can only conclude that the file suffix was the issue lol
+        
         model_out_path = os.path.join(self.exp_dir, f"{self.exp_name}_{name}.pth")
         if isinstance(x, pytorch_lightning.trainer.Trainer):
-            x.save_checkpoint(model_out_path.replace(".pth", ".pkl"))
+            x.save_checkpoint(model_out_path.replace(".pth", ".ckpt"))
 
         # if pickle_weights == True:
         #     with open(model_out_path.replace(".pth", ".pkl"), 'wb') as f:
