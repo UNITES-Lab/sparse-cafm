@@ -4,20 +4,15 @@ import torch as th
 import torch.nn as nn
 
 from typing import List, Optional
-
+from einops import rearrange, repeat
+from torchvision.utils import make_grid
 from ldm.modules.diffusionmodules.util import (
     conv_nd,
     linear,
     zero_module,
     timestep_embedding,
 )
-
-from einops import rearrange, repeat
-from torchvision.utils import make_grid
-
-# when and how do we use this transformer mod?
 from ldm.modules.attention import SpatialTransformer
-
 from ldm.modules.diffusionmodules.openaimodel import (
     UNetModel,
     TimestepEmbedSequential,
@@ -25,10 +20,7 @@ from ldm.modules.diffusionmodules.openaimodel import (
     Downsample,
     AttentionBlock,
 )
-
-# what does this mod do?
 from ldm.models.diffusion.ddpm import LatentDiffusion
-
 from ldm.util import log_txt_as_img, exists, instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
 
@@ -45,7 +37,7 @@ class ControlledUnetModel(UNetModel):
         control: Optional[List[torch.Tensor]]=None,
         only_mid_control=False,
         **kwargs,
-    ):
+    ) -> torch.Tensor:
         """
         Parameters
         ---
@@ -516,16 +508,20 @@ class ControlLDM(LatentDiffusion):
                 only_mid_control=self.only_mid_control,
             )
         else:
-            # ControlNet
+           
+            # self.control_mode: ControlNet
+            # [13, 1, 320, 16, 16]
             control = self.control_model(
                 x=x_noisy,
                 hint=torch.cat(cond["c_concat"], 1),
                 timesteps=t,
                 context=cond_txt,
             )
+            
             # [13, 1, 320, 16, 16] -> [13, 1, 320, 16, 16]
             control = [c * scale for c, scale in zip(control, self.control_scales)]
-            breakpoint()
+            
+            # [B, 4, 16, 16]
             eps = diffusion_model(
                 x=x_noisy,
                 timesteps=t,

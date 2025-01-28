@@ -386,13 +386,17 @@ class DDIMSampler(object):
                     c_in.append(torch.cat([unconditional_conditioning[i], c[i]]))
             else:
                 c_in = torch.cat([unconditional_conditioning, c])
-                
+            
+            # model_uncond: [B, 4, 16, 16]
+            # model_t: [B, 4, 16, 16]
             model_uncond, model_t = self.model.apply_model(x_in, t_in, c_in).chunk(2)
-            breakpoint()
+            
+            # [B, 4, 16, 16]
             model_output = model_uncond + unconditional_guidance_scale * (
                 model_t - model_uncond
             )
 
+        # e_t: [B, 4, 16, 16]
         if self.model.parameterization == "v":
             e_t = self.model.predict_eps_from_z_and_v(x, t, model_output)
         else:
@@ -404,6 +408,10 @@ class DDIMSampler(object):
                 self.model, e_t, x, t, c, **corrector_kwargs
             )
 
+        # self.ddim_alphas, 
+        # self.ddim_alphas_prev, 
+        # self.ddim_sqrt_one_minus_alphas, 
+        # self.ddim_sigmas: [50]
         alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
         alphas_prev = (
             self.model.alphas_cumprod_prev
@@ -433,6 +441,7 @@ class DDIMSampler(object):
         if self.model.parameterization != "v":
             pred_x0 = (x - sqrt_one_minus_at * e_t) / a_t.sqrt()
         else:
+            breakpoint()
             pred_x0 = self.model.predict_start_from_z_and_v(x, t, model_output)
 
         if quantize_denoised:

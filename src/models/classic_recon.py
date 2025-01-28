@@ -9,7 +9,7 @@ from collections import deque
 class NearestNeighborsInpainter(nn.Module):
     """
     TODO: verify correctness.
-    
+
     A simple inpainting method that fills each missing pixel with
     the color of its nearest known neighbor in terms of spatial distance.
     The method uses a BFS expansion from known pixels to fill holes.
@@ -41,7 +41,7 @@ class NearestNeighborsInpainter(nn.Module):
         # We'll ensure the mask is binary boolean so that we can do BFS checks easily.
         # If mask is {0,1} in integer form, the comparison below becomes boolean.
         mask_bool = mask > 0  # shape: B, C, H, W
-        
+
         masked_image = target_image * mask
 
         B, C, H, W = target_image.shape
@@ -125,10 +125,10 @@ class LinearInterpolationInpainter(nn.Module):
 
     def forward(self, target_image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """
-    Simple linear inpainter for data shaped (B, H, W).
-    It performs a 3x3 average over known neighbors and
-    fills in the missing pixels.
-    """
+        Simple linear inpainter for data shaped (B, H, W).
+        It performs a 3x3 average over known neighbors and
+        fills in the missing pixels.
+        """
 
     def __init__(self):
         super(LinearInterpolationInpainter, self).__init__()
@@ -151,26 +151,20 @@ class LinearInterpolationInpainter(nn.Module):
 
         # 2) Create a normalized 3×3 kernel (sum=1).
         kernel = torch.ones(
-            1, 1, 3, 3, 
-            device=target_image.device, 
-            dtype=target_image.dtype
+            1, 1, 3, 3, device=target_image.device, dtype=target_image.dtype
         )
         kernel = kernel / kernel.sum()  # Each element 1/9
 
         # 3) Use conv2d with an extra channel dimension to sum known neighbors.
         #    The result shape after conv2d is (B, 1, H, W).
         sum_of_neighbors = F.conv2d(
-            masked_image.unsqueeze(1),  # (B, 1, H, W)
-            kernel,
-            padding=1
+            masked_image.unsqueeze(1), kernel, padding=1  # (B, 1, H, W)
         )
 
         # 4) Convolve the mask (converted to float) likewise
         #    to determine how many neighbors contributed.
         sum_of_masks = F.conv2d(
-            mask.float().unsqueeze(1),  # (B, 1, H, W)
-            kernel,
-            padding=1
+            mask.float().unsqueeze(1), kernel, padding=1  # (B, 1, H, W)
         )
 
         # 5) Compute average of neighbors. Add small eps to avoid div-by-zero.
@@ -180,8 +174,10 @@ class LinearInterpolationInpainter(nn.Module):
         # 6) We only want these interpolated values where mask=0.
         #    We'll multiply by ~mask to keep them only in the missing region.
         #    Then add the known pixels (which remain zeroed in predicted_image).
-        predicted_image = interpolated_values * (~mask).unsqueeze(1) + masked_image.unsqueeze(1)
-        
+        predicted_image = interpolated_values * (~mask).unsqueeze(
+            1
+        ) + masked_image.unsqueeze(1)
+
         # Squeeze out the extra channel dimension to return shape (B, H, W).
         return predicted_image.squeeze(1)
 
@@ -192,65 +188,57 @@ class LinearInterpolationInpainter(nn.Module):
 
 class BicubicInterpolationInpainter(nn.Module):
     """
-    TODO: verify correctness.
-    
-    Inpaint missing regions (mask=0) by:
-      1) Zeroing out the missing region in 'target_image'.
-      2) Downsampling that masked image.
-      3) Upsampling it back with bicubic interpolation.
-      4) Filling in the missing region from the upsampled result.
-
-    This is a simple demonstration of bicubic-based filling using PyTorch.
+    A simple inpainter that uses PyTorch's built-in bicubic interpolation
+    to fill missing rows in an image. This implementation assumes that
+    every other row is known (i.e., the mask is True for those rows).
     """
 
-    def __init__(self, downsample_scale=0.5):
-        """
-        :param downsample_scale: factor by which we reduce the resolution
-                                 before upsampling back.
-                                 E.g., 0.5 => downsample to half-size, then
-                                 bicubic upsample to original size.
-        """
-        super(BicubicInterpolationInpainter, self).__init__()
-        self.downsample_scale = downsample_scale
+    def __init__(self):
+        super().__init__()
 
     def forward(self, target_image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """
-        :param target_image: (B, C, H, W) ground truth image
-        :param mask: (B, C, H, W) boolean or {0,1}:
-                     1 => known region, 0 => missing region
-        :return predicted_image: (B, C, H, W), where the missing region is
-                                 filled via naive bicubic interpolation.
+        Args:
+            target_image (torch.Tensor): (B, H, W) ground-truth images.
+            mask (torch.Tensor): (B, H, W) boolean mask, where True = known and
+                                 False = missing (every other row is True).
+
+        Returns:
+            torch.Tensor: (B, H, W) images with missing rows inpainted by
+                          bicubic interpolation. Known pixels are preserved.
         """
-        # 1) Zero out the missing region in the image so we only keep known pixels.
-        #    The masked_image has 0 where mask=0, original pixel where mask=1.
-        masked_image = target_image * mask  # shape: (B, C, H, W)
-        B, C, H, W = masked_image.shape
-        # 2) Downsample the masked image to a smaller size. We choose 'area' mode
-        #    (which averages pixels) for the downsampling step.
-        #    The new height/width are determined by downsample_scale.
-        #    For example, if downsample_scale=0.5, we go to (H//2, W//2).
-        downsampled = F.interpolate(
-            masked_image,
-            scale_factor=self.downsample_scale,
-            mode="area",  # area = "average pooling" style downsampling
-        )
-        # 3) Upsample the downsampled tensor back to the original size,
-        #    this time using bicubic interpolation.
-        #    align_corners=False is typically recommended for scaling tasks.
-        bicubic_upsampled = F.interpolate(
-            downsampled, size=(H, W), mode="bicubic", align_corners=False
-        )
-        # 4) Combine. We only want the upsampled values in the missing region
-        #    (where mask=0). Everywhere else, we reuse the original (masked_image).
-        #    If 'mask' is boolean, '~mask' is True in the missing region.
-        #    If mask is integer {0, 1}, do (1 - mask) instead.
-        #    We'll also keep the known pixels from the original "masked_image"
-        #    so they remain unaltered.
-        missing_region = (~mask) if mask.dtype == torch.bool else (1 - mask)
-        predicted_image = bicubic_upsampled * missing_region + masked_image
+        B, H, W = target_image.shape
 
-        return predicted_image
+        masked_image = target_image * mask
 
+        # Add a channel dimension to make it (B, 1, H, W)
+        # so that we can call PyTorch’s interpolation utilities:
+        x_with_channel = target_image.unsqueeze(1)  # (B, 1, H, W)
+
+        # For simplicity, assume the mask pattern is consistent across the batch:
+        # Identify which row indices are True in the first sample’s mask
+        known_rows = mask[0].any(dim=1)  # shape: (H,)
+        known_row_indices = torch.nonzero(known_rows).squeeze(
+            1
+        )  # shape: (#known_rows,)
+
+        # Gather only the known rows from every image in the batch
+        known_image = x_with_channel[
+            :, :, known_row_indices, :
+        ]  # (B, 1, #known_rows, W)
+
+        # Upsample these known rows back to full resolution using bicubic
+        interpolated_values = F.interpolate(
+            known_image, size=(H, W), mode="bicubic", align_corners=False
+        ).squeeze(
+            1
+        )  # (B, H, W)
+
+        # Copy the true known pixels back in (so they match exactly):
+        output = interpolated_values * (~mask) + masked_image
+        
+        return output
+    
     @staticmethod
     def get(weights=None):
         return BicubicInterpolationInpainter()
@@ -430,7 +418,4 @@ class AMPInpainter(nn.Module):
 
 
 if __name__ == "__main__":
-    model = LinearInterpolationInpainter()
-    img = torch.rand(1, 3, 224, 224)
-    mask = torch.ones(1, 3, 224, 224).bool()
-    out = model(img, mask)
+    pass

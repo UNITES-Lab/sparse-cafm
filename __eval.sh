@@ -1,3 +1,3 @@
-export CUDA_VISIBLE_DEVICES=1
-nohup python test.py > test_eval.out 2>&1 &
+export CUDA_VISIBLE_DEVICES=3
+nohup python test.py > _bicubic-test.out 2>&1 &
 exit
