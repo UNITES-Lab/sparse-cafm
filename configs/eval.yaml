@@ -4,7 +4,7 @@ global:
   formulation: p(y|y_sparse_benchmark)
 
 model:
-  name: bicubic_interpolation
+  name: nn_interpolation
   pretrained: True
   weights:
 
@@ -22,7 +22,7 @@ dataset:
 
 logging:
   root: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6b. evals
-  exp_name: cubic-new-impl-50%-sparse
+  exp_name: nn-new-impl-50%-sparse
   result_columns: ["step", "mae", "mse", "psnr", "ssim", "older", "celano_script_y", "celano_script_y_sparse"]
   save_weights: true
   save_only_best_weights: true

@@ -3,116 +3,69 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from collections import deque
+from scipy.ndimage import distance_transform_edt
 
 
 class NearestNeighborsInpainter(nn.Module):
     """
-    TODO: verify correctness.
-
-    A simple inpainting method that fills each missing pixel with
-    the color of its nearest known neighbor in terms of spatial distance.
-    The method uses a BFS expansion from known pixels to fill holes.
+    Fill each missing pixel by copying the color from its nearest known
+    neighbor (by Euclidean distance). Uses SciPy's distance_transform_edt
+    under the hood, adapted to (B, H, W) inputs.
     """
 
-    def __init__(self, connectivity=4):
-        """
-        :param connectivity: 4 or 8, how many directions to expand during BFS.
-                             4 => up, down, left, right
-                             8 => includes diagonals
-        """
-        super(NearestNeighborsInpainter, self).__init__()
-        self.connectivity = connectivity
+    def __init__(self):
+        super().__init__()
 
     def forward(self, target_image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """
-        Given a target_image and a mask, produce a 'predicted_image' that
-        contains nonzero values only for the missing region (mask=0). Each
-        missing pixel is filled by its closest (in a BFS sense) known neighbor.
-
-        :param target_image: (B, C, H, W) ground truth image
-        :param mask:        (B, C, H, W) boolean or {0,1}
-                            1 => known region, 0 => missing region
-        :return predicted_image: (B, C, H, W), where
-                                 * For mask=1 (known region), predicted_image=0
-                                 * For mask=0 (missing region), predicted_image
-                                   is filled by the nearest known neighbor.
+        :param target_image: (B, H, W), float or uint8
+        :param mask:         (B, H, W), values in {0,1},
+                             1 => known region, 0 => missing region
+        :return predicted_image: (B, H, W), where:
+                                 - For mask=1 (known), predicted_image=0
+                                 - For mask=0 (missing), predicted_image is filled
+                                   with the nearest known neighbor's value.
         """
-        # We'll ensure the mask is binary boolean so that we can do BFS checks easily.
-        # If mask is {0,1} in integer form, the comparison below becomes boolean.
-        mask_bool = mask > 0  # shape: B, C, H, W
+        # Ensure mask is boolean
+        mask_bool = mask > 0
 
-        masked_image = target_image * mask
+        B, H, W = target_image.shape
+        device = target_image.device
+        dtype = target_image.dtype
 
-        B, C, H, W = target_image.shape
+        # Convert to NumPy for distance_transform_edt
+        target_np = target_image.detach().cpu().numpy()
+        mask_np   = mask_bool.detach().cpu().numpy()
 
-        # We'll create a working copy that we can fill in fully.
-        # This is the "complete" inpainted image from BFS, containing
-        # the nearest known-pixel color for every pixel (both known and missing).
-        filled_image = target_image.clone()
+        # Prepare an output buffer in NumPy to hold the inpainted values
+        filled_np = np.zeros_like(target_np)  # same shape as target_np: (B, H, W)
 
-        # We also track which pixels we have visited in BFS.
-        visited = mask_bool.clone()  # True at known pixels, False at missing
+        for b in range(B):
+            # mask_np[b] is shape (H, W), True where known, False where missing
+            # distance_transform_edt expects True=foreground if we want distance to background.
+            # But we want the "missing" region to be the foreground, so we use ~mask_np[b].
+            dist, (idx_y, idx_x) = distance_transform_edt(
+                ~mask_np[b],
+                return_distances=True,
+                return_indices=True
+            )
+            # For each pixel, copy from the nearest known pixel.
+            filled_np[b] = target_np[b, idx_y, idx_x]
 
-        # Choose neighbor offsets based on connectivity
-        if self.connectivity == 4:
-            directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-        else:  # 8-connectivity
-            directions = [
-                (1, 0),
-                (-1, 0),
-                (0, 1),
-                (0, -1),
-                (1, 1),
-                (1, -1),
-                (-1, 1),
-                (-1, -1),
-            ]
+        # Convert back to torch
+        filled_torch = torch.from_numpy(filled_np).to(device=device, dtype=dtype)
 
-        # Process one image at a time in the batch
-        for b_idx in range(B):
-            # Gather all initially-known pixels into a BFS queue
-            queue = deque()
-            # We'll look at mask_bool in the first channel (or across all channels) to see if a pixel is known.
-            # Often, the mask is the same across channels. If your mask is distinct per channel,
-            # you might adapt the check below.
-            known_locs = mask_bool[b_idx, 0] == True  # shape: (H, W)
+        # According to the spec:
+        # * For known (mask=1), output 0
+        # * For missing (mask=0), output the filled color
+        # => Multiply the filled result by the inverse of mask
+        predicted_image = filled_torch * (~mask_bool).float()
 
-            # Enqueue each known pixel
-            known_coords = known_locs.nonzero(
-                as_tuple=False
-            )  # shape: (#known_pixels, 2) => [y, x]
-            for yx in known_coords:
-                y, x = yx
-                queue.append((x.item(), y.item()))
-
-            # BFS expansion
-            while queue:
-                x_cur, y_cur = queue.popleft()
-
-                for dx, dy in directions:
-                    nx = x_cur + dx
-                    ny = y_cur + dy
-                    if 0 <= nx < W and 0 <= ny < H:
-                        if not visited[b_idx, 0, ny, nx]:
-                            # Assign the color from (y_cur, x_cur) to this neighbor
-                            filled_image[b_idx, :, ny, nx] = filled_image[
-                                b_idx, :, y_cur, x_cur
-                            ]
-                            visited[b_idx, :, ny, nx] = True
-                            queue.append((nx, ny))
-
-        # We only want to output nonzero values in the missing region (where mask=0).
-        # The BFS above fills the entire image (including known region). But the spec
-        # says that for known pixels, we should return 0 in 'predicted_image'. So we
-        # multiply by (1 - mask).
-        # If mask is float/binary, (1 - mask) highlights the holes.
-        predicted_image = (filled_image * ~mask) + masked_image
         return predicted_image
 
     @staticmethod
-    def get(connectivity=4):
-        return NearestNeighborsInpainter(connectivity=connectivity)
+    def get(weights=None):
+        return NearestNeighborsInpainter()
 
 
 class LinearInterpolationInpainter(nn.Module):
@@ -236,9 +189,9 @@ class BicubicInterpolationInpainter(nn.Module):
 
         # Copy the true known pixels back in (so they match exactly):
         output = interpolated_values * (~mask) + masked_image
-        
+
         return output
-    
+
     @staticmethod
     def get(weights=None):
         return BicubicInterpolationInpainter()
