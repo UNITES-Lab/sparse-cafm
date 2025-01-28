@@ -1729,7 +1729,7 @@ class LatentDiffusion(DDPM):
         use_ema_scope=True,
         **kwargs,
     ):
-        breakpoint()
+        # breakpoint()
         ema_scope = self.ema_scope if use_ema_scope else nullcontext
         use_ddim = ddim_steps is not None
 

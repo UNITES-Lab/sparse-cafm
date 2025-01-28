@@ -142,8 +142,8 @@ class ExperimentLogger:
 
         :param x: model to save
         """
-        model_out_path = os.path.join(self.exp_dir, f"{self.exp_name}_{name}.pt")
-        torch.save(x, model_out_path)
+        model_out_path = os.path.join(self.exp_dir, f"{self.exp_name}_{name}.pth")
+        torch.save(x.state_dict(), model_out_path)
 
     def save_tensorlike_data(
         self,

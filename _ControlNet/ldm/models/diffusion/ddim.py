@@ -441,7 +441,7 @@ class DDIMSampler(object):
         if self.model.parameterization != "v":
             pred_x0 = (x - sqrt_one_minus_at * e_t) / a_t.sqrt()
         else:
-            breakpoint()
+            # breakpoint()
             pred_x0 = self.model.predict_start_from_z_and_v(x, t, model_output)
 
         if quantize_denoised:

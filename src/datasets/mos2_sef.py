@@ -253,7 +253,9 @@ class MOS2SEFDataset(Dataset):
         y: torch.Tensor = items["y"]
         
         # [-1, 1] -> [0, 1]
-        y_sig = (y - y.min()) / (y.max() - y.min())
+        # y_sig = (y - y.min()) / (y.max() - y.min())
+        # -> [0, 1]; y is already normalized
+        y_sig = y.clone()
         y_mask: torch.Tensor = items["y_mask"]
         y_sparse = (y_sig * y_mask).float()
         

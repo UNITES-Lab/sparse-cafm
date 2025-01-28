@@ -329,7 +329,9 @@ class ImageLogger(Callback):
             self.log_img(pl_module, batch, batch_idx, split="train")
 
     def on_validation_batch_end(
-        self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0
+        self, trainer, pl_module: torch.nn.Module, outputs, batch, batch_idx, dataloader_idx=0
     ):
+        # save weights from the most recent epoch
+        self.logger.save_weights(pl_module, "last_weights")
         if not self.disabled:
             self.log_img(pl_module, batch, batch_idx, split="val")

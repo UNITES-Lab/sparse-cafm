@@ -1,4 +1,3 @@
-from genericpath import isfile
 import pickle
 import torch
 import os
@@ -6,10 +5,9 @@ import cv2
 import numpy as np
 
 from typing import Optional
-from datasets.sapphire import (
-    SapphireDataset,
+from src.datasets.mos2_sef import (
+    MOS2SEFDataset,
     Formulation,
-    SapphireDatasetFixedGridSampling,
 )
 from torch.utils.data import DataLoader
 from cldm.cldm import ControlLDM
@@ -73,9 +71,10 @@ def main():
     model.cuda()
     model.eval()
 
-    train_dataset = SapphireDatasetFixedGridSampling(
-        split="train", formulation=Formulation.P_Z_BAR_X
+    train_dataset = MOS2SEFDataset(
+        split="train", formulation=Formulation.P_Y_BAR_Y_SPARSE_CN
     )
+    
     # return
 
     train_dataloader = DataLoader(
