@@ -1,10 +1,12 @@
 import cv2
 import os
+import pytorch_lightning
 import torch
 import datetime
 import pandas as pd
 import yaml
 import wandb
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Dict, Optional, Union
@@ -136,14 +138,26 @@ class ExperimentLogger:
             }
             wandb.log(wandb_dict, step=step)
 
-    def save_weights(self, x: torch.nn.Module, name: str = "best") -> None:
+    def save_weights(
+        self, x: Union[torch.nn.Module, pytorch_lightning.trainer.Trainer], name: str = "best"
+    ) -> None:
         """
+        TODO: support `torch.nn.Module`
+        
         Save model weights of a `torch.nn.Module` object to the current exp dir.
 
         :param x: model to save
         """
+
         model_out_path = os.path.join(self.exp_dir, f"{self.exp_name}_{name}.pth")
-        torch.save(x.state_dict(), model_out_path)
+        if isinstance(x, pytorch_lightning.trainer.Trainer):
+            x.save_checkpoint(model_out_path.replace(".pth", ".pkl"))
+
+        # if pickle_weights == True:
+        #     with open(model_out_path.replace(".pth", ".pkl"), 'wb') as f:
+        #         pickle.dump(x, f)
+        # else:
+        #     torch.save(x, model_out_path)
 
     def save_tensorlike_data(
         self,
@@ -205,7 +219,7 @@ class ExperimentLogger:
         # create the figures dir if it does not already exist
         os.makedirs(outdir, exist_ok=True)
         out_fp = os.path.join(outdir, name)
-        plt.savefig(out_fp, bbox_inches='tight', pad_inches=0.1, dpi=300)
+        plt.savefig(out_fp, bbox_inches="tight", pad_inches=0.1, dpi=300)
 
     def log_original_masked_predicted_sample_triplet_controlnet(
         self,
@@ -230,4 +244,4 @@ class ExperimentLogger:
         # create the figures dir if it does not already exist
         os.makedirs(outdir, exist_ok=True)
         out_fp = os.path.join(outdir, name)
-        plt.savefig(out_fp, bbox_inches='tight', pad_inches=0.1, dpi=300)
+        plt.savefig(out_fp, bbox_inches="tight", pad_inches=0.1, dpi=300)

@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision
+import pytorch_lightning as pl
 
 from typing import List, Dict, Optional
 from cldm.metrics import calc_psnr
@@ -153,7 +154,7 @@ class ImageLogger(Callback):
 
     def register_logger(self, logger: ExperimentLogger) -> None:
         self.logger = logger
-        
+
     def register_dataset(self, dataset: MOS2SEFDataset) -> None:
         self.dataset = dataset
 
@@ -167,22 +168,22 @@ class ImageLogger(Callback):
         current_epoch,
         batch_idx,
     ):
-        # TODO: make this code great again
-        # idk what exactly what is happening here; don't really care either
-        root = os.path.join(save_dir, "image_log", split)
-        for k in images:
-            grid = torchvision.utils.make_grid(images[k], nrow=4)
-            if self.rescale:
-                grid = (grid + 1.0) / 2.0  # -1,1 -> 0,1; c,h,w
-            grid = grid.transpose(0, 1).transpose(1, 2).squeeze(-1)
-            grid = grid.numpy()
-            grid = (grid * 255).astype(np.uint8)
-            filename = "{}_gs-{:06}_e-{:06}_b-{:06}.png".format(
-                k, global_step, current_epoch, batch_idx
-            )
-            path = os.path.join(root, filename)
-            os.makedirs(os.path.split(path)[0], exist_ok=True)
-            Image.fromarray(grid).save(path)
+        # # TODO: make this code great again
+        # # idk what exactly what is happening here; don't really care either
+        # root = os.path.join(save_dir, "image_log", split)
+        # for k in images:
+        #     grid = torchvision.utils.make_grid(images[k], nrow=4)
+        #     if self.rescale:
+        #         grid = (grid + 1.0) / 2.0  # -1,1 -> 0,1; c,h,w
+        #     grid = grid.transpose(0, 1).transpose(1, 2).squeeze(-1)
+        #     grid = grid.numpy()
+        #     grid = (grid * 255).astype(np.uint8)
+        #     filename = "{}_gs-{:06}_e-{:06}_b-{:06}.png".format(
+        #         k, global_step, current_epoch, batch_idx
+        #     )
+        #     path = os.path.join(root, filename)
+        #     os.makedirs(os.path.split(path)[0], exist_ok=True)
+        #     Image.fromarray(grid).save(path)
 
         pred: torch.Tensor = images["samples_cfg_scale_9.00"].squeeze(0).detach().cpu()
         vae_og_recon: torch.Tensor = images["reconstruction"].squeeze(0).detach().cpu()
@@ -232,37 +233,34 @@ class ImageLogger(Callback):
         y_img_like = y_img_like.repeat(1, 3, 1, 1)
 
         # 4. SSIM
+        # TODO: clamp range is incorrect
         ssim_val = ssim(
-            final_pred_img_like.clamp(-1, 1).float(),  # clamp just to be safe
-            y_img_like.clamp(-1, 1).float(),
-            data_range=2.0,
+            final_pred_img_like.clamp(0, 1).float(),  # clamp just to be safe
+            y_img_like.clamp(0, 1).float(),
+            data_range=1.0,
         )
-        
+
         # 5a. characterize(y)
-        mean, std = self.dataset.current_maps_mean,  self.dataset.current_maps_std
+        mean, std = self.dataset.current_maps_mean, self.dataset.current_maps_std
         data = (y - mean) / std
-        y_char = celano_lab_characterization(
-            data, self.dataset.img_size_um
-        )
-        
+        y_char = celano_lab_characterization(data, self.dataset.img_size_um)
+
         # 5b. characterize(y_sparse)
         data = (y_hat - mean) / std
-        y_sparse_char = celano_lab_characterization(
-            data, self.dataset.img_size_um
-        )
+        y_sparse_char = celano_lab_characterization(data, self.dataset.img_size_um)
 
         # log metrics
         self.logger.log(
             **{
                 "step": self.global_step,
-                "train_l1": mae if split == "train" else None,
-                "val_l1": mae if split == "val" else None,
-                "train_mse": mse if split == "train" else None,
-                "val_mse": mse if split == "val" else None,
-                "train_psnr": psnr if split == "train" else None,
-                "val_psnr": psnr if split == "val" else None,
-                "train_ssim": ssim_val if split == "train" else None,
-                "val_ssim": ssim_val if split == "val" else None,
+                "train_l1": mae.item() if split == "train" else None,
+                "val_l1": mae.item() if split == "val" else None,
+                "train_mse": mse.item() if split == "train" else None,
+                "val_mse": mse.item() if split == "val" else None,
+                "train_psnr": psnr.item() if split == "train" else None,
+                "val_psnr": psnr.item() if split == "val" else None,
+                "train_ssim": ssim_val.item() if split == "train" else None,
+                "val_ssim": ssim_val.item() if split == "val" else None,
                 "val_celano_script_y": y_char if split == "val" else None,
                 "val_celano_script_y_sparse": y_sparse_char if split == "val" else None,
             }
@@ -281,7 +279,7 @@ class ImageLogger(Callback):
             and callable(pl_module.log_images)
             and self.max_images > 0
         ):
-            logger = type(pl_module.logger)
+            # logger = type(pl_module.logger)
 
             is_train = pl_module.training
             if is_train:
@@ -292,23 +290,23 @@ class ImageLogger(Callback):
                     batch, split=split, **self.log_images_kwargs
                 )
 
-            for k in images:
-                N = min(images[k].shape[0], self.max_images)
-                images[k] = images[k][:N]
-                if isinstance(images[k], torch.Tensor):
-                    images[k] = images[k].detach().cpu()
-                    if self.clamp:
-                        images[k] = torch.clamp(images[k], -1.0, 1.0)
+            # for k in images:
+            #     N = min(images[k].shape[0], self.max_images)
+            #     images[k] = images[k][:N]
+            #     if isinstance(images[k], torch.Tensor):
+            #         images[k] = images[k].detach().cpu()
+            #         if self.clamp:
+            #             images[k] = torch.clamp(images[k], -1.0, 1.0)
 
-            # TODO: FIX ME.
-            img_out_dir = os.path.join(os.path.dirname(""), "samples")
-            os.makedirs(img_out_dir, exist_ok=True)
+            # # TODO: FIX ME.
+            # img_out_dir = os.path.join(os.path.dirname(""), "samples")
+            # os.makedirs(img_out_dir, exist_ok=True)
 
             # self.log_local(pl_module.logger.save_dir, split, images,
             #                pl_module.global_step, pl_module.current_epoch, batch_idx)
 
             self.log_local(
-                img_out_dir,
+                "",
                 split,
                 images,
                 pl_module.global_step,
@@ -329,9 +327,26 @@ class ImageLogger(Callback):
             self.log_img(pl_module, batch, batch_idx, split="train")
 
     def on_validation_batch_end(
-        self, trainer, pl_module: torch.nn.Module, outputs, batch, batch_idx, dataloader_idx=0
+        self,
+        trainer,
+        pl_module: pl.LightningModule,
+        outputs,
+        batch,
+        batch_idx,
+        dataloader_idx=0,
     ):
         # save weights from the most recent epoch
-        self.logger.save_weights(pl_module, "last_weights")
+        self.logger.save_weights(
+           trainer, f"last"
+        )
+
+        current_val_loss = trainer.callback_metrics.get("val_loss")
+        if not hasattr(self, "best_val_loss"):
+            self.best_val_loss = float("inf")
+
+        if current_val_loss is not None and current_val_loss < self.best_val_loss:
+            self.best_val_loss = current_val_loss
+            self.logger.save_weights(trainer, f"best")
+
         if not self.disabled:
             self.log_img(pl_module, batch, batch_idx, split="val")

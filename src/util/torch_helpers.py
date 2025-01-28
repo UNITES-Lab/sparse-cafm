@@ -42,12 +42,15 @@ def apply_color_palette(map_like: np.ndarray) -> np.ndarray:
         An array of shape (H, W, C), where each pixel has RGB values
         in the [0, 1] range.
     """
+    
     map_like = map_like.astype(np.float32)
     min_val, max_val = np.min(map_like), np.max(map_like)
     
-    # -> [0, 1]
-    # normalized_map = (map_like - min_val) / (max_val - min_val)
-    normalized_map = map_like
+    # [-1, 1] -> [0, 1]
+    # NOTE: this re-normalization step is needed for models like ControlNet
+    normalized_map = (map_like - min_val) / (max_val - min_val)
+    
+    # normalized_map = map_like
     
     cmap = cm.get_cmap("viridis")
     colored_map = cmap(normalized_map)

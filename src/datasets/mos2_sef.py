@@ -26,6 +26,7 @@ class Formulation(Enum):
     P_Y_BAR_Y_SPARSE_CN = 3
     P_Y_BAR_Y_SPARSE_BENCHMARK = 4
     P_Y_BAR_Y_SPARSE = 5
+    P_Y_BAR_Y_SPARSE_BENCHMARK_CN = 6
 
     @staticmethod
     def get_formulation_from_str(formulation_str: str) -> Enum:
@@ -96,6 +97,7 @@ class MOS2SEFDataset(Dataset):
         # for normalizing X, y, respectively later
         self.current_maps_mean = 0.0
         self.current_maps_std = 0.0
+        
         # use these vals to normalize all data -> [0, 1]
         self.current_maps_max = 0.0
         self.current_maps_min = 0.0
@@ -386,6 +388,38 @@ class MOS2SEFDataset(Dataset):
 
         return item
 
+    def get_item_p_y_bar_y_sparse_deterministic_cn(self, index: int) -> Dict:
+        """
+        ...
+        """
+        
+        items = self.get_item_p_y_bar_y_sparse_deterministic(index)
+        
+        y: torch.Tensor = items["y"]
+        
+        # [-1, 1] -> [0, 1]
+        # y_sig = (y - y.min()) / (y.max() - y.min())
+        # -> [0, 1]; y is already normalized
+        y_sig = y.clone()
+        y_mask: torch.Tensor = items["y_mask"]
+        y_sparse = (y_sig * y_mask).float()
+        
+        # -> [H, W, C]
+        # [H, W] -> [H, W, 1]
+        y_img_like = y_sig.clone()
+        y_img_like = y_img_like.unsqueeze(-1)
+        # [H, W, 1] -> [H, W, 3]
+        y_img_like = y_img_like.repeat(1, 1, 3)
+        # [H, W] -> [H, W, 1]
+        y_sparse_img_like = y_sparse.clone()
+        y_sparse_img_like = y_sparse_img_like.unsqueeze(-1)
+        # [H, W, 1] -> [H, W, 3]
+        y_sparse_img_like = y_sparse_img_like.repeat(1, 1, 3)
+        # [0, 1] -> [-1, 1]
+        y_img_like = (y_img_like * 2) - 1
+
+        return dict(jpg=y_img_like, txt="", hint=y_sparse_img_like)
+
     def __getitem__(self, index: int) -> Dict:
         """
         Get the next randomly sampled item from the dataset.
@@ -405,6 +439,7 @@ class MOS2SEFDataset(Dataset):
             Formulation.P_Y_BAR_Y_SPARSE: self.get_item_p_y_bar_y_sparse,
             Formulation.P_Y_BAR_Y_SPARSE_CN: self.get_item_p_y_bar_y_sparse_cn,
             Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK: self.get_item_p_y_bar_y_sparse_deterministic,
+            Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN: self.get_item_p_y_bar_y_sparse_deterministic_cn,
         }
         if self.formulation not in fn_map:
             raise Exception(
