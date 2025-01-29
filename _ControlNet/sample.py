@@ -1,32 +1,25 @@
 import torch
-import os
-import cv2
 import yaml
 import tqdm
 import numpy as np
 
-from typing import Optional
 from src.datasets.mos2_sef import (
     MOS2SEFDataset,
-    Formulation,
 )
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
-from src.util.torch_helpers import convert_to_img_like, grayscale_to_2d
+from src.util.torch_helpers import grayscale_to_2d
 from src.util.logger import ExperimentLogger
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from torch.utils.data import DataLoader
 from torchmetrics.functional.image.ssim import ssim
-from cldm.cldm import ControlLDM
 from cldm.model import create_model, load_state_dict
-from cldm.ddim_hacked import DDIMSampler
+from src.util.metrics import OLDER
 
 
-TRAIN_CONFIG_FP = (
-    "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/train.yaml"
+EVAL_CONFIG_FP = (
+    "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/eval.yaml"
 )
-MODEL_PICKLE_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__repos__/ControlNet/__weights__/sd_21_controlnet.pkl"
-SD_CHECKPOINT = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__repos__/ControlNet/models/control_sd21_ini.ckpt"
-FT_CHECKPOINT_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6a. train-runs/2025-01-28_15-30-33_control_net_128x128/control_net_128x128_last.ckpt"
+FT_CHECKPOINT_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6a. train-runs/2025-01-28_15-53-53_control_net_128x128/control_net_128x128_last.ckpt"
 
 
 def save_results_to_fp(
@@ -61,6 +54,12 @@ def save_results_to_fp(
     y_sparse = grayscale_to_2d(control)
     y_hat = grayscale_to_2d(pred)
 
+    # NOTE: this step is only needed for ControlNet outputs
+    # [-1, 1] -> [0, 1]
+    y = (y + 1) / 2
+    y_sparse = (y_sparse + 1) / 2
+    y_hat = (y_hat + 1) / 2
+
     # [H, W] -> [B, H, W]
     y = y.unsqueeze(0)
     y_sparse = y_sparse.unsqueeze(0)
@@ -93,31 +92,38 @@ def save_results_to_fp(
         data_range=1.0,
     )
 
-    # 5a. characterize(y)
     mean, std = dataset.current_maps_mean, dataset.current_maps_std
-    data = (y - mean) / std
+
+    # 5a. characterize(y)
+    # z: [0, 1] -> [-1, 1] (i.e., standard normal)
+    z = (y * 2) - 1
+    # [-1, 1] -> original dist
+    # x' = mu + (sigma * z)
+    data = mean + (std * z)
     y_char = celano_lab_characterization(data, dataset.img_size_um)
 
     # 5b. characterize(y_sparse)
-    data = (y_hat - mean) / std
+    # z: [0, 1] -> [-1, 1] (i.e., standard normal)
+    z = (y_hat * 2) - 1
+    # [-1, 1] -> original dist
+    # x' = mu + (sigma * z)
+    data = mean + (std * z)
     y_sparse_char = celano_lab_characterization(data, dataset.img_size_um)
 
     # log metrics
     logger.log(
         **{
             "step": index,
-            "train_l1": mae.item() if split == "train" else None,
-            "val_l1": mae.item() if split == "val" else None,
-            "train_mse": mse.item() if split == "train" else None,
-            "val_mse": mse.item() if split == "val" else None,
-            "train_psnr": psnr.item() if split == "train" else None,
-            "val_psnr": psnr.item() if split == "val" else None,
-            "train_ssim": ssim_val.item() if split == "train" else None,
-            "val_ssim": ssim_val.item() if split == "val" else None,
-            "val_celano_script_y": y_char if split == "val" else None,
-            "val_celano_script_y_sparse": y_sparse_char if split == "val" else None,
+            "mae": mae.item(),
+            "mse": mse.item(),
+            "psnr": psnr.item(),
+            "ssim": ssim_val.item(),
+            "older": OLDER(y_char, y_sparse_char),
+            "celano_script_y": y_char,
+            "celano_script_y_sparse": y_sparse_char,
         }
     )
+
     logger.log_original_masked_predicted_sample_triplet(
         y, y_sparse, y_hat, f"{index}.png"
     )
@@ -135,10 +141,9 @@ def main():
     Save all resulting samples as a local file.
     """
 
-    config = parse_config(TRAIN_CONFIG_FP)
-
+    config = parse_config(EVAL_CONFIG_FP)
     logger = ExperimentLogger(
-        config_fp=TRAIN_CONFIG_FP,
+        config_fp=EVAL_CONFIG_FP,
         root=config["logging"]["root"],
         exp_name=config["logging"]["exp_name"],
         log_interval=config["logging"]["log_interval"],
@@ -149,7 +154,6 @@ def main():
 
     model = create_model("./models/cldm_v21.yaml").cpu()
     model.load_state_dict(load_state_dict(FT_CHECKPOINT_FP, location="cpu"))
-
     model.sd_locked = sd_locked
     model.only_mid_control = only_mid_control
     model.cuda()

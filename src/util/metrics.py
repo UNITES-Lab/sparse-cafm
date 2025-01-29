@@ -33,7 +33,7 @@ def OLDER(y_char: dict, y_sparse_char: dict) -> float:
             avg_val = (val1 + val2) / 2.0
             # % diff = 2 * || val1 - val2 || / (val1 + val2)
             pdiff = abs(val1 - val2) / avg_val
-            diffs.append(pdiff)
+            diffs.append(abs(pdiff))
     return np.mean(diffs)
 
 

@@ -43,6 +43,8 @@ class Formulation(Enum):
             return Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK
         elif formulation_str == "p(y|y_sparse_cn)":
             return Formulation.P_Y_BAR_Y_SPARSE_CN
+        elif formulation_str == "p(y|y_sparse_benchmark_cn)":
+            return Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN
         else:
             raise KeyError
 
@@ -97,13 +99,13 @@ class MOS2SEFDataset(Dataset):
         # for normalizing X, y, respectively later
         self.current_maps_mean = 0.0
         self.current_maps_std = 0.0
-        
+
         # use these vals to normalize all data -> [0, 1]
         self.current_maps_max = 0.0
         self.current_maps_min = 0.0
         self.topo_maps_mean = 0.0
         self.topo_maps_std = 0.0
-        
+
         # hard-coded global constant
         # original sample size is 2um
         self.img_size_um = IMG_SIZE_UM
@@ -253,14 +255,14 @@ class MOS2SEFDataset(Dataset):
         """
         items = self.get_item_p_y_bar_y_sparse(index)
         y: torch.Tensor = items["y"]
-        
+
         # [-1, 1] -> [0, 1]
         # y_sig = (y - y.min()) / (y.max() - y.min())
         # -> [0, 1]; y is already normalized
         y_sig = y.clone()
         y_mask: torch.Tensor = items["y_mask"]
         y_sparse = (y_sig * y_mask).float()
-        
+
         # -> [H, W, C]
         # [H, W] -> [H, W, 1]
         y_img_like = y_sig.clone()
@@ -325,7 +327,7 @@ class MOS2SEFDataset(Dataset):
 
         # get un-normed current map
         y: np.ndarray = self.current_maps[sample_idx]
-        
+
         # copy of original y for figure logging
         y_og = y.copy()
         y_unnormed = y.copy()
@@ -354,7 +356,9 @@ class MOS2SEFDataset(Dataset):
 
         # normalize X, y -> [0, 1]
         X = (X - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
-        y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
+        y = (y - self.current_maps_min) / (
+            self.current_maps_max - self.current_maps_min
+        )
 
         return {
             "X": X,
@@ -392,18 +396,18 @@ class MOS2SEFDataset(Dataset):
         """
         ...
         """
-        
+
         items = self.get_item_p_y_bar_y_sparse_deterministic(index)
-        
+
         y: torch.Tensor = items["y"]
-        
+
         # [-1, 1] -> [0, 1]
         # y_sig = (y - y.min()) / (y.max() - y.min())
         # -> [0, 1]; y is already normalized
         y_sig = y.clone()
         y_mask: torch.Tensor = items["y_mask"]
         y_sparse = (y_sig * y_mask).float()
-        
+
         # -> [H, W, C]
         # [H, W] -> [H, W, 1]
         y_img_like = y_sig.clone()

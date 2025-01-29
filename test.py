@@ -88,11 +88,11 @@ def eval(config: dict) -> None:
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
         
-        # # forward : p(y|y_sparse)
-        # y_hat: torch.Tensor = model(y_sparse)
+        # forward : p(y|y_sparse)
+        y_hat: torch.Tensor = model(y_sparse)
         
         # forward : p(y|y_sparse)
-        y_hat: torch.Tensor = model(y_sparse, y_mask)
+        # y_hat: torch.Tensor = model(y_sparse, y_mask)
         
         # log final predicted image
         triplet_name = f"eval_step_{step}.png"

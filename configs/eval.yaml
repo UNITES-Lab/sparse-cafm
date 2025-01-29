@@ -4,9 +4,9 @@ global:
   formulation: p(y|y_sparse_benchmark)
 
 model:
-  name: nn_interpolation
+  name: ours
   pretrained: True
-  weights:
+  weights: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6a. train-runs/2025-01-26/2025-01-26_15-18-32_swinir_sigmoid_128x128_new_ds/swinir_sigmoid_128x128_new_ds_best.pt
 
 validation:
   batch_size: 1
@@ -16,13 +16,13 @@ validation:
 dataset:
   name: SapphireDataset
   image_size: 224
-  crop_size: 128  
+  crop_size: 128
   num_workers: 0
   masking_ratio: 1
 
 logging:
   root: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6b. evals
-  exp_name: nn-new-impl-50%-sparse
+  exp_name: swinir-best--eval-50%-sparse
   result_columns: ["step", "mae", "mse", "psnr", "ssim", "older", "celano_script_y", "celano_script_y_sparse"]
   save_weights: true
   save_only_best_weights: true
