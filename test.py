@@ -4,13 +4,12 @@ import torch.nn as nn
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from torchmetrics.functional.image.ssim import ssim
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.logger import ExperimentLogger
 from src.util.config import MODELS, parse_config
 from src.util.loss import ImageInpaintingL1Loss
-from src.util.metrics import OLDER, PSNR, MSE, MAE
+from src.util.metrics import OLDER, PSNR, MSE, MAE, SSIM
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
@@ -108,7 +107,7 @@ def eval(config: dict) -> None:
         logger.log_original_masked_predicted_sample_triplet(
             y, y_sparse, final_pred, triplet_name
         )
-        
+
         # 1. MAE
         mae = MAE(final_pred, y)
         # 2. MSE
@@ -129,11 +128,7 @@ def eval(config: dict) -> None:
         y_img_like = y_img_like.repeat(1, 3, 1, 1)
 
         # 4. SSIM
-        ssim_val = ssim(
-            final_pred_img_like.clamp(0, 1).float(),
-            y_img_like.clamp(0, 1).float(),
-            data_range=1.0,
-        )
+        ssim_val = SSIM(final_pred_img_like, y_img_like, dataset.normalized_data_range)
 
         mean, std = val_dataset.current_maps_mean, val_dataset.current_maps_std
 
