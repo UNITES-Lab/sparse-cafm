@@ -80,26 +80,30 @@ def eval(config: dict) -> None:
     model.eval()
 
     for step, batch in enumerate(tqdm(val_dataloader, desc=f"Evaluating...:")):
-        
+
         # target: y
         y: torch.Tensor = batch["y"].cuda(device)
-       
+
         # mask
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
-        
+
         # forward : p(y|y_sparse)
-        y_hat: torch.Tensor = model(y_sparse)
-        
+        # y_hat: torch.Tensor = model(y_sparse)
+
         # forward : p(y|y_sparse)
         # y_hat: torch.Tensor = model(y_sparse, y_mask)
-        
+
+        # NOTE: GPSTRUCT
+        # forward : p(y|y_sparse)
+        y_hat: torch.Tensor = model(y_sparse, y, y_mask)
+
         # log final predicted image
         triplet_name = f"eval_step_{step}.png"
         final_pred = ImageInpaintingL1Loss.get_final_prediction(
             predicted_image=y_hat, target_image=y, mask=y_mask
         )
-        
+
         logger.log_original_masked_predicted_sample_triplet(
             y, y_sparse, final_pred, triplet_name
         )
@@ -107,8 +111,9 @@ def eval(config: dict) -> None:
         mae = (final_pred - y).abs().mean()
         # 2. MSE
         mse = (final_pred - y).pow(2).mean()
-        # 3. PSNR
-        psnr = 20 * torch.log10(torch.tensor(2.0)) - 10 * torch.log10(mse)
+
+        # 3. PSNR; assume data in range [0, 1]
+        psnr = 20 * torch.log10(torch.tensor(1.0)) - 10 * torch.log10(mse)
 
         # (B, H, W) -> (B, 1, H, W)
         final_pred_img_like = final_pred.clone()
@@ -124,32 +129,28 @@ def eval(config: dict) -> None:
 
         # 4. SSIM
         ssim_val = ssim(
-            final_pred_img_like.clamp(-1, 1).float(),  # clamp just to be safe
-            y_img_like.clamp(-1, 1).float(),
-            data_range=2.0,
+            final_pred_img_like.clamp(0, 1).float(),
+            y_img_like.clamp(0, 1).float(),
+            data_range=1.0,
         )
 
         mean, std = val_dataset.current_maps_mean, val_dataset.current_maps_std
-        
+
         # 5a. characterize(y)
         # z: [0, 1] -> [-1, 1] (i.e., standard normal)
         z = (y * 2) - 1
         # [-1, 1] -> original dist
-        # x' = mu + (sigma * z) 
+        # x' = mu + (sigma * z)
         data = mean + (std * z)
-        y_char = celano_lab_characterization(
-            data, val_dataset.img_size_um
-        )
-        
+        y_char = celano_lab_characterization(data, val_dataset.img_size_um)
+
         # 5b. characterize(y_sparse)
         # z: [0, 1] -> [-1, 1] (i.e., standard normal)
         z = (final_pred * 2) - 1
         # [-1, 1] -> original dist
-        # x' = mu + (sigma * z) 
+        # x' = mu + (sigma * z)
         data = mean + (std * z)
-        y_sparse_char = celano_lab_characterization(
-            data, val_dataset.img_size_um
-        )
+        y_sparse_char = celano_lab_characterization(data, val_dataset.img_size_um)
 
         logger.log(
             **{

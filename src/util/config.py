@@ -22,8 +22,9 @@ from src.models.classic_recon import (
     AMPInpainter,
     NearestNeighborsInpainter,
 )
-from src.models.guassian_process_regression import GPReconstuctionInpainter
 from src.models.our_method.swin_cafm import SwinCAFM
+from src.models.prev_methods.sstem import SSTEM
+from src.models.prev_methods.gpstruct import GPSTRUCT
 from _SwinIR.models.network_swinir import SwinIR
 
 
@@ -53,11 +54,10 @@ LOSS_FUNCTIONS = {
 }
 
 MODELS = {
-    "ours":
-        {
-            "fn": SwinCAFM.get,
-            "weights": None,
-        },
+    "ours": {
+        "fn": SwinCAFM.get,
+        "weights": None,
+    },
     "simple_z_reg_vit": {
         "fn": SimpleZRegressionVisionTransformer.get,
         "weights": None,
@@ -88,10 +88,8 @@ MODELS = {
     "bicubic_interpolation": {"fn": BicubicInterpolationInpainter.get, "weights": None},
     "amp_interpolation": {"fn": AMPInpainter.get, "weights": None},
     "nn_interpolation": {"fn": NearestNeighborsInpainter.get, "weights": None},
-    "guass_proc_regression_interpolation": {
-        "fn": GPReconstuctionInpainter.get,
-        "weights": None,
-    },
+    "sstem_interpolation": {"fn": SSTEM.get, "weights": None},
+    "gpstruct_interpolation": {"fn": GPSTRUCT.get, "weights": None}
 }
 
 OPTIMIZERS = {
