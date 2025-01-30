@@ -10,7 +10,7 @@ from src.util.celano_lab_scripts import process_image as celano_lab_characteriza
 from src.util.logger import ExperimentLogger
 from src.util.config import MODELS, parse_config
 from src.util.loss import ImageInpaintingL1Loss
-from src.util.metrics import OLDER
+from src.util.metrics import OLDER, PSNR, MSE, MAE
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
@@ -69,6 +69,7 @@ def eval(config: dict) -> None:
         shuffle=False,
         num_workers=config["dataset"]["num_workers"],
     )
+    dataset: MOS2SEFDataset = val_dataloader.dataset
     device = config["global"]["device"]
 
     # load weights from checkpoint
@@ -107,13 +108,13 @@ def eval(config: dict) -> None:
         logger.log_original_masked_predicted_sample_triplet(
             y, y_sparse, final_pred, triplet_name
         )
+        
         # 1. MAE
-        mae = (final_pred - y).abs().mean()
+        mae = MAE(final_pred, y)
         # 2. MSE
-        mse = (final_pred - y).pow(2).mean()
-
+        mse = MSE(final_pred, y)
         # 3. PSNR; assume data in range [0, 1]
-        psnr = 20 * torch.log10(torch.tensor(1.0)) - 10 * torch.log10(mse)
+        psnr = PSNR(final_pred, y, dataset.normalized_data_range)
 
         # (B, H, W) -> (B, 1, H, W)
         final_pred_img_like = final_pred.clone()

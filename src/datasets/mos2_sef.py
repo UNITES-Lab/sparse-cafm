@@ -17,6 +17,7 @@ VAL_SPLIT = "val"
 ORIGINAL_IMAGE_SIZE = (224, 224)
 CROPPED_IMG_SIDE_LENGTH = 128
 IMG_SIZE_UM = 2.0
+NORMALIZED_DATA_RANGE = (0.0, 1.0)
 
 
 class Formulation(Enum):
@@ -54,9 +55,9 @@ class MOS2SEFDataset(Dataset):
     Dataset class for MoS2 samples collected on a Sapphire substrate.
 
     :Definitions:
-    - X: topography map (height, width, depth)
-    - y: current map (height, width, current)
-    - y_sparse: masked current map (height, width, current)
+    - X: topography map             | (H, W)
+    - y: current map                | (H, W)
+    - y_sparse: masked current map  | (H, W)
     """
 
     def __init__(
@@ -106,9 +107,11 @@ class MOS2SEFDataset(Dataset):
         self.topo_maps_mean = 0.0
         self.topo_maps_std = 0.0
 
-        # hard-coded global constant
+        # NOTE: hard-coded global constants
         # original sample size is 2um
         self.img_size_um = IMG_SIZE_UM
+        # all data (current + topo maps) normalized to -> [0, 1]
+        self.normalized_data_range: Tuple[float, float] = NORMALIZED_DATA_RANGE
 
         # load all data from src files
         self._load_imgs()
@@ -118,20 +121,6 @@ class MOS2SEFDataset(Dataset):
 
         # find the mean/std of current and topo maps
         self._calculate_mean_std()
-
-    def _save_unnormalized_img(self, img: np.ndarray, to: str) -> None:
-        if isinstance(img, torch.Tensor):
-            img = img.detach().cpu().numpy()
-        # 1. normalize array to [0, 255]
-        img_min = np.min(img)
-        img_max = np.max(img)
-        img = (img - img_min) / (img_max - img_min)
-        img = img * 255
-        # 2. convert to uint8
-        img = img.astype(np.uint8)
-        img = img.transpose(1, 2, 0)
-        # 3. save
-        cv2.imwrite(to, img)
 
     def _load_imgs(self) -> None:
         """
