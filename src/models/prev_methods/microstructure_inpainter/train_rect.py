@@ -319,29 +319,12 @@ def calc_gradient_penalty(
     device,
     gp_lambda: float,
     nc: int,
-):
-    """[summary]
-
-    :param netD: [description]
-    :type netD: [type]
-    :param real_data: [description]
-    :type real_data: [type]
-    :param fake_data: [description]
-    :type fake_data: [type]
-    :param batch_size: [description]
-    :type batch_size: [type]
-    :param l: [description]
-    :type l: [type]
-    :param device: [description]
-    :type device: [type]
-    :param gp_lambda: [description]
-    :type gp_lambda: [type]
-    :param nc: [description]
-    :type nc: [type]
-    :return: [description]
-    :rtype: [type]
+) -> torch.Tensor:
+    """
+    Calculate gradient penalty used in WGAN-GP.
     """
 
+    # randomly weight real and fake data
     alpha = torch.rand(batch_size, 1)
     alpha = alpha.expand(
         batch_size, int(real_data.nelement() / batch_size)
@@ -349,10 +332,13 @@ def calc_gradient_penalty(
     alpha = alpha.view(batch_size, nc, lx, ly)
     alpha = alpha.to(device)
 
+    # compute interpolate sample: (real + fake)
     interpolates = alpha * real_data.detach() + ((1 - alpha) * fake_data.detach())
     interpolates = interpolates.to(device)
     interpolates.requires_grad_(True)
     disc_interpolates = netD(interpolates)
+
+    # compute gradient of discriminator w.r.t. interpolated samples
     gradients = autograd.grad(
         outputs=disc_interpolates,
         inputs=interpolates,
@@ -361,8 +347,10 @@ def calc_gradient_penalty(
         only_inputs=True,
     )[0]
 
+    # calculate gradient penalty
     gradients = gradients.view(gradients.size(0), -1)
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * gp_lambda
+
     return gradient_penalty
 
 
@@ -395,11 +383,29 @@ def batch_real(img, lx, ly, bs, mask_coords):
     return data
 
 
-def pixel_wise_loss(fake_img, real_img, unmasked, mode="mse", device=None):
+def pixel_wise_loss(
+    fake_img: torch.Tensor, real_img: torch.Tensor, unmasked, mode="mse", device=None
+):
+    """
+    Parameters
+    ---
+    :param unmasked: unused?
+    """
+
+    # create a mask to partially obstruct `real_img`
     mask = real_img.clone().permute(1, 2, 0)
+
+    # mask out all pixels in LAST COLOR CHANNEL
+    # [H, W, C] -> [1, H, W, C]
     mask = (mask[..., -1] == 0).unsqueeze(0)
+
+    # num of pixels not in last color channel
     number_valid_pixels = mask.sum()
+
+    # pad mask
     mask = mask.repeat(fake_img.shape[0], fake_img.shape[1], 1, 1)
+    
+    # ???
     fake_img = torch.where(mask == True, fake_img, torch.tensor(0).float().to(device))
     real_img = real_img.unsqueeze(0).repeat(fake_img.shape[0], 1, 1, 1)[:, 0:-1]
     real_img = torch.where(mask == True, real_img, torch.tensor(0).float().to(device))
@@ -458,12 +464,16 @@ def crop(fake_data, l, miniD=False, l_mini=16, offset=8):
     return out
 
 
-def init_noise(batch_size: int, nz, c: Config, device) -> torch.Tensor:
+def init_noise(batch_size: int, nz: int, c: Config, device) -> torch.Tensor:
     """
     Create and return noise tensor.
     TODO: what is the shape?
+
+    Parameters
+    ---
+    :param nz: number of channels
     """
-    
+
     noise = torch.randn(1, nz, c.seed_x, c.seed_y, device=device)
     noise = torch.tile(noise, (batch_size, 1, 1, 1))
     noise.requires_grad = True
@@ -507,7 +517,7 @@ class RectWorker:
         netD: Discriminator,
         training_imgs: torch.Tensor,
         nc: int,
-        mask: Optional[torch.Tensor]=None,
+        mask: Optional[torch.Tensor] = None,
         unmasked=None,
     ):
         super().__init__()
@@ -527,19 +537,10 @@ class RectWorker:
         self.quit_flag = True
 
     def train(self, wandb=None):
-        """[summary]
-
-        :param c: [description]
-        :type c: [type]
-        :param Gen: [description]
-        :type Gen: [type]
-        :param Disc: [description]
-        :type Disc: [type]
-        :param offline: [description], defaults to True
-        :type offline: bool, optional
+        """
+        ...
         """
 
-        # Assign torch device
         # NOTE: really bad code...
         overwrite = True
         c: Config = self.c
@@ -556,8 +557,8 @@ class RectWorker:
             c.device_name if (torch.cuda.is_available() and ngpu > 0) else "cpu"
         )
 
-        print(f"Using {ngpu} GPUs")
-        print(device, " will be used.\n")
+        # print(f"Using {ngpu} GPUs")
+        # print(device, " will be used.\n")
         print(
             f"Data shape: {training_imgs.shape}. Inpainting shape: {c.mask_size} Seed size: {c.img_seed_x, c.img_seed_y}"
         )
@@ -581,7 +582,7 @@ class RectWorker:
         unmasked = unmasked.to(device)
 
         # init noise
-        noise = init_noise(1, nz, c, device)
+        noise: torch.Tensor = init_noise(1, nz, c, device)
 
         # TODO: we pass in fns; should just be model objects
         netG = Gen.to(device)
@@ -608,27 +609,32 @@ class RectWorker:
         # if c.wandb:
         #     wandb.wandb_init(tag, netG, netD, offline=False)
 
+        # NOTE: remove timing logging
+        # # start timing training
+        # if ("cuda" in str(device)) and (ngpu > 1):
+        #     start_overall = torch.cuda.Event(enable_timing=True)
+        #     end_overall = torch.cuda.Event(enable_timing=True)
+        #     start_overall.record()
+        # else:
+        #     start_overall = time.time()
+
         i = 0
         t = 0
 
-        # start timing training
-        if ("cuda" in str(device)) and (ngpu > 1):
-            start_overall = torch.cuda.Event(enable_timing=True)
-            end_overall = torch.cuda.Event(enable_timing=True)
-            start_overall.record()
-        else:
-            start_overall = time.time()
+        # main training loop
+        while i < c.max_iters:
 
-        while not self.quit_flag and t < c.timeout and i < c.max_iters:
-
-            # Discriminator Training
+            # discriminator training
             netD.zero_grad()
             netG.train()
 
             d_noise = torch.randn_like(noise).to(device)
-            fake_data = netG(d_noise).detach()
+
+            # generate fake sample from `d_noise` input
+            fake_data: torch.Tensor = netG(d_noise).detach()
 
             # fake_data = crop(fake_data,dl)
+            # generate a batch of real data
             real_data = batch_real(
                 training_imgs,
                 fake_data.shape[-2],
@@ -637,12 +643,13 @@ class RectWorker:
                 c.mask_coords,
             ).to(device)
 
-            # Train on real
+            # discriminator: predict on real data
             out_real = netD(real_data).mean()
 
-            # train on fake images
+            # discriminator: predict on fake data
             out_fake = netD(fake_data).mean()
 
+            # calculate WGAN-GP penalty
             gradient_penalty = calc_gradient_penalty(
                 netD,
                 real_data,
@@ -668,17 +675,26 @@ class RectWorker:
             #         {"D_real": out_real.item(), "D_fake": out_fake.item()}, step=i
             #     )
 
-            # Generator training
+            # generator training
             if (i % int(critic_iters)) == 0:
+
                 netG.zero_grad()
                 noise_G = torch.randn_like(noise).to(device)
 
-                # Forward pass through G with noise vector
+                # create a sample with generator
                 fake_data = netG(noise_G)
+
+                # discriminator guesses (is this data real)?
+                # -output ~ likelyhood this data is FAKE
                 output = -netD(fake_data).mean()
 
+                # hmm... how is make_noise method different from torch.rand_like?
                 noise_G = make_noise(noise, device, mask_noise=True, delta=[-1, -1])
+
+                # create another piece of fake data?
                 fake_data = netG(noise_G)
+
+                # ...
                 pw = pixel_wise_loss(
                     fake_data, mask, unmasked, mode="mse", device=device
                 )

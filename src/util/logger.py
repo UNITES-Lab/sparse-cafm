@@ -1,17 +1,18 @@
-import cv2
 import os
 import pytorch_lightning
 import torch
 import datetime
-import pandas as pd
 import yaml
 import wandb
-import pickle
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+
+from pathlib import Path
 from typing import List, Dict, Optional, Union
 from torch.utils.tensorboard import SummaryWriter
 from src.util.torch_helpers import convert_to_img_like
+from src.util.config import parse_config
 
 EXPS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/"
 FIGURES_DIR_NAME = "figures"
@@ -45,6 +46,7 @@ class ExperimentLogger:
 
         assert config_fp.endswith(".yaml")
         self.config_fp: str = config_fp
+        self.config: dict = parse_config(config_fp)
         self.exp_name: str = exp_name
         self.results = pd.DataFrame()
         self.log_interval: int = log_interval
@@ -52,9 +54,11 @@ class ExperimentLogger:
         self.root: str = root
         self.enable_tensorboard: bool = enable_tensorboard
         self.exp_dir: Optional[str] = None
+
         # tensorboard support
         self.results_out_path: Optional[str] = None
         self.summary_writer: Optional[SummaryWriter] = None
+
         # wandb support
         self.enable_wandb = enable_wandb
         if self.enable_wandb == True:
@@ -63,6 +67,7 @@ class ExperimentLogger:
             ), f"Error: must provide a valid name for wandb_proj_name"
         self.wandb_proj_name = wandb_proj_name
         self.wandb_run = None
+
         self._setup_exp_dir()
 
     def _update_csv(self) -> None:
@@ -83,7 +88,6 @@ class ExperimentLogger:
         with open(config_save_fp, "w") as f:
             with open(self.config_fp, "r") as g:
                 f.write(g.read())
-        self.config_fp = config_save_fp
 
         # path to results csv file
         self.results_out_path = os.path.join(exp_out_dir, RESULTS_CSV_NAME)
@@ -96,7 +100,7 @@ class ExperimentLogger:
 
         # optional: create a wandb run
         if self.enable_wandb:
-            with open(self.config_fp, "r") as f:
+            with open(config_save_fp, "r") as f:
                 config_dict = yaml.safe_load(f)
             wandb.init(
                 project=self.wandb_proj_name,
@@ -105,6 +109,23 @@ class ExperimentLogger:
                 dir=self.exp_dir,
             )
             self.wandb_run = wandb.run
+
+        # do we have a model config file?
+        if self.config["model"]["config"] != None:
+            model_config_abs_path = os.path.join(
+                Path(self.config_fp).parent.__str__(), self.config["model"]["config"]
+            )
+            assert os.path.isfile(
+                model_config_abs_path
+            ), f"Bad path to model config: {model_config_abs_path}"
+            model_config_save_fp = os.path.join(exp_out_dir, "model.yaml")
+            # save a copy of the model config to the exp dir
+            with open(model_config_save_fp, "w") as f:
+                with open(model_config_abs_path, "r") as g:
+                    f.write(g.read())
+        
+        # TODO: this looks hacky; remove
+        self.config_fp = config_save_fp
 
     def add_result_column(self, name: str) -> None:
         self.results[name] = None
@@ -139,28 +160,30 @@ class ExperimentLogger:
             wandb.log(wandb_dict, step=step)
 
     def save_weights(
-        self, x: Union[torch.nn.Module, pytorch_lightning.trainer.Trainer], name: str = "best"
+        self,
+        x: Union[torch.nn.Module, pytorch_lightning.trainer.Trainer],
+        name: str = "best",
     ) -> None:
         """
         TODO: support `torch.nn.Module`
-        
+
         Save model weights of a `torch.nn.Module` object to the current exp dir.
 
         :param x: model to save
         """
-        
+
         # TODO:
         # for some reason we can load ControlNet models from the first ckpt
         # but not from subsequent saves.
         # also, model weights appear to grow in size over training run, implying that we are saving some
         # info that we shouldn't (e.g., logs).
-        
-        # NOTE: 
+
+        # NOTE:
         # 1. increased model size does not seem to be related to use appending to an existing file.
         # 2. we CAN load weights from subsequent saves with DIFFERENT names.
         # 3. we CAN load weights from subsequent saves with IDENTICAL names.
         # 4. can only conclude that the file suffix was the issue lol
-        
+
         model_out_path = os.path.join(self.exp_dir, f"{self.exp_name}_{name}.pth")
         if isinstance(x, pytorch_lightning.trainer.Trainer):
             x.save_checkpoint(model_out_path.replace(".pth", ".ckpt"))

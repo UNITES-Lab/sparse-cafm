@@ -662,7 +662,7 @@ class PatchEmbed(nn.Module):
         super().__init__()
         img_size = to_2tuple(img_size)
         patch_size = to_2tuple(patch_size)
-        
+
         # image size should depend on size of x
         patches_resolution = [
             img_size[0] // patch_size[0],
@@ -840,7 +840,7 @@ class SwinCAFM(nn.Module):
         num_out_ch = in_chans
         num_feat = 64
         self.img_range = img_range
-        
+
         # TODO: we apply our own pre-proc
         if in_chans == 3:
             # image-net means
@@ -849,9 +849,11 @@ class SwinCAFM(nn.Module):
         else:
             # normalize each dim with mean=0
             self.mean = torch.zeros(1, 1, 1, 1)
-            
+
         self.upscale = upscale
         self.upsampler = upsampler
+
+        # TODO: ablate window size
         self.window_size = window_size
 
         #####################################################################################################
@@ -876,10 +878,10 @@ class SwinCAFM(nn.Module):
             norm_layer=norm_layer if self.patch_norm else None,
         )
         num_patches = self.patch_embed.num_patches
-        
+
         # a very silly extra abstraction
         patches_resolution = self.patch_embed.patches_resolution
-        
+
         self.patches_resolution = patches_resolution
 
         # merge non-overlapping patches into image
@@ -1020,7 +1022,7 @@ class SwinCAFM(nn.Module):
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
+
         # (B, H, W) -> (B, 1, H, W)
         x = x.unsqueeze(1)
         # (B, 1, H, W) -> (B, 3, H, W)
@@ -1073,10 +1075,10 @@ class SwinCAFM(nn.Module):
         # x = x / self.img_range + self.mean
         # [B, C, H, W] -> [B, C, H, W]
         x = x[:, :, : H * self.upscale, : W * self.upscale]
-        
+
         # [B, C, H, W] -> [B, H, W]
         x = x[:, 1, :, :]
-        
+
         # clamp -> [0, 1]
         x = nn.functional.sigmoid(x)
         return x
@@ -1115,6 +1117,31 @@ class SwinCAFM(nn.Module):
         )
         weights_dict = torch.load(WEIGHTS_FP, weights_only=False)
         model.load_state_dict(weights_dict["params"], strict=False)
+        return model
+
+    @staticmethod
+    def init_from_config(config: dict) -> torch.nn.Module:
+        """
+        Initialize a SwinIR model using parameters from a given configuration dictionary.
+        """
+        model = SwinCAFM(
+            upscale=config.get("hyperparams", {}).get("upscale", 8),
+            img_size=tuple(config.get("hyperparams", {}).get("img_size", [128, 128])),
+            window_size=config.get("hyperparams", {}).get("window_size", 8),
+            img_range=config.get("hyperparams", {}).get("img_range", 1.0),
+            depths=config.get("hyperparams", {}).get("depths", [6, 6, 6, 6, 6, 6]),
+            embed_dim=config.get("hyperparams", {}).get("embed_dim", 180),
+            num_heads=config.get("hyperparams", {}).get("num_heads", [6, 6, 6, 6, 6, 6]),
+            mlp_ratio=config.get("hyperparams", {}).get("mlp_ratio", 2),
+            upsampler=config.get("hyperparams", {}).get("upsampler", "no_upscale"),
+            resi_connection=config.get("hyperparams", {}).get("resi_connection", "1conv"),
+        )
+
+        weights_fp = config.get("weights_fp")
+        if weights_fp:
+            weights_dict = torch.load(weights_fp, weights_only=False)
+            model.load_state_dict(weights_dict["params"], strict=False)
+
         return model
 
 
