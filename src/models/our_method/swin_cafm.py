@@ -836,21 +836,30 @@ class SwinCAFM(nn.Module):
         **kwargs,
     ):
         super(SwinCAFM, self).__init__()
+
+        # [1], [1]
         num_in_ch = in_chans
         num_out_ch = in_chans
+
         num_feat = 64
+
+        # [0, 255]; do we use this?
         self.img_range = img_range
 
-        # TODO: we apply our own pre-proc
+        # NOTE: we apply our own pre-proc
         if in_chans == 3:
-            # image-net means
+            # image-net normalization
             rgb_mean = (0.4488, 0.4371, 0.4040)
             self.mean = torch.Tensor(rgb_mean).view(1, 3, 1, 1)
         else:
             # normalize each dim with mean=0
+            # hmm... shouldn't be an issue, but the actual mean of our ds is not 0
             self.mean = torch.zeros(1, 1, 1, 1)
 
+        # we don't upscale
         self.upscale = upscale
+
+        # what is our upsampler?
         self.upsampler = upsampler
 
         # TODO: ablate window size
@@ -858,17 +867,30 @@ class SwinCAFM(nn.Module):
 
         #####################################################################################################
         ################################### 1, shallow feature extraction ###################################
+
+        # might ablate...
         self.conv_first = nn.Conv2d(num_in_ch, embed_dim, 3, 1, 1)
 
         #####################################################################################################
         ################################### 2, deep feature extraction ######################################
+
         self.num_layers = len(depths)
         self.embed_dim = embed_dim
+
+        # TODO: ablate different positional embedding strats
         self.ape = ape
-        self.patch_norm = patch_norm
+
+        # True
+        self.patch_norm: bool = patch_norm
+
+        # TODO: ablate model width
         self.num_features = embed_dim
+
+        # TODO: ablate mlp ratio
         self.mlp_ratio = mlp_ratio
 
+        # probably won't change tokenization strat dramatically,
+        # still worth a look into...
         # split image into non-overlapping patches
         self.patch_embed = PatchEmbed(
             img_size=img_size,
@@ -880,11 +902,13 @@ class SwinCAFM(nn.Module):
         num_patches = self.patch_embed.num_patches
 
         # a very silly extra abstraction
+        # TODO: what does this actually represent...?
         patches_resolution = self.patch_embed.patches_resolution
 
         self.patches_resolution = patches_resolution
 
         # merge non-overlapping patches into image
+        # seems standard
         self.patch_unembed = PatchUnEmbed(
             img_size=img_size,
             patch_size=patch_size,
@@ -894,22 +918,28 @@ class SwinCAFM(nn.Module):
         )
 
         # absolute position embedding
+        # are these positional embeddings completely learnable?
         if self.ape:
             self.absolute_pos_embed = nn.Parameter(
                 torch.zeros(1, num_patches, embed_dim)
             )
             trunc_normal_(self.absolute_pos_embed, std=0.02)
 
+        # dropout for pos embedding module?
         self.pos_drop = nn.Dropout(p=drop_rate)
 
+        # TODO: what is stochsatic depth?
         # stochastic depth
         dpr = [
             x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))
         ]  # stochastic depth decay rule
 
+        # this is the heart of SwinIR: RSTB blocks
         # build Residual Swin Transformer blocks (RSTB)
         self.layers = nn.ModuleList()
         for i_layer in range(self.num_layers):
+
+            # TODO: annotate
             layer = RSTB(
                 dim=embed_dim,
                 input_resolution=(patches_resolution[0], patches_resolution[1]),
@@ -932,8 +962,11 @@ class SwinCAFM(nn.Module):
                 resi_connection=resi_connection,
             )
             self.layers.append(layer)
+
+        # standard layer norm
         self.norm = norm_layer(self.num_features)
 
+        # TODO: figure out... is the model structure [RSTB] -> [last_conv]?
         # build the last conv layer in deep feature extraction
         if resi_connection == "1conv":
             self.conv_after_body = nn.Conv2d(embed_dim, embed_dim, 3, 1, 1)
@@ -949,6 +982,10 @@ class SwinCAFM(nn.Module):
 
         #####################################################################################################
         ################################ 3, high quality image reconstruction ################################
+
+        # A good question is: should we continue to mask out tokens by setting tokens to 0, or should we find a way to remove tokens entirely?
+        # intuitively, the second option seems best; we save compute.
+
         if self.upsampler == "pixelshuffle":
             # for classical SR
             self.conv_before_upsample = nn.Sequential(
@@ -976,8 +1013,9 @@ class SwinCAFM(nn.Module):
             self.conv_last = nn.Conv2d(num_feat, num_out_ch, 3, 1, 1)
             self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
         else:
-            # NOTE: this is the branch we take
+            # NOTE: we only care about this branch for now
             # for image denoising and JPEG compression artifact reduction
+            # our last layer is a single 2D conv, is there a better way to handle the final output?
             self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
 
         self.apply(self._init_weights)
@@ -993,20 +1031,35 @@ class SwinCAFM(nn.Module):
 
     @torch.jit.ignore
     def no_weight_decay(self):
+        """
+        TODO: what is this doing?
+        """
         return {"absolute_pos_embed"}
 
     @torch.jit.ignore
     def no_weight_decay_keywords(self):
+        """
+        TODO: what is this doing?
+        """
         return {"relative_position_bias_table"}
 
-    def check_image_size(self, x):
+    def check_image_size(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Pad the input tensor `x` to the correct size.
+        TODO: verify; do we call this, is it padding our samples in some unintended way?
+        """
         _, _, h, w = x.size()
         mod_pad_h = (self.window_size - h % self.window_size) % self.window_size
         mod_pad_w = (self.window_size - w % self.window_size) % self.window_size
         x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h), "reflect")
         return x
 
-    def forward_features(self, x):
+    def forward_features(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        The bulk of our forward pass.
+        x -> [patch_embed] -> [pos_embed] -> [RSTB_blocks] -> [norm] -> [patch_unembed] -> out
+        """
+
         x_size = (x.shape[2], x.shape[3])
         x = self.patch_embed(x)
         if self.ape:
@@ -1029,6 +1082,8 @@ class SwinCAFM(nn.Module):
         x = x.repeat(1, 3, 1, 1)
 
         H, W = x.shape[2:]
+
+        # NOTE: not just "checking" image size – might pad also...
         x = self.check_image_size(x)
 
         # HACK: we apply our own image norms
@@ -1068,6 +1123,8 @@ class SwinCAFM(nn.Module):
         else:
             # NOTE: we take this branch
             # for image denoising and JPEG compression artifact reduction
+
+            # feature extraction
             x_first = self.conv_first(x)
             res = self.conv_after_body(self.forward_features(x_first)) + x_first
             x = x + self.conv_last(res)
@@ -1081,6 +1138,7 @@ class SwinCAFM(nn.Module):
 
         # clamp -> [0, 1]
         x = nn.functional.sigmoid(x)
+
         return x
 
     def flops(self):
@@ -1131,10 +1189,14 @@ class SwinCAFM(nn.Module):
             img_range=config.get("hyperparams", {}).get("img_range", 1.0),
             depths=config.get("hyperparams", {}).get("depths", [6, 6, 6, 6, 6, 6]),
             embed_dim=config.get("hyperparams", {}).get("embed_dim", 180),
-            num_heads=config.get("hyperparams", {}).get("num_heads", [6, 6, 6, 6, 6, 6]),
+            num_heads=config.get("hyperparams", {}).get(
+                "num_heads", [6, 6, 6, 6, 6, 6]
+            ),
             mlp_ratio=config.get("hyperparams", {}).get("mlp_ratio", 2),
             upsampler=config.get("hyperparams", {}).get("upsampler", "no_upscale"),
-            resi_connection=config.get("hyperparams", {}).get("resi_connection", "1conv"),
+            resi_connection=config.get("hyperparams", {}).get(
+                "resi_connection", "1conv"
+            ),
         )
 
         weights_fp = config.get("weights_fp")
