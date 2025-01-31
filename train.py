@@ -203,10 +203,14 @@ def train(config: dict) -> None:
 
             # # NOTE: standard loss (e.g., L1)
             # loss = train_loss(outputs, y)
+            
             # NOTE: inpainting loss
             loss: torch.Tensor = train_loss(
                 predicted_image=outputs, target_image=y, mask=y_mask
             )
+            
+            # HACK: manually scale up loss
+            loss = loss
 
             loss.backward()
             optimizer.step()

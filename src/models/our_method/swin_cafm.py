@@ -1148,7 +1148,6 @@ class SwinCAFM(nn.Module):
 
         # clamp -> [0, 1]
         x = nn.functional.sigmoid(x)
-
         return x
 
     def flops(self):
