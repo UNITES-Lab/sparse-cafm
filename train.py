@@ -203,7 +203,6 @@ def train(config: dict) -> None:
 
             # # NOTE: standard loss (e.g., L1)
             # loss = train_loss(outputs, y)
-
             # NOTE: inpainting loss
             loss: torch.Tensor = train_loss(
                 predicted_image=outputs, target_image=y, mask=y_mask
@@ -283,15 +282,17 @@ def train(config: dict) -> None:
 
             # optionally log best/epoch model weights
             avg_val_loss = val_running_loss / num_val_steps
-            if bool(config["logging"]["save_weights"]):
-                if bool(config["logging"]["save_only_best_weights"]):
-                    if avg_val_loss < best_loss:
-                        best_loss = avg_val_loss
-                        logger.save_weights(model, "best")
-                    else:
-                        logger.save_weights(model, f"latest_{epoch}")
+            
+            # if bool(config["logging"]["save_weights"]):
+            # HACK: always save weights
+            if bool(config["logging"]["save_only_best_weights"]):
+                if avg_val_loss < best_loss:
+                    best_loss = avg_val_loss
+                    logger.save_weights(model, "best")
                 else:
-                    logger.save_weights(model, f"epoch_{epoch}")
+                    logger.save_weights(model, f"latest_{epoch}")
+            else:
+                logger.save_weights(model, f"epoch_{epoch}")
 
 
 def main():

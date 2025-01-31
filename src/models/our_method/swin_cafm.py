@@ -4,6 +4,7 @@
 # -----------------------------------------------------------------------------------
 
 import math
+from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -1020,6 +1021,9 @@ class SwinCAFM(nn.Module):
 
         self.apply(self._init_weights)
 
+        # [B, C, H, W] -> [B, H, W]
+        self.channel_downsample: torch.nn.Conv2d = nn.Conv2d(3, 1, kernel_size=1)
+
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=0.02)
@@ -1121,20 +1125,26 @@ class SwinCAFM(nn.Module):
                 )
             x = self.conv_last(self.lrelu(self.conv_hr(x)))
         else:
+
             # NOTE: we take this branch
             # for image denoising and JPEG compression artifact reduction
 
             # feature extraction
+            # [B, 3, H, W] -> [B, D, H, W]
             x_first = self.conv_first(x)
+
+            # [B, D, H, W]
             res = self.conv_after_body(self.forward_features(x_first)) + x_first
             x = x + self.conv_last(res)
 
         # x = x / self.img_range + self.mean
         # [B, C, H, W] -> [B, C, H, W]
-        x = x[:, :, : H * self.upscale, : W * self.upscale]
+        # x = x[:, :, : H * self.upscale, : W * self.upscale]
 
         # [B, C, H, W] -> [B, H, W]
-        x = x[:, 1, :, :]
+        # TODO: we should use a learnable conv layer
+        x: torch.Tensor = self.channel_downsample(x)
+        x = x.squeeze(1)
 
         # clamp -> [0, 1]
         x = nn.functional.sigmoid(x)
