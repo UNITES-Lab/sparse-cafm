@@ -7,63 +7,67 @@ import torch.nn as nn
 from tqdm import tqdm
 from pathlib import Path
 from torch.utils.data import DataLoader
+from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
 from src.util.logger import ExperimentLogger
-from src.util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS, parse_config
 from src.util.loss import ImageInpaintingL1Loss
-from src.models.our_method.swin_cafm import SwinCAFM
+from src.util.config import (
+    TrainConfig,
+    LOSS_FUNCTIONS,
+    OPTIMIZERS,
+    MODELS,
+    parse_config,
+)
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
-EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
-Z_MULT = 1
 
 
-def setup_logger(config: dict) -> ExperimentLogger:
+def setup_logger(config: TrainConfig) -> ExperimentLogger:
     logger = ExperimentLogger(
         config_fp=TRAIN_CONFIG_FP,
-        root=config["logging"]["root"],
-        exp_name=config["logging"]["exp_name"],
-        log_interval=config["logging"]["log_interval"],
+        root=config.log_root,
+        exp_name=config.exp_name,
+        log_interval=config.log_interval,
     )
-    logger.add_result_columns(config["logging"]["result_columns"])
+    logger.add_result_columns(config.result_columns)
     return logger
 
 
-def create_model(config: dict) -> nn.Module:
-    model_fn = MODELS[config["model"]["name"]]["fn"]
-    model_weights = MODELS[config["model"]["name"]]["weights"]
+def create_model(config: TrainConfig) -> nn.Module:
+    model_fn = MODELS[config.model_name]["fn"]
+    model_weights = MODELS[config.model_name]["weights"]
     if model_weights:
         model = model_fn(weights=model_weights)
-    elif config["model"]["name"] == "hiera":
+    elif config.model_name == "hiera":
         model = model_fn
         model.freeze()
     else:
         model = model_fn()
     assert isinstance(model, nn.Module)
-    return model.cuda(config["global"]["device"]).float()
+    return model.cuda(config.device).float()
 
 
-def create_dataloader(config: dict, split: str) -> DataLoader:
+def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     split_str = "training" if split == "train" else "validation"
-    img_size = int(config["dataset"]["image_size"])
+    img_size = int(config.image_size)
     dataset = MOS2SEFDataset(
         split=split,
-        side_length=int(config["dataset"]["crop_size"]),
-        formulation=F.get_formulation_from_str(config["global"]["formulation"]),
-        steps_per_epoch=config[split_str]["steps_per_epoch"],
-        device=config["global"]["device"],
+        side_length=int(config.crop_size),
+        formulation=F.get_formulation_from_str(config.formulation),
+        steps_per_epoch=config.steps_per_epoch,
+        device=config.device,
         original_image_size=(img_size, img_size),
-        masking_ratio=int(config["dataset"]["masking_ratio"]),
+        masking_ratio=int(config.masking_ratio),
     )
     return DataLoader(
         dataset,
-        batch_size=config[split_str]["batch_size"],
+        batch_size=config.train_batch_size,
         shuffle=False,
-        num_workers=config["dataset"]["num_workers"],
+        num_workers=config.num_workers,
     )
 
 
-def train(config: dict) -> None:
+def train(config: TrainConfig) -> None:
 
     logger = setup_logger(config)
     model = create_model(config)
@@ -78,16 +82,16 @@ def train(config: dict) -> None:
     )
 
     best_loss = sys.maxsize
-    num_epochs = config["training"]["epochs"]
-    device = config["global"]["device"]
+    num_epochs = config.epochs
+    device = config.device
 
     # create model using model config obj
     # NOTE: only supported for SwinCAFM atm
-    if config["model"]["config"] != None:
+    if config.model_config_file != None:
         assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
         model_config_abs_path = os.path.join(
-                Path(TRAIN_CONFIG_FP).parent.__str__(), config["model"]["config"]
-            )
+            Path(TRAIN_CONFIG_FP).parent.__str__(), config.model_config_file
+        )
         assert os.path.isfile(
             model_config_abs_path
         ), f"Bad path to model config: {model_config_abs_path}"
@@ -95,15 +99,15 @@ def train(config: dict) -> None:
         model = SwinCAFM.init_from_config(model_config)
 
     # load weights from checkpoint
-    if config["model"]["weights"] != None:
+    if config.weights != None:
         # load weights only:
         # model.load_state_dict(torch.load(config["model"]["weights"]), strict=False)
         # load enitre model object:
-        model = torch.load(config["model"]["weights"]).float().cuda()
+        model = torch.load(config.weights).float().cuda()
 
     model.cuda(device)
     model.float()
-    
+
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
@@ -134,12 +138,12 @@ def train(config: dict) -> None:
 
             # # NOTE: standard loss (e.g., L1)
             # loss = train_loss(outputs, y)
-            
+
             # NOTE: inpainting loss
             loss: torch.Tensor = train_loss(
                 predicted_image=outputs, target_image=y, mask=y_mask
             )
-            
+
             # HACK: manually scale up loss
             loss = loss
 
@@ -217,27 +221,21 @@ def train(config: dict) -> None:
 
             # optionally log best/epoch model weights
             avg_val_loss = val_running_loss / num_val_steps
-            
-            # if bool(config["logging"]["save_weights"]):
-            # HACK: always save weights
-            if bool(config["logging"]["save_only_best_weights"]):
-                if avg_val_loss < best_loss:
-                    best_loss = avg_val_loss
-                    logger.save_weights(model, "best")
+
+            if bool(config.save_weights):
+                if bool(config.save_only_best_weights):
+                    if avg_val_loss < best_loss:
+                        best_loss = avg_val_loss
+                        logger.save_weights(model, "best")
+                    else:
+                        logger.save_weights(model, f"latest_{epoch}")
                 else:
-                    logger.save_weights(model, f"latest_{epoch}")
-            else:
-                logger.save_weights(model, f"epoch_{epoch}")
+                    logger.save_weights(model, f"epoch_{epoch}")
 
 
 def main():
-    config = parse_config(TRAIN_CONFIG_FP)
-    if config["global"]["mode"] == "eval":
-        eval(config)
-    elif config["global"]["mode"] == "train":
-        train(config)
-    else:
-        raise NotImplementedError
+    config = TrainConfig(TRAIN_CONFIG_FP)
+    train(config)
 
 
 if __name__ == "__main__":
