@@ -274,31 +274,33 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 older_gt_tensor = torch.Tensor([[older_gt]] * B).float().cuda()
                 surrogate_loss = torch.nn.functional.l1_loss(older_pred, older_gt_tensor)
             
-            val_running_loss += loss.item() * y_sparse.size(0)
-            logger.log(
-                **{
-                    "global_train_step": None,
-                    "global_val_step": len(val_dataloader) * (epoch) + i,
-                    "epoch": epoch,
-                    "train_denoising_loss": None,
-                    "val_denoising_loss": loss.item(),
-                    "train_surrogate_loss": None,
-                    "val_surrogate_loss": surrogate_loss.item(),
-                }
-            )
+                val_running_loss += loss.item() * y_sparse.size(0)
+                logger.log(
+                    **{
+                        "global_train_step": None,
+                        "global_val_step": len(val_dataloader) * (epoch) + i,
+                        "epoch": epoch,
+                        "train_denoising_loss": None,
+                        "val_denoising_loss": loss.item(),
+                        "train_surrogate_loss": None,
+                        "val_surrogate_loss": surrogate_loss.item(),
+                    }
+                )
             
-            # log a triplet (original, masked, predicted) every 100 steps
-            if i % 100 == 0:
-                triplet_name = f"val_epoch_{epoch}_step_{i}.png"
-                final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                    predicted_image=outputs, target_image=y, mask=y_mask
-                )
-                logger.log_original_masked_predicted_sample_triplet(
-                    y, y_sparse, final_pred, triplet_name
-                )
+                # log a triplet (original, masked, predicted) every 100 steps
+                if i % 100 == 0:
+                    triplet_name = f"val_epoch_{epoch}_step_{i}.png"
+                    final_pred = ImageInpaintingL1Loss.get_final_prediction(
+                        predicted_image=outputs, target_image=y, mask=y_mask
+                    )
+                    logger.log_original_masked_predicted_sample_triplet(
+                        y, y_sparse, final_pred, triplet_name
+                    )
     
             # optionally log best/epoch model weights
-            avg_val_loss = val_running_loss / num_val_steps
+            if num_val_steps > 0:
+                avg_val_loss = val_running_loss / num_val_steps
+            
             if bool(config.save_weights):
                 if bool(config.save_only_best_weights):
                     if avg_val_loss < best_loss:
