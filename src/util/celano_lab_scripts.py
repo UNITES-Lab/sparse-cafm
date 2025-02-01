@@ -1,7 +1,6 @@
 import torch
 import cv2
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap
 from scipy.signal import find_peaks
 
 
@@ -231,6 +230,7 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
         "num_curved_lines": len(curved_lines),
         "average_surface_current": data_nA,
     }
+
 
 if __name__ == "__main__":
     pass

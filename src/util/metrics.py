@@ -22,6 +22,7 @@ def SSIM(
     """
     ...
     """
+    
     low, high = _data_range
     diff = high - low
     # check that all vals are in range
@@ -44,7 +45,7 @@ def SSIM(
 
 def PSNR(
     preds: torch.Tensor,
-    target: torch.Tesnor,
+    target: torch.Tensor,
     data_range: Optional[Tuple[float, float]] = (-1.0, 1.0),
 ) -> torch.Tensor:
     """

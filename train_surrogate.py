@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
 from src.models.our_method.swin_cafm import SwinCAFM
+from src.models.our_method.older_surrogate import OlderSurrogate
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
 from src.util.logger import ExperimentLogger
 from src.util.loss import ImageInpaintingL1Loss
@@ -19,8 +20,10 @@ from src.util.config import (
     OPTIMIZERS,
     MODELS,
 )
+from src.util.celano_lab_scripts import process_image as celano_lab_characterization
+from src.util.metrics import OLDER
 
-TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
+TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/older_surrogate.yaml")
 
 
 def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
@@ -72,9 +75,24 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
 
 
 def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
+    """
+    Train OLDER surrogate model.
+    
+    It may be easier to attempt to train two models at the same time.
+    1. Model-A: p(y | y_sparse)
+    2. Model-B  p(older | y_sparse, y_hat)
+    
+    Given:
+        1. y_sparse
+        2. y_hat
+    Predict: 
+        1. OLDER: [0, inf)
+    """
 
     logger = setup_logger(config, model_config)
     model = create_model(config)
+    older_surrogate_model = OlderSurrogate()
+    
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
 
@@ -83,6 +101,10 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
     optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
         model.parameters(), lr=float(config.learning_rate)
+    )
+    surrogate_optimizer: torch.optim.Optimizer = torch.optim.Adam(
+        params=older_surrogate_model.parameters(),
+        lr=1e-4
     )
 
     best_loss = sys.maxsize
@@ -104,6 +126,11 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
     model.cuda(device)
     model.float()
+    older_surrogate_model.cuda(device)
+    older_surrogate_model.float()
+    
+    train_dataset: MOS2SEFDataset = train_dataloader.dataset
+    val_dataset: MOS2SEFDataset = val_dataloader.dataset
     
     # ---------- training loop ----------
     for epoch in range(num_epochs):
@@ -112,10 +139,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
-
-            # feature: X
-            # X: torch.Tensor = batch["X"].cuda(device)
-
+            
             # target: y
             y: torch.Tensor = batch["y"].cuda(device)
 
@@ -125,35 +149,65 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
             # zero gradients
             optimizer.zero_grad()
+            surrogate_optimizer.zero_grad()
 
-            # forward
-            # P(y | y_sparse)
+            # p(y_hat|y_sparse)]
+            # forward: [H, W]
             outputs = model(y_sparse)
-
-            final_pred = ImageInpaintingL1Loss.get_final_prediction(
+            y_hat = ImageInpaintingL1Loss.get_final_prediction(
                 predicted_image=outputs, target_image=y, mask=y_mask
             )
-
-            # # NOTE: standard loss (e.g., L1)
-            # loss = train_loss(outputs, y)
-
-            # NOTE: inpainting loss
-            loss: torch.Tensor = train_loss(
-                predicted_image=outputs, target_image=y, mask=y_mask
-            )
-
-            loss.backward()
+            
+            mean, std = train_dataset.current_maps_mean, train_dataset.current_maps_std
+            
+            # ---- characterize(y) ----
+            # z: [0, 1] -> [-1, 1] (i.e., standard normal)
+            z = (y * 2) - 1
+            # [-1, 1] -> original dist
+            # x' = mu + (sigma * z)
+            data = mean + (std * z)
+            y_char = celano_lab_characterization(data, train_dataset.img_size_um)
+            
+            # ---- characterize(y_sparse) ----
+            # z: [0, 1] -> [-1, 1] (i.e., standard normal)
+            z = (y_hat * 2) - 1
+            # [-1, 1] -> original dist
+            # x' = mu + (sigma * z)
+            data = mean + (std * z)
+            y_sparse_char = celano_lab_characterization(data, train_dataset.img_size_um)
+            
+            # calculate older scores
+            older_gt = OLDER(y_char, y_sparse_char)
+            older_pred = older_surrogate_model(y_sparse, y_hat)
+            
+            # HACK: [y-y=0]
+            # ---- minimize older w.r.t. denoising model weights ----
+            loss = train_loss(older_pred, older_pred * 0)
+            # NOTE: must retain graph, we will backprop again using surrogate model
+            loss.backward(retain_graph=True)
+            
+            # ----  minimize || older_pred - older_gt || w.r.t. surrogate model weights  ----
+            B = y.shape[0]
+            older_gt_tensor = torch.Tensor([[older_gt]] * B).float().cuda()
+            surrogate_loss = torch.nn.functional.l1_loss(older_pred, older_gt_tensor)
+            surrogate_loss.backward()
+            
+            surrogate_optimizer.step()
             optimizer.step()
+            
             running_loss += loss.item() * y_sparse.size(0)
             logger.log(
                 **{
                     "global_train_step": len(train_dataloader) * (epoch) + i,
                     "global_val_step": None,
                     "epoch": epoch,
-                    "train_loss": loss.item(),
-                    "val_loss": None,
+                    "train_denoising_loss": loss.item(),
+                    "val_denoising_loss": None,
+                    "train_surrogate_loss": surrogate_loss.item(),
+                    "val_surrogate_loss": None,
                 }
             )
+            
             # log a triplet (original, masked, predicted) every 100 steps
             if i % 100 == 0:
                 triplet_name = f"train_epoch_{epoch}_step_{i}.png"
@@ -166,6 +220,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
         # validation
         model.eval()
+        older_surrogate_model.eval()
         val_running_loss = 0.0
         num_val_steps = 0
 
@@ -173,8 +228,6 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             for i, batch in enumerate(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
-                # feature: X
-                # X: torch.Tensor = batch["X"].cuda(device)
                 
                 # target: y
                 y: torch.Tensor = batch["y"].cuda(device)
@@ -183,50 +236,82 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 y_mask: torch.Tensor = batch["y_mask"].cuda(device)
                 y_sparse = (y * y_mask).float()
 
-                # forward : p(y | y_sparse)
+                # forward
+                # p(y_hat | y_sparse)
                 outputs = model(y_sparse)
-
-                # # NOTE: standard loss (e.g., L1)
-                # loss = val_loss(outputs, y)
-
-                # NOTE: inpainting loss
-                loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
-
-                val_running_loss += loss.item() * y_sparse.size(0)
-                logger.log(
-                    **{
-                        "global_train_step": None,
-                        "global_val_step": len(val_dataloader) * (epoch) + i,
-                        "epoch": epoch,
-                        "train_loss": None,
-                        "val_loss": loss.item(),
-                    }
+                y_hat = ImageInpaintingL1Loss.get_final_prediction(
+                    predicted_image=outputs, target_image=y, mask=y_mask
                 )
-                num_val_steps += 1
-
-                # log a triplet (original, masked, predicted) every 100 steps
-                if i % 100 == 0:
-                    triplet_name = f"val_epoch_{epoch}_step_{i}.png"
-                    final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                        predicted_image=outputs, target_image=y, mask=y_mask
-                    )
-                    logger.log_original_masked_predicted_sample_triplet(
-                        y, y_sparse, final_pred, triplet_name
-                    )
-
+                
+                mean, std = train_dataset.current_maps_mean, train_dataset.current_maps_std
+                
+                # ---- characterize(y) ----
+                # z: [0, 1] -> [-1, 1] (i.e., standard normal)
+                z = (y * 2) - 1
+                # [-1, 1] -> original dist
+                # x' = mu + (sigma * z)
+                data = mean + (std * z)
+                y_char = celano_lab_characterization(data, train_dataset.img_size_um)
+                
+                # ---- characterize(y_sparse) ----
+                # z: [0, 1] -> [-1, 1] (i.e., standard normal)
+                z = (y_hat * 2) - 1
+                # [-1, 1] -> original dist
+                # x' = mu + (sigma * z)
+                data = mean + (std * z)
+                y_sparse_char = celano_lab_characterization(data, train_dataset.img_size_um)
+                
+                # calculate older scores
+                older_gt = OLDER(y_char, y_sparse_char)
+                older_pred = older_surrogate_model(y_sparse, y_hat)
+                
+                # HACK: [y-y=0]
+                # ---- minimize older w.r.t. denoising model weights ----
+                loss = val_loss(older_pred, older_pred * 0)
+                
+                # ----  minimize || older_pred - older_gt || w.r.t. surrogate model weights  ----
+                B = y.shape[0]
+                older_gt_tensor = torch.Tensor([[older_gt]] * B).float().cuda()
+                surrogate_loss = torch.nn.functional.l1_loss(older_pred, older_gt_tensor)
+            
+            val_running_loss += loss.item() * y_sparse.size(0)
+            logger.log(
+                **{
+                    "global_train_step": None,
+                    "global_val_step": len(val_dataloader) * (epoch) + i,
+                    "epoch": epoch,
+                    "train_denoising_loss": None,
+                    "val_denoising_loss": loss.item(),
+                    "train_surrogate_loss": None,
+                    "val_surrogate_loss": surrogate_loss.item(),
+                }
+            )
+            
+            # log a triplet (original, masked, predicted) every 100 steps
+            if i % 100 == 0:
+                triplet_name = f"val_epoch_{epoch}_step_{i}.png"
+                final_pred = ImageInpaintingL1Loss.get_final_prediction(
+                    predicted_image=outputs, target_image=y, mask=y_mask
+                )
+                logger.log_original_masked_predicted_sample_triplet(
+                    y, y_sparse, final_pred, triplet_name
+                )
+    
             # optionally log best/epoch model weights
             avg_val_loss = val_running_loss / num_val_steps
-
             if bool(config.save_weights):
                 if bool(config.save_only_best_weights):
                     if avg_val_loss < best_loss:
                         best_loss = avg_val_loss
-                        logger.save_weights(model, "best")
+                        logger.save_weights(model, "best_denoiser")
+                        logger.save_weights(older_surrogate_model, "best_older_surrogate")
                     else:
                         # NOTE: we overwrite previous "latest" weights
-                        logger.save_weights(model, f"latest")
+                        logger.save_weights(model, "latest_denoiser")
+                        logger.save_weights(older_surrogate_model, "latest_older_surrogate")
                 else:
-                    logger.save_weights(model, f"epoch_{epoch}")
+                    logger.save_weights(model, f"epoch_{epoch}_denoiser")
+                    logger.save_weights(older_surrogate_model, f"epoch_{epoch}_surrogate")
 
 
 def main(args: argparse.Namespace) -> None:
@@ -247,6 +332,7 @@ def main(args: argparse.Namespace) -> None:
         
     # -------------------- training config args --------------------
     config.exp_name = args.exp_name
+    
     # -------------------- model config args --------------------
     if model_config != None:
         # custom transformer block depths
@@ -259,8 +345,10 @@ def main(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    
     # -------------------- training config args --------------------
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
+    
     # -------------------- model config args --------------------
     parser.add_argument(
         "-dps", "--depths", type=int, help="Depths of SwinIR blocks", 

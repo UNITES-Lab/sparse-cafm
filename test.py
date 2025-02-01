@@ -11,9 +11,7 @@ from src.util.config import MODELS, parse_config
 from src.util.loss import ImageInpaintingL1Loss
 from src.util.metrics import OLDER, PSNR, MSE, MAE, SSIM
 
-TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
-Z_MULT = 1
 
 
 def setup_logger(config: dict) -> ExperimentLogger:
