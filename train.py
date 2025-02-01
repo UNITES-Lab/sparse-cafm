@@ -1,12 +1,12 @@
-from ast import parse
 import os
 import sys
-from typing import Optional
+import argparse
 import torch
 import torch.nn as nn
 
 from tqdm import tqdm
 from pathlib import Path
+from typing import List, Optional
 from torch.utils.data import DataLoader
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
@@ -18,20 +18,20 @@ from src.util.config import (
     LOSS_FUNCTIONS,
     OPTIMIZERS,
     MODELS,
-    parse_config,
 )
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 
 
-def setup_logger(config: TrainConfig) -> ExperimentLogger:
+def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
     logger = ExperimentLogger(
-        config_fp=TRAIN_CONFIG_FP,
-        root=config.log_root,
-        exp_name=config.exp_name,
-        log_interval=config.log_interval,
+        train_config_dict=train_config.to_dict(),
+        model_config_dict = model_config.to_dict() if model_config != None else None,
+        root=train_config.log_root,
+        exp_name=train_config.exp_name,
+        log_interval=train_config.log_interval,
     )
-    logger.add_result_columns(config.result_columns)
+    logger.add_result_columns(train_config.result_columns)
     return logger
 
 
@@ -73,7 +73,7 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
 
 def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
 
-    logger = setup_logger(config)
+    logger = setup_logger(config, model_config)
     model = create_model(config)
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
@@ -104,7 +104,8 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
     model.cuda(device)
     model.float()
-
+    
+    # ---------- training loop ----------
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
@@ -225,14 +226,19 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                         best_loss = avg_val_loss
                         logger.save_weights(model, "best")
                     else:
-                        logger.save_weights(model, f"latest_{epoch}")
+                        # NOTE: we overwrite previous "latest" weights
+                        logger.save_weights(model, f"latest")
                 else:
                     logger.save_weights(model, f"epoch_{epoch}")
 
 
-def main():
+def main(args: argparse.Namespace) -> None:
+    
+    # load training config
     config = TrainConfig(TRAIN_CONFIG_FP)
     model_config: Optional[ModelConfig] = None
+    
+    # optional: parse model config
     if config.model_config_file != None:
         model_config_abs_path = os.path.join(
             Path(TRAIN_CONFIG_FP).parent.__str__(), config.model_config_file
@@ -241,8 +247,27 @@ def main():
             model_config_abs_path
         ), f"Bad path to model config: {model_config_abs_path}"
         model_config = ModelConfig(model_config_abs_path)
+        
+    # -------------------- training config args --------------------
+    config.exp_name = args.exp_name
+    # -------------------- model config args --------------------
+    if model_config != None:
+        # custom transformer block depths
+        # e.g., [6, 6, 6, 6, 6, 6]
+        model_config.depths = [args.depths] * 6
+        
+    # train
     train(config, model_config)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    # -------------------- training config args --------------------
+    parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
+    # -------------------- model config args --------------------
+    parser.add_argument(
+        "-dps", "--depths", type=int, help="Depths of SwinIR blocks", 
+        default=6
+    )
+    args = parser.parse_args()
+    main(args)

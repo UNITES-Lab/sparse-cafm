@@ -26,7 +26,8 @@ class ExperimentLogger:
 
     def __init__(
         self,
-        config_fp: str,
+        train_config_dict: dict,
+        model_config_dict: Optional[dict] = None,
         root: str = EXPS_DIR,
         exp_name: Optional[str] = "",
         log_interval: int = 100,
@@ -44,9 +45,8 @@ class ExperimentLogger:
         :param wandb_project_name:  name of W&B project (e.g. "my-project")
         """
 
-        assert config_fp.endswith(".yaml")
-        self.config_fp: str = config_fp
-        self.config: dict = parse_config(config_fp)
+        self.config: dict = train_config_dict
+        self.model_config: Optional[dict]  = model_config_dict
         self.exp_name: str = exp_name
         self.results = pd.DataFrame()
         self.log_interval: int = log_interval
@@ -83,11 +83,11 @@ class ExperimentLogger:
 
         # make new subdir if needed
         os.makedirs(exp_out_dir, exist_ok=True)
+        
         # save config in subdir
         config_save_fp = os.path.join(exp_out_dir, "config.yaml")
         with open(config_save_fp, "w") as f:
-            with open(self.config_fp, "r") as g:
-                f.write(g.read())
+            yaml.dump(self.config, f, indent=4)
 
         # path to results csv file
         self.results_out_path = os.path.join(exp_out_dir, RESULTS_CSV_NAME)
@@ -110,19 +110,11 @@ class ExperimentLogger:
             )
             self.wandb_run = wandb.run
 
-        # do we have a model config file?
-        if self.config["model"]["config"] != None:
-            model_config_abs_path = os.path.join(
-                Path(self.config_fp).parent.__str__(), self.config["model"]["config"]
-            )
-            assert os.path.isfile(
-                model_config_abs_path
-            ), f"Bad path to model config: {model_config_abs_path}"
-            model_config_save_fp = os.path.join(exp_out_dir, "model.yaml")
-            # save a copy of the model config to the exp dir
-            with open(model_config_save_fp, "w") as f:
-                with open(model_config_abs_path, "r") as g:
-                    f.write(g.read())
+        model_config_save_fp = os.path.join(exp_out_dir, "model.yaml")
+        
+        # save a copy of the model config to the exp dir
+        with open(model_config_save_fp, "w") as f:
+            yaml.dump(self.model_config, f, indent=4)
         
         # TODO: this looks hacky; remove
         self.config_fp = config_save_fp

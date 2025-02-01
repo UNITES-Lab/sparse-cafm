@@ -160,6 +160,52 @@ class TrainConfig:
         self.log_figures: bool = logging_cfg.get("log_figures", False)
         self.log_interval: int = logging_cfg.get("log_interval", 1)
 
+    def to_dict(self) -> dict:
+        config_dict = {
+            "global": {
+                "device": self.device,
+                "mode": self.mode,
+                "formulation": self.formulation,
+            },
+            "model": {
+                "name": self.model_name,
+                "pretrained": self.pretrained,
+                "weights": self.weights,
+                "config": self.model_config_file,
+            },
+            "training": {
+                "batch_size": self.train_batch_size,
+                "steps_per_epoch": self.steps_per_epoch,
+                "epochs": self.epochs,
+                "loss": self.train_loss,
+                "lr": self.learning_rate,
+                "optimizer": self.optimizer,
+            },
+            "validation": {
+                "batch_size": self.val_batch_size,
+                "steps_per_epoch": self.val_steps_per_epoch,
+                "loss": self.val_loss,
+            },
+            "dataset": {
+                "name": self.dataset_name,
+                "image_size": self.image_size,
+                "crop_size": self.crop_size,
+                "num_workers": self.num_workers,
+                "masking_ratio": self.masking_ratio,
+            },
+            "logging": {
+                "root": self.log_root,
+                "exp_name": self.exp_name,
+                "result_columns": self.result_columns,
+                "save_weights": self.save_weights,
+                "save_only_best_weights": self.save_only_best_weights,
+                "enable_tensorboard": self.enable_tensorboard,
+                "log_figures": self.log_figures,
+                "log_interval": self.log_interval,
+            },
+        }
+        return config_dict
+
     def save_config(self, output_fp: str) -> None:
         """
         Save the current configuration to a YAML file, preserving the original format.
