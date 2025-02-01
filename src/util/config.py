@@ -222,7 +222,7 @@ class ModelConfig:
         if not os.path.isfile(config_fp):
             raise FileNotFoundError(f"Config file not found: {config_fp}")
 
-        config_dict: dict  = parse_config(config_fp)
+        config_dict: dict = parse_config(config_fp)
 
         # --- Top-level setting: weights_fp ---
         self.weights_fp: str = config_dict.get("weights_fp", "")
@@ -239,6 +239,24 @@ class ModelConfig:
         self.mlp_ratio: int = hyperparams.get("mlp_ratio", 2)
         self.upsampler: str = hyperparams.get("upsampler", "no_upscale")
         self.resi_connection: str = hyperparams.get("resi_connection", "1conv")
+
+    def to_dict(self) -> dict:
+        config_dict = {
+            "weights_fp": self.weights_fp,
+            "hyperparams": {
+                "upscale": self.upscale,
+                "img_size": self.img_size,
+                "window_size": self.window_size,
+                "img_range": self.img_range,
+                "depths": self.depths,
+                "embed_dim": self.embed_dim,
+                "num_heads": self.num_heads,
+                "mlp_ratio": self.mlp_ratio,
+                "upsampler": self.upsampler,
+                "resi_connection": self.resi_connection,
+            },
+        }
+        return config_dict
 
     def save_config(self, output_fp: str) -> None:
         """

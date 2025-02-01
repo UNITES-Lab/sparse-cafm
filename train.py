@@ -1,6 +1,7 @@
 from ast import parse
 import os
 import sys
+from typing import Optional
 import torch
 import torch.nn as nn
 
@@ -13,6 +14,7 @@ from src.util.logger import ExperimentLogger
 from src.util.loss import ImageInpaintingL1Loss
 from src.util.config import (
     TrainConfig,
+    ModelConfig,
     LOSS_FUNCTIONS,
     OPTIMIZERS,
     MODELS,
@@ -54,7 +56,9 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
         split=split,
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
-        steps_per_epoch=config.steps_per_epoch,
+        steps_per_epoch=(
+            config.steps_per_epoch if split == "train" else config.val_steps_per_epoch
+        ),
         device=config.device,
         original_image_size=(img_size, img_size),
         masking_ratio=int(config.masking_ratio),
@@ -67,7 +71,7 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     )
 
 
-def train(config: TrainConfig) -> None:
+def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
 
     logger = setup_logger(config)
     model = create_model(config)
@@ -75,10 +79,10 @@ def train(config: TrainConfig) -> None:
     val_dataloader = create_dataloader(config, "val")
 
     # define loss function and optimizer
-    train_loss: torch.nn.Module = LOSS_FUNCTIONS[config["training"]["loss"]]()
-    val_loss: torch.nn.Module = LOSS_FUNCTIONS[config["validation"]["loss"]]()
-    optimizer: torch.optim.Optimizer = OPTIMIZERS[config["training"]["optimizer"]](
-        model.parameters(), lr=float(config["training"]["lr"])
+    train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
+    val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
+    optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
+        model.parameters(), lr=float(config.learning_rate)
     )
 
     best_loss = sys.maxsize
@@ -89,14 +93,7 @@ def train(config: TrainConfig) -> None:
     # NOTE: only supported for SwinCAFM atm
     if config.model_config_file != None:
         assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
-        model_config_abs_path = os.path.join(
-            Path(TRAIN_CONFIG_FP).parent.__str__(), config.model_config_file
-        )
-        assert os.path.isfile(
-            model_config_abs_path
-        ), f"Bad path to model config: {model_config_abs_path}"
-        model_config = parse_config(model_config_abs_path)
-        model = SwinCAFM.init_from_config(model_config)
+        model = SwinCAFM.init_from_config(model_config.to_dict())
 
     # load weights from checkpoint
     if config.weights != None:
@@ -235,7 +232,16 @@ def train(config: TrainConfig) -> None:
 
 def main():
     config = TrainConfig(TRAIN_CONFIG_FP)
-    train(config)
+    model_config: Optional[ModelConfig] = None
+    if config.model_config_file != None:
+        model_config_abs_path = os.path.join(
+            Path(TRAIN_CONFIG_FP).parent.__str__(), config.model_config_file
+        )
+        assert os.path.isfile(
+            model_config_abs_path
+        ), f"Bad path to model config: {model_config_abs_path}"
+        model_config = ModelConfig(model_config_abs_path)
+    train(config, model_config)
 
 
 if __name__ == "__main__":

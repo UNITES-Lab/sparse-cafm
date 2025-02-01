@@ -4,11 +4,12 @@
 # -----------------------------------------------------------------------------------
 
 import math
-from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
+
+from typing import Optional
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
 
@@ -1209,6 +1210,7 @@ class SwinCAFM(nn.Module):
         """
         Initialize a SwinIR model using parameters from a given configuration dictionary.
         """
+        
         model = SwinCAFM(
             upscale=config.get("hyperparams", {}).get("upscale", 8),
             img_size=tuple(config.get("hyperparams", {}).get("img_size", [128, 128])),
