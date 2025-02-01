@@ -100,34 +100,50 @@ class WindowAttention(nn.Module):
     ):
 
         super().__init__()
+        
         self.dim = dim
-        self.window_size = window_size  # Wh, Ww
+
+        # Wh, Ww: (e.g., [8, 8])
+        self.window_size = window_size
+
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim**-0.5
 
         # define a parameter table of relative position bias
+        # [(2 * (Wh-1)) * (2 * (Ww-1)), #heads]; (e.g., [225, 6])
         self.relative_position_bias_table = nn.Parameter(
             torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1), num_heads)
-        )  # 2*Wh-1 * 2*Ww-1, nH
+        )
 
         # get pair-wise relative position index for each token inside the window
         coords_h = torch.arange(self.window_size[0])
         coords_w = torch.arange(self.window_size[1])
-        coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Wh, Ww
-        coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
+
+        # [2, Wh, Ww]
+        coords = torch.stack(torch.meshgrid([coords_h, coords_w]))
+
+        # [2, Wh*Ww]
+        coords_flatten = torch.flatten(coords, 1)
+
+        # [2, Wh*Ww, Wh*Ww]
         relative_coords = (
             coords_flatten[:, :, None] - coords_flatten[:, None, :]
-        )  # 2, Wh*Ww, Wh*Ww
+        )
+
+        # [Wh*Ww, Wh*Ww, 2]
         relative_coords = relative_coords.permute(
             1, 2, 0
-        ).contiguous()  # Wh*Ww, Wh*Ww, 2
+        ).contiguous()
+        
+        # pre-compute the relative positions for any pair of points
         relative_coords[:, :, 0] += self.window_size[0] - 1  # shift to start from 0
         relative_coords[:, :, 1] += self.window_size[1] - 1
         relative_coords[:, :, 0] *= 2 * self.window_size[1] - 1
         relative_position_index = relative_coords.sum(-1)  # Wh*Ww, Wh*Ww
         self.register_buffer("relative_position_index", relative_position_index)
 
+        # attention
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
@@ -137,7 +153,7 @@ class WindowAttention(nn.Module):
         trunc_normal_(self.relative_position_bias_table, std=0.02)
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x, mask=None):
+    def forward(self, x: torch.Tensor, mask=None) -> torch.Tensor:
         """
         Args:
             x: input features with shape of (num_windows*B, N, C)
@@ -255,6 +271,7 @@ class SwinTransformerBlock(nn.Module):
         ), "shift_size must in 0-window_size"
 
         self.norm1 = norm_layer(dim)
+
         self.attn = WindowAttention(
             dim,
             window_size=to_2tuple(self.window_size),
@@ -283,6 +300,7 @@ class SwinTransformerBlock(nn.Module):
         self.register_buffer("attn_mask", attn_mask)
 
     def calculate_mask(self, x_size):
+        
         # calculate attention mask for SW-MSA
         H, W = x_size
         img_mask = torch.zeros((1, H, W, 1))  # 1 H W 1
@@ -660,6 +678,7 @@ class PatchEmbed(nn.Module):
     def __init__(
         self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
     ):
+
         super().__init__()
         img_size = to_2tuple(img_size)
         patch_size = to_2tuple(patch_size)
@@ -1021,9 +1040,6 @@ class SwinCAFM(nn.Module):
 
         self.apply(self._init_weights)
 
-        # [B, C, H, W] -> [B, H, W]
-        self.channel_downsample: torch.nn.Conv2d = nn.Conv2d(3, 1, kernel_size=1)
-
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=0.02)
@@ -1142,12 +1158,14 @@ class SwinCAFM(nn.Module):
         # x = x[:, :, : H * self.upscale, : W * self.upscale]
 
         # [B, C, H, W] -> [B, H, W]
-        # TODO: we should use a learnable conv layer
-        x: torch.Tensor = self.channel_downsample(x)
-        x = x.squeeze(1)
+        # NOTE: just choose on channel dim;
+        # it is CRITICAL that this is not removed
+        x = x[:, 1, :, :]
 
         # clamp -> [0, 1]
-        x = nn.functional.sigmoid(x)
+        # NOTE: remove sigmoid
+        # x = nn.functional.sigmoid(x)
+        
         return x
 
     def flops(self):
