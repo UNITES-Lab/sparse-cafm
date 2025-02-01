@@ -63,78 +63,9 @@ def create_dataloader(config: dict, split: str) -> DataLoader:
     )
 
 
-@torch.no_grad()
-def eval(config: dict) -> None:
-
-    logger = setup_logger(config)
-    model = create_model(config)
-    val_dataloader = create_dataloader(config, "val")
-
-    # define loss function and optimizer
-    val_loss = LOSS_FUNCTIONS[config["validation"]["loss"]]()
-
-    best_loss = sys.maxsize
-    num_epochs = config["training"]["epochs"]
-    device = config["global"]["device"]
-
-    # load weights from checkpoint
-    if config["model"]["weights"] != None:
-        model = torch.load(config["model"]["weights"])
-
-    # validation
-    model.eval()
-    val_running_loss = 0.0
-    num_val_steps = 0
-    epoch = 0
-
-    for i, batch in enumerate(
-        tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
-    ):
-        # target: y
-        y: torch.Tensor = batch["y"].cuda(device)
-
-        # mask
-        y_mask: torch.Tensor = batch["y_mask"].cuda(device)
-        y_sparse = (y * y_mask).float()
-
-        # forward : p(y | y_sparse)
-        outputs: torch.Tensor = model(y_sparse)
-
-        # # NOTE: standard loss (e.g., L1)
-        # loss = val_loss(outputs, y)
-
-        # NOTE: inpainting loss
-        loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
-
-        val_running_loss += loss.item() * y_sparse.size(0)
-        logger.log(
-            **{
-                "global_train_step": None,
-                "global_val_step": len(val_dataloader) * (epoch) + i,
-                "epoch": epoch,
-                "train_loss": None,
-                "val_loss": loss.item(),
-            }
-        )
-        logger.save_sample(f"{i}.npy", y.squeeze(0), "ground-truth-current-maps")
-        logger.save_sample(f"{i}.npy", outputs.squeeze(0), "predicted-current-maps")
-        num_val_steps += 1
-
-    # optionally log best/epoch model weights
-    avg_val_loss = val_running_loss / num_val_steps
-    if bool(config["logging"]["save_weights"]):
-        if bool(config["logging"]["save_only_best_weights"]):
-            if avg_val_loss < best_loss:
-                best_loss = avg_val_loss
-                logger.save_weights(model, "best")
-        else:
-            logger.save_weights(model, f"epoch_{epoch}")
-
-
 def train(config: dict) -> None:
 
     logger = setup_logger(config)
-    
     model = create_model(config)
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")

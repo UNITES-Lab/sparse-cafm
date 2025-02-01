@@ -187,6 +187,8 @@ class ExperimentLogger:
         model_out_path = os.path.join(self.exp_dir, f"{self.exp_name}_{name}.pth")
         if isinstance(x, pytorch_lightning.trainer.Trainer):
             x.save_checkpoint(model_out_path.replace(".pth", ".ckpt"))
+        else:
+            torch.save(x, model_out_path)
 
         # if pickle_weights == True:
         #     with open(model_out_path.replace(".pth", ".pkl"), 'wb') as f:
