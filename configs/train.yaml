@@ -12,7 +12,7 @@ model:
 training:
   batch_size: 1
   steps_per_epoch: 1024
-  epochs: 2000
+  epochs: 50
   loss: InpaintingL1
   lr: 1e-4
   optimizer: Adam

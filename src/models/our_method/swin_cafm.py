@@ -532,6 +532,9 @@ class BasicLayer(nn.Module):
             self.downsample = None
 
     def forward(self, x, x_size):
+        """
+        x -> [transformer_blocks] -> [downsample] -> out
+        """
         for blk in self.blocks:
             if self.use_checkpoint:
                 x = checkpoint.checkpoint(blk, x, x_size)
@@ -597,8 +600,10 @@ class RSTB(nn.Module):
         resi_connection="1conv",
     ):
         super(RSTB, self).__init__()
-
+        
         self.dim = dim
+        
+        # [H, W]
         self.input_resolution = input_resolution
 
         self.residual_group = BasicLayer(
@@ -619,6 +624,7 @@ class RSTB(nn.Module):
         )
 
         if resi_connection == "1conv":
+            # US:
             self.conv = nn.Conv2d(dim, dim, 3, 1, 1)
         elif resi_connection == "3conv":
             # to save parameters and memory
@@ -647,6 +653,13 @@ class RSTB(nn.Module):
         )
 
     def forward(self, x, x_size):
+        """
+        res_group = self.residual_group(x, x_size)
+        patch_unembedded = self.patch_unembed(res_group, x_size)
+        conv_output = self.conv(patch_unembedded)
+        patch_embedded = self.patch_embed(conv_output)
+        return patch_embedded + x
+        """
         return (
             self.patch_embed(
                 self.conv(self.patch_unembed(self.residual_group(x, x_size), x_size))
@@ -864,10 +877,14 @@ class SwinCAFM(nn.Module):
 
         num_feat = 64
 
-        # [0, 255]; do we use this?
+        # [0, 1]; do we use this?
         self.img_range = img_range
 
-        # NOTE: we apply our own pre-proc
+        # TODO: verify we don't break anything...
+        # NOTE: all data normalized -> [0, 1] in dataloader
+        self.mean = torch.zeros(1, 1, 1, 1)
+        
+        # TODO: delete
         if in_chans == 3:
             # image-net normalization
             rgb_mean = (0.4488, 0.4371, 0.4040)
@@ -884,30 +901,32 @@ class SwinCAFM(nn.Module):
         self.upsampler = upsampler
 
         # TODO: ablate window size
+        # larger windows = greater area of attention
         self.window_size = window_size
 
         #####################################################################################################
         ################################### 1, shallow feature extraction ###################################
 
-        # might ablate...
+        # TODO: ablate
         self.conv_first = nn.Conv2d(num_in_ch, embed_dim, 3, 1, 1)
 
         #####################################################################################################
         ################################### 2, deep feature extraction ######################################
 
+        # number of transformer blocks (RSTB)
         self.num_layers = len(depths)
         self.embed_dim = embed_dim
 
-        # TODO: ablate different positional embedding strats
+        # TODO: ablate
         self.ape = ape
 
-        # True
+        # TODO: ablate
         self.patch_norm: bool = patch_norm
 
-        # TODO: ablate model width
+        # TODO: ablate
         self.num_features = embed_dim
 
-        # TODO: ablate mlp ratio
+        # TODO: ablate
         self.mlp_ratio = mlp_ratio
 
         # probably won't change tokenization strat dramatically,
@@ -922,14 +941,12 @@ class SwinCAFM(nn.Module):
         )
         num_patches = self.patch_embed.num_patches
 
-        # a very silly extra abstraction
-        # TODO: what does this actually represent...?
+        # a very silly extra abstraction; what does this actually represent...?
+        # [H, W]
         patches_resolution = self.patch_embed.patches_resolution
-
         self.patches_resolution = patches_resolution
 
-        # merge non-overlapping patches into image
-        # seems standard
+        # merge non-overlapping patches into image; seems standard
         self.patch_unembed = PatchUnEmbed(
             img_size=img_size,
             patch_size=patch_size,
@@ -949,8 +966,7 @@ class SwinCAFM(nn.Module):
         # dropout for pos embedding module?
         self.pos_drop = nn.Dropout(p=drop_rate)
 
-        # TODO: what is stochsatic depth?
-        # stochastic depth
+        # TODO: ablate drop_path_rate (currently 0.1)
         dpr = [
             x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))
         ]  # stochastic depth decay rule
@@ -959,8 +975,6 @@ class SwinCAFM(nn.Module):
         # build Residual Swin Transformer blocks (RSTB)
         self.layers = nn.ModuleList()
         for i_layer in range(self.num_layers):
-
-            # TODO: annotate
             layer = RSTB(
                 dim=embed_dim,
                 input_resolution=(patches_resolution[0], patches_resolution[1]),

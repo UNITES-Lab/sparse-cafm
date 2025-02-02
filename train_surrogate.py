@@ -222,6 +222,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
         model.eval()
         older_surrogate_model.eval()
         val_running_loss = 0.0
+        avg_val_loss = 0.0
         num_val_steps = 0
 
         with torch.no_grad():

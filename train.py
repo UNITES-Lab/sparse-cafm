@@ -251,7 +251,7 @@ def main(args: argparse.Namespace) -> None:
     if model_config != None:
         # custom transformer block depths
         # e.g., [6, 6, 6, 6, 6, 6]
-        model_config.depths = [args.depths] * 6
+        model_config.depths = [args.depths] * args.num_blocks
         
     # train
     train(config, model_config)
@@ -262,9 +262,7 @@ if __name__ == "__main__":
     # -------------------- training config args --------------------
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
     # -------------------- model config args --------------------
-    parser.add_argument(
-        "-dps", "--depths", type=int, help="Depths of SwinIR blocks", 
-        default=6
-    )
+    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=8)
+    parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
     args = parser.parse_args()
     main(args)
