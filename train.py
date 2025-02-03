@@ -105,9 +105,21 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     model.cuda(device)
     model.float()
     
+    # ---- HACK: only train a final unet ----
+    for name, param in tqdm(model.named_parameters(), desc="Freezing model parameters."):
+        if "out_unet" in name or "blend_conv" in name:
+            param.requires_grad = True  # These will be trained
+        else:
+            param.requires_grad = False  # All others are frozen
+    # ---------------------------------------
+    
+    # HACK: overfit to 1-example
+    y_first = None; y_sparse_first = None; y_mask_first = None
+    
     # ---------- training loop ----------
     for epoch in range(num_epochs):
         model.train()
+       
         running_loss = 0.0
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
@@ -122,28 +134,39 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # mask
             y_mask: torch.Tensor = batch["y_mask"].cuda(device)
             y_sparse = (y * y_mask).float()
+            
+            # # ---- HACK: overfit to one sample ----
+            # if y_first == None:
+            #     y_first = y.clone()
+            #     y_sparse_first = y_sparse.clone()
+            #     y_mask_first = y_mask.clone()
+            # else:
+            #     y = y_first
+            #     y_sparse = y_sparse_first
+            #     y_mask = y_mask_first
+            # # -------------------------------------
 
             # zero gradients
             optimizer.zero_grad()
 
-            # forward
-            # P(y | y_sparse)
+            # forward; p(y | y_sparse)
             outputs = model(y_sparse)
 
             final_pred = ImageInpaintingL1Loss.get_final_prediction(
                 predicted_image=outputs, target_image=y, mask=y_mask
             )
 
-            # # NOTE: standard loss (e.g., L1)
-            # loss = train_loss(outputs, y)
+            # NOTE: standard loss (e.g., L1)
+            loss = train_loss(outputs, y)
 
-            # NOTE: inpainting loss
-            loss: torch.Tensor = train_loss(
-                predicted_image=outputs, target_image=y, mask=y_mask
-            )
+            # # NOTE: inpainting loss
+            # loss: torch.Tensor = train_loss(
+            #     predicted_image=outputs, target_image=y, mask=y_mask
+            # )
 
             loss.backward()
             optimizer.step()
+            
             running_loss += loss.item() * y_sparse.size(0)
             logger.log(
                 **{
@@ -154,6 +177,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                     "val_loss": None,
                 }
             )
+            
             # log a triplet (original, masked, predicted) every 100 steps
             if i % 100 == 0:
                 triplet_name = f"train_epoch_{epoch}_step_{i}.png"
@@ -186,11 +210,11 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 # forward : p(y | y_sparse)
                 outputs = model(y_sparse)
 
-                # # NOTE: standard loss (e.g., L1)
-                # loss = val_loss(outputs, y)
+                # NOTE: standard loss (e.g., L1)
+                loss = val_loss(outputs, y)
 
-                # NOTE: inpainting loss
-                loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
+                # # NOTE: inpainting loss
+                # loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
 
                 val_running_loss += loss.item() * y_sparse.size(0)
                 logger.log(
@@ -249,10 +273,15 @@ def main(args: argparse.Namespace) -> None:
     config.exp_name = args.exp_name
     # -------------------- model config args --------------------
     if model_config != None:
-        # custom transformer block depths
-        # e.g., [6, 6, 6, 6, 6, 6]
+        # transformer block depths; e.g., [6, 6, 6, 6, 6, 6]
         model_config.depths = [args.depths] * args.num_blocks
-        
+        # num heads per block; e.g., [6, 6, 6, 6, 6, 6]
+        model_config.num_heads = [args.num_heads] * args.num_blocks
+        # size of sifted-attention window
+        model_config.window_size = args.window_size
+        model_config.drop_path_rate = args.drop_path_rate
+        model_config.norm_layer = args.norm_layer
+    
     # train
     train(config, model_config)
 
@@ -262,7 +291,11 @@ if __name__ == "__main__":
     # -------------------- training config args --------------------
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
     # -------------------- model config args --------------------
-    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=8)
+    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
+    parser.add_argument("-nhs", "--num_heads", type=int, help="Number of heads per RSTB block", default=6)
+    parser.add_argument("-wsz", "--window_size", type=int, help="Size of shifted attention window", default=8)
+    parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
+    parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
     args = parser.parse_args()
     main(args)

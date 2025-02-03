@@ -7,20 +7,20 @@ model:
   name: ours
   pretrained: True
   weights:
-  config: model-configs/swinir.yaml
+  config:
 
 training:
   batch_size: 1
   steps_per_epoch: 1024
   epochs: 50
-  loss: InpaintingL1
+  loss: L1
   lr: 1e-4
   optimizer: Adam
 
 validation:
   batch_size: 1
   steps_per_epoch: 256
-  loss: InpaintingL1
+  loss: L1
 
 dataset:
   name: SapphireDataset

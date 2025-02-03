@@ -8,22 +8,22 @@
 # -------------------------------
 
 # ---- train in-filling model ----
-export CUDA_VISIBLE_DEVICES=0
-DEPTH=32
-NUM_BLOCKS=1
-nohup python train.py \
-    --exp_name swinir-depth=$DEPTH \
-    --depths $DEPTH \
-    --num_blocks $NUM_BLOCKS \
-    > _swinir_depths=$DEPTH.out 2>&1 &
+DEPTH=6
+WINDOW_SIZE=8
+NUM_HEADS=6
+NUM_BLOCKS=6
+DPR=0.1
+NORM_LAYER=torch.nn.LayerNorm
 
-export CUDA_VISIBLE_DEVICES=1
-DEPTH=32
-NUM_BLOCKS=3
+export CUDA_VISIBLE_DEVICES=3
 nohup python train.py \
-    --exp_name swinir-depth=$DEPTH \
+    --exp_name "swinir->unet-with-zero-conv-full-ds" \
     --depths $DEPTH \
+    --num_heads $NUM_HEADS \
     --num_blocks $NUM_BLOCKS \
-    > _swinir_depths=$DEPTH.out 2>&1 &
-
+    --window_size $WINDOW_SIZE \
+    --drop_path_rate $DPR \
+    --norm_layer $NORM_LAYER \
+    > "swinir->unet-with-zero-conv-full-ds.out" 2>&1 &
+# -------------------------------
 exit

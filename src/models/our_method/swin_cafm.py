@@ -11,6 +11,7 @@ import torch.utils.checkpoint as checkpoint
 
 from typing import Optional
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+from src.models.unet.unet import SwinIRUNetHead
 
 
 class Mlp(nn.Module):
@@ -623,6 +624,7 @@ class RSTB(nn.Module):
             use_checkpoint=use_checkpoint,
         )
 
+        # TODO: authors show a 3x3 conv performs better
         if resi_connection == "1conv":
             # US:
             self.conv = nn.Conv2d(dim, dim, 3, 1, 1)
@@ -879,10 +881,6 @@ class SwinCAFM(nn.Module):
 
         # [0, 1]; do we use this?
         self.img_range = img_range
-
-        # TODO: verify we don't break anything...
-        # NOTE: all data normalized -> [0, 1] in dataloader
-        self.mean = torch.zeros(1, 1, 1, 1)
         
         # TODO: delete
         if in_chans == 3:
@@ -892,7 +890,10 @@ class SwinCAFM(nn.Module):
         else:
             # normalize each dim with mean=0
             # hmm... shouldn't be an issue, but the actual mean of our ds is not 0
-            self.mean = torch.zeros(1, 1, 1, 1)
+            self.mean = torch.zeros(1, 3, 1, 1)
+        
+        # HACK: mean all zeros
+        self.mean = torch.zeros(1, 3, 1, 1)
 
         # we don't upscale
         self.upscale = upscale
@@ -1053,7 +1054,16 @@ class SwinCAFM(nn.Module):
             # our last layer is a single 2D conv, is there a better way to handle the final output?
             self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
 
+        # NOTE: attempts to use a UNet as a final output for a frozen backbone... didn't really work
+        self.out_unet = SwinIRUNetHead.get()
+        self.blend_conv = nn.Conv2d(1, 1, kernel_size=1, stride=1, padding=0, bias=True)
+        
+        # init weights
         self.apply(self._init_weights)
+        
+        # set 0s of zero conv
+        nn.init.zeros_(self.blend_conv.weight)
+        nn.init.zeros_(self.blend_conv.bias)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -1111,8 +1121,11 @@ class SwinCAFM(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
+        x_original = x.clone()
+        
         # (B, H, W) -> (B, 1, H, W)
         x = x.unsqueeze(1)
+        
         # (B, 1, H, W) -> (B, 3, H, W)
         x = x.repeat(1, 3, 1, 1)
 
@@ -1156,16 +1169,20 @@ class SwinCAFM(nn.Module):
                 )
             x = self.conv_last(self.lrelu(self.conv_hr(x)))
         else:
-
             # NOTE: we take this branch
             # for image denoising and JPEG compression artifact reduction
 
+            # TODO: ablate-is this the best way to perform the initial upsampling?
+            # probably not too terrible, we are upsampling so idt we lose any signal technically...
+            # this just seems likely a slightly naive way to do the shallow feature extraction
+            
             # feature extraction
             # [B, 3, H, W] -> [B, D, H, W]
             x_first = self.conv_first(x)
 
             # [B, D, H, W]
             res = self.conv_after_body(self.forward_features(x_first)) + x_first
+            
             x = x + self.conv_last(res)
 
         # x = x / self.img_range + self.mean
@@ -1180,6 +1197,17 @@ class SwinCAFM(nn.Module):
         # clamp -> [0, 1]
         # NOTE: remove sigmoid
         # x = nn.functional.sigmoid(x)
+        
+        # HACK: final image with a unet
+        # out = self.blend_conv(self.out_unet())
+        
+        # NOTE:
+        # --------------------------------------------------------------------
+        # we want to adapt the pre-trained transformer backbone to our setting
+        # idea: blend frozen model prediction with UNet pred
+        unet_pred = self.out_unet(x_original, x)
+        x = x + self.blend_conv(unet_pred)
+        # ---------------------------------------------------------------------
         
         return x
 
@@ -1201,8 +1229,7 @@ class SwinCAFM(nn.Module):
         """
         WEIGHTS_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/_SwinIR/__weights__/005_colorDN_DFWB_s128w8_SwinIR-M_noise25.pth"
         window_size = 8
-        height = 128
-        width = 128
+        height = 128; width = 128
         model = SwinCAFM(
             upscale=8,
             img_size=(height, width),
@@ -1225,6 +1252,9 @@ class SwinCAFM(nn.Module):
         Initialize a SwinIR model using parameters from a given configuration dictionary.
         """
         
+        layer_norm_str = config.get("hyperparams", {}).get("norm_layer", None)
+        layer_norm = torch.nn.LayerNorm if layer_norm_str == "torch.nn.LayerNorm" else None
+        
         model = SwinCAFM(
             upscale=config.get("hyperparams", {}).get("upscale", 8),
             img_size=tuple(config.get("hyperparams", {}).get("img_size", [128, 128])),
@@ -1232,21 +1262,31 @@ class SwinCAFM(nn.Module):
             img_range=config.get("hyperparams", {}).get("img_range", 1.0),
             depths=config.get("hyperparams", {}).get("depths", [6, 6, 6, 6, 6, 6]),
             embed_dim=config.get("hyperparams", {}).get("embed_dim", 180),
-            num_heads=config.get("hyperparams", {}).get(
-                "num_heads", [6, 6, 6, 6, 6, 6]
-            ),
+            num_heads=config.get("hyperparams", {}).get("num_heads", [6, 6, 6, 6, 6, 6]),
+            drop_path_rate=config.get("hyperparams", {}).get("drop_path_rate", 0.1),
+            norm_layer=layer_norm,
             mlp_ratio=config.get("hyperparams", {}).get("mlp_ratio", 2),
             upsampler=config.get("hyperparams", {}).get("upsampler", "no_upscale"),
-            resi_connection=config.get("hyperparams", {}).get(
-                "resi_connection", "1conv"
-            ),
+            resi_connection=config.get("hyperparams", {}).get("resi_connection", "1conv"),
         )
-
+        
+        # load checkpoint
         weights_fp = config.get("weights_fp")
-        if weights_fp:
-            weights_dict = torch.load(weights_fp, weights_only=False)
-            model.load_state_dict(weights_dict["params"], strict=False)
+        checkpoint = torch.load(weights_fp)
+        state_dict = checkpoint["params"]
+        model_dict = model.state_dict()
 
+        # get valid params
+        filtered_dict = {}
+        for k, v in state_dict.items():
+            if k in model_dict and v.size() == model_dict[k].size():
+                filtered_dict[k] = v
+            else:
+                print(f"Warning: failed to load weights for: {k}")
+
+        # load valid weights
+        model_dict.update(filtered_dict)
+        model.load_state_dict(model_dict)
         return model
 
 

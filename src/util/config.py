@@ -287,6 +287,13 @@ class ModelConfig:
         self.mlp_ratio: int = hyperparams.get("mlp_ratio", 2)
         self.upsampler: str = hyperparams.get("upsampler", "no_upscale")
         self.resi_connection: str = hyperparams.get("resi_connection", "1conv")
+        self.drop_path_rate=config_dict.get("hyperparams", {}).get("drop_path_rate", 0.1),
+        
+        # layer norm
+        self.layer_norm_str = config_dict.get("hyperparams", {}).get("norm_layer", None)
+        layer_norm = torch.nn.LayerNorm if self.layer_norm_str == "torch.nn.LayerNorm" else None
+        self.norm_layer = layer_norm
+        
 
     def to_dict(self) -> dict:
         config_dict = {
@@ -300,6 +307,8 @@ class ModelConfig:
                 "embed_dim": self.embed_dim,
                 "num_heads": self.num_heads,
                 "mlp_ratio": self.mlp_ratio,
+                "drop_path_rate": self.drop_path_rate,
+                "norm_layer": self.layer_norm_str,
                 "upsampler": self.upsampler,
                 "resi_connection": self.resi_connection,
             },

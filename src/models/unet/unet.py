@@ -5,9 +5,69 @@ import torch.utils
 import torch.utils.checkpoint
 from src.models.unet.unet_parts import *
 
+class SwinIRUNetHead(nn.Module):
+    def __init__(self, n_channels, n_classes, bilinear=False, up_ks=1, down_ks=1):
+        
+        super(SwinIRUNetHead, self).__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+        self.bilinear = bilinear
+
+        self.inc = DoubleConv(n_channels, 128, kernel_size=down_ks)
+
+        self.down1 = Down(128, 256, kernel_size=down_ks)
+        self.down2 = Down(256, 512, kernel_size=down_ks)
+        self.down3 = Down(512, 1024, kernel_size=down_ks)
+        factor = 2 if bilinear else 1
+        self.down4 = Down(1024, 2048 // factor, kernel_size=down_ks)
+        
+        self.up1 = Up(2048, 1024 // factor, bilinear, kernel_size=up_ks)
+        self.up2 = Up(1024, 512 // factor, bilinear, kernel_size=up_ks)
+        self.up3 = Up(512, 256 // factor, bilinear, kernel_size=up_ks)
+        self.up4 = Up(256, 128, bilinear, kernel_size=up_ks)
+        
+        self.outc = OutConv(128, n_classes)
+
+        # downsample channel dim 3 -> 1
+        self.final_downsample_channel = nn.Conv2d(in_channels=3, out_channels=1, kernel_size=1, stride=1, bias=True)
+
+    def forward(self, y_sparse: torch.Tensor, y_hat: torch.Tensor) -> torch.Tensor:
+        
+        # [B, H, W] -> [B, 1, H, W]
+        y_sparse = y_sparse.clone().unsqueeze(1)
+        y_hat = y_hat.clone().unsqueeze(1)
+        
+        x = y_hat
+        # [B, 1, H, W] -> [B, 2, H, W]
+        x = x.repeat(1, 2, 1, 1)
+        # [B, 2, H, W] -> [B, 3, H, W]
+        x = torch.concat([x, y_sparse], dim=1)
+        
+        x1 = self.inc(x)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+        x = self.up1(x5, x4)
+        x = self.up2(x, x3)
+        x = self.up3(x, x2)
+        x = self.up4(x, x1)
+        x = self.outc(x)
+        
+        # [B, C, H, W] -> [B, H, W]
+        x = x.squeeze(1)
+        
+        return x
+
+    @staticmethod
+    def get(weights=None):
+        model = SwinIRUNetHead(3, 1, up_ks=5, down_ks=5)
+        return model
+
 
 class UNet(nn.Module):
     def __init__(self, n_channels, n_classes, bilinear=False, up_ks=1, down_ks=1):
+        
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -30,7 +90,7 @@ class UNet(nn.Module):
         # self.final_downsample_channel = nn.Conv2d(in_channels=3, out_channels=1, kernel_size=1, stride=1, bias=True)
         
         # -> [0, 1]
-        self.outc = OutConv(128, n_classes, activation=nn.Sigmoid())
+        self.outc = OutConv(128, n_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
