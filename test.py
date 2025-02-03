@@ -1,77 +1,87 @@
 import os
+import argparse
+from typing import Optional
 import torch
 import torch.nn as nn
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader
+from pathlib import Path
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
+from src.models.our_method.swin_cafm import SwinCAFM
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.logger import ExperimentLogger
-from src.util.config import MODELS, parse_config
 from src.util.loss import ImageInpaintingL1Loss
 from src.util.metrics import OLDER, PSNR, MSE, MAE, SSIM
+from src.util.config import (
+    EvalConfig,
+    ModelConfig,
+    LOSS_FUNCTIONS,
+    MODELS,
+)
 
 EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
 
 
-def setup_logger(config: dict) -> ExperimentLogger:
+def setup_logger(train_config: EvalConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
     logger = ExperimentLogger(
-        config_fp=EVAL_CONFIG_FP,
-        root=config["logging"]["root"],
-        exp_name=config["logging"]["exp_name"],
-        log_interval=config["logging"]["log_interval"],
+        train_config_dict=train_config.to_dict(),
+        model_config_dict = model_config.to_dict() if model_config != None else None,
+        root=train_config.log_root,
+        exp_name=train_config.exp_name,
+        log_interval=train_config.log_interval,
     )
-    logger.add_result_columns(config["logging"]["result_columns"])
+    logger.add_result_columns(train_config.result_columns)
     return logger
 
 
-def create_model(config: dict) -> nn.Module:
-    model_fn = MODELS[config["model"]["name"]]["fn"]
-    model_weights = MODELS[config["model"]["name"]]["weights"]
+def create_model(config: EvalConfig) -> nn.Module:
+    model_fn = MODELS[config.model_name]["fn"]
+    model_weights = MODELS[config.model_name]["weights"]
     if model_weights:
         model = model_fn(weights=model_weights)
-    elif config["model"]["name"] == "hiera":
+    elif config.model_name == "hiera":
         model = model_fn
         model.freeze()
     else:
         model = model_fn()
     assert isinstance(model, nn.Module)
-    return model.cuda(config["global"]["device"]).float()
+    return model.cuda(config.device).float()
 
 
-def create_dataset(config: dict, split: str) -> MOS2SEFDataset:
-    split_str = "training" if split == "train" else "validation"
-    img_size = int(config["dataset"]["image_size"])
+def create_dataloader(config: EvalConfig, split: str) -> DataLoader:
+    img_size = int(config.image_size)
     dataset = MOS2SEFDataset(
         split=split,
-        formulation=F.get_formulation_from_str(config["global"]["formulation"]),
-        side_length=int(config["dataset"]["crop_size"]),
-        masking_ratio=int(config["dataset"]["masking_ratio"]),
-        steps_per_epoch=config[split_str]["steps_per_epoch"],
-        device=config["global"]["device"],
+        side_length=int(config.crop_size),
+        formulation=F.get_formulation_from_str(config.formulation),
+        steps_per_epoch=(
+            config.steps_per_epoch if split == "train" else config.val_steps_per_epoch
+        ),
+        device=config.device,
         original_image_size=(img_size, img_size),
+        masking_ratio=int(config.masking_ratio),
     )
-    return dataset
+    return DataLoader(
+        dataset,
+        batch_size=config.val_batch_size,
+        shuffle=False,
+        num_workers=config.num_workers,
+    )
 
 
 @torch.no_grad()
-def eval(config: dict) -> None:
+def eval(config: EvalConfig, model_config: ModelConfig) -> None:
 
-    logger = setup_logger(config)
+    logger = setup_logger(config, model_config)
     model = create_model(config)
-    val_dataset = create_dataset(config, "val")
-    val_dataloader = DataLoader(
-        val_dataset,
-        batch_size=config["validation"]["batch_size"],
-        shuffle=False,
-        num_workers=config["dataset"]["num_workers"],
-    )
-    dataset: MOS2SEFDataset = val_dataloader.dataset
-    device = config["global"]["device"]
+    val_dataloader = create_dataloader(config, "val")
+    val_dataset: MOS2SEFDataset = val_dataloader.dataset
+    device = config.device
 
     # load weights from checkpoint
-    if config["model"]["weights"] != None:
-        model = torch.load(config["model"]["weights"])
+    if config.weights != None:
+        model = torch.load(config.weights)
     assert isinstance(model, torch.nn.Module)
 
     # validation loop
@@ -86,15 +96,15 @@ def eval(config: dict) -> None:
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
 
+        # ---- forward : p(y|y_sparse) ----
+        if isinstance(model, SwinCAFM):
+            y_hat: torch.Tensor = model(y_sparse)
+        else:
+            y_hat: torch.Tensor = model(y_sparse, y_mask)
+            
         # forward : p(y|y_sparse)
-        # y_hat: torch.Tensor = model(y_sparse)
-
-        # forward : p(y|y_sparse)
-        # y_hat: torch.Tensor = model(y_sparse, y_mask)
-
-        # NOTE: GPSTRUCT
-        # forward : p(y|y_sparse)
-        y_hat: torch.Tensor = model(y_sparse, y, y_mask)
+        # y_hat: torch.Tensor = model(y_sparse, y, y_mask)
+        # ---------------------------------
 
         # log final predicted image
         triplet_name = f"eval_step_{step}.png"
@@ -111,7 +121,7 @@ def eval(config: dict) -> None:
         # 2. MSE
         mse = MSE(final_pred, y)
         # 3. PSNR; assume data in range [0, 1]
-        psnr = PSNR(final_pred, y, dataset.normalized_data_range)
+        psnr = PSNR(final_pred, y, val_dataset.normalized_data_range)
 
         # (B, H, W) -> (B, 1, H, W)
         final_pred_img_like = final_pred.clone()
@@ -126,7 +136,7 @@ def eval(config: dict) -> None:
         y_img_like = y_img_like.repeat(1, 3, 1, 1)
 
         # 4. SSIM
-        ssim_val = SSIM(final_pred_img_like, y_img_like, dataset.normalized_data_range)
+        ssim_val = SSIM(final_pred_img_like, y_img_like, val_dataset.normalized_data_range)
 
         mean, std = val_dataset.current_maps_mean, val_dataset.current_maps_std
 
@@ -160,13 +170,34 @@ def eval(config: dict) -> None:
         )
 
 
-def main():
-    config = parse_config(EVAL_CONFIG_FP)
-    if config["global"]["mode"] == "eval":
-        eval(config)
-    else:
-        raise NotImplementedError
+def main(args: argparse.Namespace):
+
+    config = EvalConfig(EVAL_CONFIG_FP)
+    model_config: Optional[ModelConfig] = None
+    
+    # optional: parse model config
+    if config.model_config_file != None:
+        model_config_abs_path = os.path.join(
+            Path(EVAL_CONFIG_FP).parent.__str__(), config.model_config_file
+        )
+        assert os.path.isfile(
+            model_config_abs_path
+        ), f"Bad path to model config: {model_config_abs_path}"
+        model_config = ModelConfig(model_config_abs_path)
+        
+    # -------------------- training config args --------------------
+    config.exp_name = args.exp_name
+    config.weights = args.model_weights_path
+    
+    # run eval
+    eval(config, model_config)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    # -------------------- eval run config args --------------------
+    parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
+    parser.add_argument("-mwp", "--model_weights_path", type=str, help="Path to model checkpoint to evaluate.")
+    # --------------------------------------------------------------
+    args = parser.parse_args()
+    main(args)

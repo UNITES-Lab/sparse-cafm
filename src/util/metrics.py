@@ -63,7 +63,7 @@ def PSNR(
             f"Values in `target` are out of the expected range [{low}, {high}]. "
             f"Detected min={target.min().item()}, max={target.max().item()}"
         )
-    val = psnr(preds, target, data_range=range)
+    val = psnr(preds, target, data_range=high-low)
     return val
 
 

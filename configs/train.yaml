@@ -22,6 +22,7 @@ validation:
   steps_per_epoch: 256
   loss: L1
 
+# TODO: this does (almost) nothing
 dataset:
   name: SapphireDataset
   image_size: 224

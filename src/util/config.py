@@ -258,6 +258,140 @@ class TrainConfig:
         # save config
         with open(output_fp, "w") as f:
             yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
+            
+
+class EvalConfig:
+    """
+    Object representing a config file for a evaluation run of a model.
+    """
+
+    def __init__(self, config_fp: str):
+
+        if not os.path.isfile(config_fp):
+            raise FileNotFoundError(f"Config file not found: {config_fp}")
+
+        config_dict: dict = parse_config(config_fp)
+
+        # --- Global settings ---
+        global_cfg: dict = config_dict.get("global", {})
+        self.device: int = global_cfg.get("device", 0)
+        self.mode: str = global_cfg.get("mode", "train")
+        self.formulation: Optional[str] = global_cfg.get("formulation", None)
+
+        # --- Model settings ---
+        model_cfg: dict = config_dict.get("model", {})
+        self.model_name: str = model_cfg.get("name", "")
+        self.pretrained: str = model_cfg.get("pretrained", False)
+        self.weights: str = model_cfg.get("weights", None)
+        self.model_config_file: str = model_cfg.get("config", None)
+
+        # --- Validation settings ---
+        validation_cfg: dict = config_dict.get("validation", {})
+        self.val_batch_size: int = validation_cfg.get("batch_size", 1)
+        self.val_steps_per_epoch: int = validation_cfg.get("steps_per_epoch", 256)
+        self.val_loss: Optional[str] = validation_cfg.get("loss", None)
+
+        # --- Dataset settings ---
+        dataset_cfg: dict = config_dict.get("dataset", {})
+        self.dataset_name: str = dataset_cfg.get("name", "")
+        self.image_size: Optional[str] = dataset_cfg.get("image_size", None)
+        self.crop_size: Optional[str] = dataset_cfg.get("crop_size", None)
+        self.num_workers: int = dataset_cfg.get("num_workers", 0)
+        self.masking_ratio: int = dataset_cfg.get("masking_ratio", 1)
+
+        # --- Logging settings ---
+        logging_cfg: dict = config_dict.get("logging", {})
+        self.log_root: str = logging_cfg.get("root", "")
+        self.exp_name: str = logging_cfg.get("exp_name", "")
+        self.result_columns: List = logging_cfg.get("result_columns", [])
+        self.save_weights: bool = logging_cfg.get("save_weights", True)
+        self.save_only_best_weights: bool = logging_cfg.get(
+            "save_only_best_weights", True
+        )
+        self.enable_tensorboard: bool = logging_cfg.get("enable_tensorboard", False)
+        self.log_figures: bool = logging_cfg.get("log_figures", False)
+        self.log_interval: int = logging_cfg.get("log_interval", 1)
+
+    def to_dict(self) -> dict:
+        config_dict = {
+            "global": {
+                "device": self.device,
+                "mode": self.mode,
+                "formulation": self.formulation,
+            },
+            "model": {
+                "name": self.model_name,
+                "pretrained": self.pretrained,
+                "weights": self.weights,
+                "config": self.model_config_file,
+            },
+            "validation": {
+                "batch_size": self.val_batch_size,
+                "steps_per_epoch": self.val_steps_per_epoch,
+                "loss": self.val_loss,
+            },
+            "dataset": {
+                "name": self.dataset_name,
+                "image_size": self.image_size,
+                "crop_size": self.crop_size,
+                "num_workers": self.num_workers,
+                "masking_ratio": self.masking_ratio,
+            },
+            "logging": {
+                "root": self.log_root,
+                "exp_name": self.exp_name,
+                "result_columns": self.result_columns,
+                "save_weights": self.save_weights,
+                "save_only_best_weights": self.save_only_best_weights,
+                "enable_tensorboard": self.enable_tensorboard,
+                "log_figures": self.log_figures,
+                "log_interval": self.log_interval,
+            },
+        }
+        return config_dict
+
+    def save_config(self, output_fp: str) -> None:
+        """
+        Save the current configuration to a YAML file, preserving the original format.
+        """
+        config_dict = {
+            "global": {
+                "device": self.device,
+                "mode": self.mode,
+                "formulation": self.formulation,
+            },
+            "model": {
+                "name": self.model_name,
+                "pretrained": self.pretrained,
+                "weights": self.weights,
+                "config": self.model_config_file,
+            },
+            "validation": {
+                "batch_size": self.val_batch_size,
+                "steps_per_epoch": self.val_steps_per_epoch,
+                "loss": self.val_loss,
+            },
+            "dataset": {
+                "name": self.dataset_name,
+                "image_size": self.image_size,
+                "crop_size": self.crop_size,
+                "num_workers": self.num_workers,
+                "masking_ratio": self.masking_ratio,
+            },
+            "logging": {
+                "root": self.log_root,
+                "exp_name": self.exp_name,
+                "result_columns": self.result_columns,
+                "save_weights": self.save_weights,
+                "save_only_best_weights": self.save_only_best_weights,
+                "enable_tensorboard": self.enable_tensorboard,
+                "log_figures": self.log_figures,
+                "log_interval": self.log_interval,
+            },
+        }
+        # save config
+        with open(output_fp, "w") as f:
+            yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
 
 
 class ModelConfig:

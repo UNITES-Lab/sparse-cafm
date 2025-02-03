@@ -4,15 +4,17 @@ global:
   formulation: p(y|y_sparse_benchmark)
 
 model:
-  name: gpstruct_interpolation
+  name: ours
   pretrained: True
   weights:
+  config: model-configs/swinir.yaml
 
 validation:
   batch_size: 1
   steps_per_epoch: 1000
   loss: InpaintingL1
 
+# TODO: this does (almost) nothing
 dataset:
   name: SapphireDataset
   image_size: 224
