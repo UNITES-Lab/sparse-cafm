@@ -99,9 +99,6 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
-    optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
-        model.parameters(), lr=float(config.learning_rate)
-    )
     surrogate_optimizer: torch.optim.Optimizer = torch.optim.Adam(
         params=older_surrogate_model.parameters(),
         lr=1e-4
@@ -128,6 +125,10 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     model.float()
     older_surrogate_model.cuda(device)
     older_surrogate_model.float()
+    
+    optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
+        model.parameters(), lr=float(config.learning_rate)
+    )
     
     train_dataset: MOS2SEFDataset = train_dataloader.dataset
     val_dataset: MOS2SEFDataset = val_dataloader.dataset

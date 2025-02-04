@@ -155,10 +155,6 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             #     predicted_image=outputs, target_image=y, mask=y_mask
             # )
             
-            for name, param in model.named_parameters():
-                if param.requires_grad and param.grad is None:
-                    print(f"WARNING: {name} has no gradients!")
-
             loss.backward()
             optimizer.step()
             

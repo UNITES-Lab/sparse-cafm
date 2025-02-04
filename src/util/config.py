@@ -470,3 +470,81 @@ class ModelConfig:
         }
         with open(output_fp, "w") as f:
             yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
+
+
+class SurrogateModelConfig:
+    """
+    Object representing a config file for an older-surrogate model.
+    """
+
+    def __init__(self, config_fp: str):
+
+        if not os.path.isfile(config_fp):
+            raise FileNotFoundError(f"Config file not found: {config_fp}")
+
+        config_dict: dict = parse_config(config_fp)
+
+        # --- Top-level setting: weights_fp ---
+        self.weights_fp: str = config_dict.get("weights_fp", "")
+
+        # --- Hyperparameters ---
+        hyperparams: dict = config_dict.get("hyperparams", {})
+        self.upscale: int = hyperparams.get("upscale", 8)
+        self.img_size: List[int] = hyperparams.get("img_size", [128, 128])
+        self.window_size: int = hyperparams.get("window_size", 8)
+        self.img_range: float = hyperparams.get("img_range", 1.0)
+        self.depths: List[int] = hyperparams.get("depths", [8, 8, 8, 8, 8, 8])
+        self.embed_dim: int = hyperparams.get("embed_dim", 180)
+        self.num_heads: List[int] = hyperparams.get("num_heads", [6, 6, 6, 6, 6, 6])
+        self.mlp_ratio: int = hyperparams.get("mlp_ratio", 2)
+        self.upsampler: str = hyperparams.get("upsampler", "no_upscale")
+        self.resi_connection: str = hyperparams.get("resi_connection", "1conv")
+        self.drop_path_rate=config_dict.get("hyperparams", {}).get("drop_path_rate", 0.1),
+        
+        # layer norm
+        self.layer_norm_str = config_dict.get("hyperparams", {}).get("norm_layer", None)
+        layer_norm = torch.nn.LayerNorm if self.layer_norm_str == "torch.nn.LayerNorm" else None
+        self.norm_layer = layer_norm
+        
+
+    def to_dict(self) -> dict:
+        config_dict = {
+            "weights_fp": self.weights_fp,
+            "hyperparams": {
+                "upscale": self.upscale,
+                "img_size": self.img_size,
+                "window_size": self.window_size,
+                "img_range": self.img_range,
+                "depths": self.depths,
+                "embed_dim": self.embed_dim,
+                "num_heads": self.num_heads,
+                "mlp_ratio": self.mlp_ratio,
+                "drop_path_rate": self.drop_path_rate,
+                "norm_layer": self.layer_norm_str,
+                "upsampler": self.upsampler,
+                "resi_connection": self.resi_connection,
+            },
+        }
+        return config_dict
+
+    def save_config(self, output_fp: str) -> None:
+        """
+        Save the current configuration to a YAML file, preserving the original format.
+        """
+        config_dict = {
+            "weights_fp": self.weights_fp,
+            "hyperparams": {
+                "upscale": self.upscale,
+                "img_size": self.img_size,
+                "window_size": self.window_size,
+                "img_range": self.img_range,
+                "depths": self.depths,
+                "embed_dim": self.embed_dim,
+                "num_heads": self.num_heads,
+                "mlp_ratio": self.mlp_ratio,
+                "upsampler": self.upsampler,
+                "resi_connection": self.resi_connection,
+            },
+        }
+        with open(output_fp, "w") as f:
+            yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)

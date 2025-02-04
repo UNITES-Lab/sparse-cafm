@@ -5,6 +5,7 @@ import torchvision.models as models
 class OlderSurrogate(nn.Module):
     """
     Predict OLDER: [0, inf) from ground-truth current-maps y.
+    TODO: this design is upper naive; improve.
     """
     def __init__(self, ): 
         super(OlderSurrogate, self).__init__()

@@ -3,11 +3,14 @@ global:
   mode: train  # ['train', 'eval']
   formulation: p(y|y_sparse)
 
-model:
+denoising_model:
   name: ours
   pretrained: True
   weights:
   config:
+
+older_surrogate_model:
+  target:
 
 training:
   batch_size: 1

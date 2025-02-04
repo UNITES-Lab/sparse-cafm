@@ -1119,8 +1119,6 @@ class SwinCAFM(nn.Module):
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
-        return self.out_unet(x)
 
         x_original = x.clone()
         
@@ -1208,9 +1206,11 @@ class SwinCAFM(nn.Module):
         # idea: blend frozen model prediction with UNet pred
         
         # x = x + self.blend_conv(unet_pred)
+        # return self.out_unet(x_original)
         # ---------------------------------------------------------------------
         
-        return self.out_unet(x_original)
+        return x
+        
 
     def flops(self):
         flops = 0
