@@ -7,7 +7,7 @@ model:
   name: ours
   pretrained: True
   weights:
-  config:
+  config: model-configs/swinir.yaml
 
 training:
   batch_size: 1

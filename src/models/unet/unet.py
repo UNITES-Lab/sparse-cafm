@@ -25,23 +25,19 @@ class SwinIRUNetHead(nn.Module):
         self.up2 = Up(1024, 512 // factor, bilinear, kernel_size=up_ks)
         self.up3 = Up(512, 256 // factor, bilinear, kernel_size=up_ks)
         self.up4 = Up(256, 128, bilinear, kernel_size=up_ks)
-        
-        self.outc = OutConv(128, n_classes)
 
         # downsample channel dim 3 -> 1
-        self.final_downsample_channel = nn.Conv2d(in_channels=3, out_channels=1, kernel_size=1, stride=1, bias=True)
+        # self.final_downsample_channel = nn.Conv2d(in_channels=3, out_channels=1, kernel_size=1, stride=1, bias=True)
+        
+        # -> [0, 1]
+        self.outc = OutConv(128, n_classes)
 
-    def forward(self, y_sparse: torch.Tensor, y_hat: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         
-        # [B, H, W] -> [B, 1, H, W]
-        y_sparse = y_sparse.clone().unsqueeze(1)
-        y_hat = y_hat.clone().unsqueeze(1)
-        
-        x = y_hat
-        # [B, 1, H, W] -> [B, 2, H, W]
-        x = x.repeat(1, 2, 1, 1)
-        # [B, 2, H, W] -> [B, 3, H, W]
-        x = torch.concat([x, y_sparse], dim=1)
+        # HACK: pad the channel dim
+        # [B, H, W] -> [B, C, H, W]
+        if len(x.shape) == 3:
+            x = x.unsqueeze(1)
         
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -61,7 +57,7 @@ class SwinIRUNetHead(nn.Module):
 
     @staticmethod
     def get(weights=None):
-        model = SwinIRUNetHead(3, 1, up_ks=5, down_ks=5)
+        model = SwinIRUNetHead(1, 1, up_ks=5, down_ks=5)
         return model
 
 

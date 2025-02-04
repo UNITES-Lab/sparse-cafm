@@ -15,15 +15,17 @@ NUM_BLOCKS=6
 DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=7
+
 nohup python train.py \
-    --exp_name "swinir->unet-with-zero-conv-full-ds" \
+    --exp_name "unet(x)-sanity-check-move-optim" \
     --depths $DEPTH \
     --num_heads $NUM_HEADS \
     --num_blocks $NUM_BLOCKS \
     --window_size $WINDOW_SIZE \
     --drop_path_rate $DPR \
     --norm_layer $NORM_LAYER \
-    > "swinir->unet-with-zero-conv-full-ds.out" 2>&1 &
+    > "unet(x)-sanity-check-move-optim.out" 2>&1 &
 # -------------------------------
+
 exit

@@ -1054,16 +1054,15 @@ class SwinCAFM(nn.Module):
             # our last layer is a single 2D conv, is there a better way to handle the final output?
             self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
 
-        # NOTE: attempts to use a UNet as a final output for a frozen backbone... didn't really work
-        self.out_unet = SwinIRUNetHead.get()
-        self.blend_conv = nn.Conv2d(1, 1, kernel_size=1, stride=1, padding=0, bias=True)
-        
         # init weights
+        self.out_unet = SwinIRUNetHead.get()
         self.apply(self._init_weights)
         
-        # set 0s of zero conv
-        nn.init.zeros_(self.blend_conv.weight)
-        nn.init.zeros_(self.blend_conv.bias)
+        # NOTE: attempts to use a UNet as a final output for a frozen backbone... didn't really work
+        # self.blend_conv = nn.Conv2d(1, 1, kernel_size=1, stride=1, padding=0, bias=True)
+        # # set 0s of zero conv
+        # nn.init.zeros_(self.blend_conv.weight)
+        # nn.init.zeros_(self.blend_conv.bias)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -1120,6 +1119,8 @@ class SwinCAFM(nn.Module):
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        return self.out_unet(x)
 
         x_original = x.clone()
         
@@ -1205,11 +1206,11 @@ class SwinCAFM(nn.Module):
         # --------------------------------------------------------------------
         # we want to adapt the pre-trained transformer backbone to our setting
         # idea: blend frozen model prediction with UNet pred
-        unet_pred = self.out_unet(x_original, x)
-        x = x + self.blend_conv(unet_pred)
+        
+        # x = x + self.blend_conv(unet_pred)
         # ---------------------------------------------------------------------
         
-        return x
+        return self.out_unet(x_original)
 
     def flops(self):
         flops = 0
@@ -1287,6 +1288,11 @@ class SwinCAFM(nn.Module):
         # load valid weights
         model_dict.update(filtered_dict)
         model.load_state_dict(model_dict)
+        
+        WEIGHTS_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/_SwinIR/__weights__/005_colorDN_DFWB_s128w8_SwinIR-M_noise25.pth"
+        weights_dict = torch.load(WEIGHTS_FP, weights_only=False)
+        model.load_state_dict(weights_dict["params"], strict=False)
+        
         return model
 
 

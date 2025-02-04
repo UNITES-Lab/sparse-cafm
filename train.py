@@ -50,6 +50,7 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
+    
     split_str = "training" if split == "train" else "validation"
     img_size = int(config.image_size)
     dataset = MOS2SEFDataset(
@@ -81,9 +82,6 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
-    optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
-        model.parameters(), lr=float(config.learning_rate)
-    )
 
     best_loss = sys.maxsize
     num_epochs = config.epochs
@@ -102,22 +100,25 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
         # load enitre model object:
         model = torch.load(config.weights).float().cuda()
 
+    optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
+        model.parameters(), lr=float(config.learning_rate)
+    )
+    
     model.cuda(device)
     model.float()
     
-    # ---- HACK: only train a final unet ----
-    for name, param in tqdm(model.named_parameters(), desc="Freezing model parameters."):
-        if "out_unet" in name or "blend_conv" in name:
-            param.requires_grad = True  # These will be trained
-        else:
-            param.requires_grad = False  # All others are frozen
-    # ---------------------------------------
-    
-    # HACK: overfit to 1-example
-    y_first = None; y_sparse_first = None; y_mask_first = None
+    # # ---- HACK: only train a final unet ----
+    # for name, param in tqdm(model.named_parameters(), desc="Freezing model parameters."):
+    #     if "out_unet" in name or "blend_conv" in name:
+    #         param.requires_grad = True
+    #         # print(f"{name} - requires_grad: {param.requires_grad}")
+    #     else:
+    #         param.requires_grad = False  # All others are frozen
+    # # ---------------------------------------
     
     # ---------- training loop ----------
     for epoch in range(num_epochs):
+        
         model.train()
        
         running_loss = 0.0
@@ -133,18 +134,8 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
             # mask
             y_mask: torch.Tensor = batch["y_mask"].cuda(device)
-            y_sparse = (y * y_mask).float()
             
-            # # ---- HACK: overfit to one sample ----
-            # if y_first == None:
-            #     y_first = y.clone()
-            #     y_sparse_first = y_sparse.clone()
-            #     y_mask_first = y_mask.clone()
-            # else:
-            #     y = y_first
-            #     y_sparse = y_sparse_first
-            #     y_mask = y_mask_first
-            # # -------------------------------------
+            y_sparse = (y * y_mask).float()
 
             # zero gradients
             optimizer.zero_grad()
@@ -163,6 +154,10 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # loss: torch.Tensor = train_loss(
             #     predicted_image=outputs, target_image=y, mask=y_mask
             # )
+            
+            for name, param in model.named_parameters():
+                if param.requires_grad and param.grad is None:
+                    print(f"WARNING: {name} has no gradients!")
 
             loss.backward()
             optimizer.step()
