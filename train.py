@@ -107,14 +107,14 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     model.cuda(device)
     model.float()
     
-    # # ---- HACK: only train a final unet ----
+    # ---- HACK: only train a final unet ----
     # for name, param in tqdm(model.named_parameters(), desc="Freezing model parameters."):
     #     if "out_unet" in name or "blend_conv" in name:
     #         param.requires_grad = True
     #         # print(f"{name} - requires_grad: {param.requires_grad}")
     #     else:
     #         param.requires_grad = False  # All others are frozen
-    # # ---------------------------------------
+    # ---------------------------------------
     
     # ---------- training loop ----------
     for epoch in range(num_epochs):
@@ -125,39 +125,27 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
-
             # feature: X
             X: torch.Tensor = batch["X"].cuda(device)
-
             # target: y
             y: torch.Tensor = batch["y"].cuda(device)
-
-            # mask
+            # remove masked pixels
             y_mask: torch.Tensor = batch["y_mask"].cuda(device)
-            
             y_sparse = (y * y_mask).float()
             X_sparse = (X * y_mask).float()
-
             # zero gradients
             optimizer.zero_grad()
-
-            # forward: p(y | y_sparse)
+            # ---- forward: p(y | y_sparse) ----
             # outputs = model(y_sparse)
             # outputs = model(X_sparse)
-            assert isinstance(model, SwinCAFM)
             outputs = model.two_item_forward(X_sparse, y_sparse)
-
-            final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                predicted_image=outputs, target_image=y, mask=y_mask
-            )
-
+            # ----------------------------------
             # NOTE: standard loss (e.g., L1)
-            loss = train_loss(outputs, y)
+            loss: torch.Tensor = train_loss(outputs, y)
             # NOTE: inpainting loss
             # loss: torch.Tensor = train_loss(
             #     predicted_image=outputs, target_image=y, mask=y_mask
             # )
-            
             loss.backward()
             optimizer.step()
             
@@ -208,23 +196,19 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             ):
                 # feature: X
                 X: torch.Tensor = batch["X"].cuda(device)
-                
                 # target: y
                 y: torch.Tensor = batch["y"].cuda(device)
-
-                # mask
+                # remove masked pixels
                 y_mask: torch.Tensor = batch["y_mask"].cuda(device)
                 y_sparse = (y * y_mask).float()
                 X_sparse = (X * y_mask).float()
-
-                # forward : p(y | y_sparse)
+                # ---- forward: p(y | y_sparse) ----
                 # outputs = model(y_sparse)
                 # outputs = model(X_sparse)
                 outputs = model.two_item_forward(X_sparse, y_sparse)
-
+                # ----------------------------------
                 # NOTE: standard loss (e.g., L1)
                 loss = val_loss(outputs, y)
-
                 # NOTE: inpainting loss
                 # loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
 
