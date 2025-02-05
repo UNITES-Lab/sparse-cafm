@@ -1,2 +1,6 @@
-1. Automatically log great figures with train/val stats
-2. Train a surrogate model to predict OLDER from inputs; use surrogate as differentiable loss to directly optimize model to minimize OLDER
+1. Delete old model weights + create a better system for managing model ckpts over time.
+    - e.g., how can we prevent a mountain of old model weights from building up?
+2. Use test-cases to 100% guarentee that our dataloading does not...
+    - A. have any data contamination
+    - B. never flips a mask during data augmentation
+3. Re-run evals for all checkpoints evaled with wrong sparse prior
