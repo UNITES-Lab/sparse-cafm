@@ -54,6 +54,7 @@ def apply_color_palette(map_like: np.ndarray) -> np.ndarray:
     
     cmap = cm.get_cmap("viridis")
     colored_map = cmap(normalized_map)
+    
     # HACK:
     if len(colored_map.shape) == 4:
         colored_image = colored_map[:, :, :, 0]

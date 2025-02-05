@@ -127,7 +127,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
         ):
 
             # feature: X
-            # X: torch.Tensor = batch["X"].cuda(device)
+            X: torch.Tensor = batch["X"].cuda(device)
 
             # target: y
             y: torch.Tensor = batch["y"].cuda(device)
@@ -136,12 +136,14 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             y_mask: torch.Tensor = batch["y_mask"].cuda(device)
             
             y_sparse = (y * y_mask).float()
+            X_sparse = (X * y_mask).float()
 
             # zero gradients
             optimizer.zero_grad()
 
-            # forward; p(y | y_sparse)
-            outputs = model(y_sparse)
+            # forward: p(y | y_sparse)
+            # outputs = model(y_sparse)
+            outputs = model(X_sparse)
 
             final_pred = ImageInpaintingL1Loss.get_final_prediction(
                 predicted_image=outputs, target_image=y, mask=y_mask
@@ -150,7 +152,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # NOTE: standard loss (e.g., L1)
             loss = train_loss(outputs, y)
 
-            # # NOTE: inpainting loss
+            # NOTE: inpainting loss
             # loss: torch.Tensor = train_loss(
             #     predicted_image=outputs, target_image=y, mask=y_mask
             # )
@@ -170,13 +172,27 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             )
             
             # log a triplet (original, masked, predicted) every 100 steps
+            # if i % 100 == 0:
+            #     triplet_name = f"train_epoch_{epoch}_step_{i}.png"
+            #     final_pred = ImageInpaintingL1Loss.get_final_prediction(
+            #         predicted_image=outputs, target_image=y, mask=y_mask
+            #     )
+            #     logger.log_original_masked_predicted_sample_triplet(
+            #         y, y_sparse, final_pred, triplet_name
+            #     )
+            
             if i % 100 == 0:
                 triplet_name = f"train_epoch_{epoch}_step_{i}.png"
                 final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                    predicted_image=outputs, target_image=y, mask=y_mask
+                    predicted_image=outputs, target_image=X, mask=y_mask
                 )
-                logger.log_original_masked_predicted_sample_triplet(
-                    y, y_sparse, final_pred, triplet_name
+                logger.log_colorized_tensors(
+                    (X, "Topology Map (X)"),
+                    (y, "Target (y)"),
+                    (X_sparse, "Model Input (y_sparse)"), 
+                    (outputs, "Raw Model Prediction"),
+                    (final_pred, "Model Prediction With Given Prior (y_hat)"),
+                    file_name=triplet_name
                 )
 
         # validation
@@ -189,7 +205,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
                 # feature: X
-                # X: torch.Tensor = batch["X"].cuda(device)
+                X: torch.Tensor = batch["X"].cuda(device)
                 
                 # target: y
                 y: torch.Tensor = batch["y"].cuda(device)
@@ -197,14 +213,16 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 # mask
                 y_mask: torch.Tensor = batch["y_mask"].cuda(device)
                 y_sparse = (y * y_mask).float()
+                X_sparse = (X * y_mask).float()
 
                 # forward : p(y | y_sparse)
-                outputs = model(y_sparse)
+                # outputs = model(y_sparse)
+                outputs = model(X_sparse)
 
                 # NOTE: standard loss (e.g., L1)
                 loss = val_loss(outputs, y)
 
-                # # NOTE: inpainting loss
+                # NOTE: inpainting loss
                 # loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
 
                 val_running_loss += loss.item() * y_sparse.size(0)
@@ -220,13 +238,27 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 num_val_steps += 1
 
                 # log a triplet (original, masked, predicted) every 100 steps
+                # if i % 100 == 0:
+                #     triplet_name = f"train_epoch_{epoch}_step_{i}.png"
+                #     final_pred = ImageInpaintingL1Loss.get_final_prediction(
+                #         predicted_image=outputs, target_image=y, mask=y_mask
+                #     )
+                #     logger.log_original_masked_predicted_sample_triplet(
+                #         y, y_sparse, final_pred, triplet_name
+                #     )
+                
                 if i % 100 == 0:
-                    triplet_name = f"val_epoch_{epoch}_step_{i}.png"
+                    triplet_name = f"train_epoch_{epoch}_step_{i}.png"
                     final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                        predicted_image=outputs, target_image=y, mask=y_mask
+                        predicted_image=outputs, target_image=X, mask=y_mask
                     )
-                    logger.log_original_masked_predicted_sample_triplet(
-                        y, y_sparse, final_pred, triplet_name
+                    logger.log_colorized_tensors(
+                        (X, "Topology Map (X)"),
+                        (y, "Target (y)"),
+                        (X_sparse, "Model Input (y_sparse)"), 
+                        (outputs, "Raw Model Prediction"),
+                        (final_pred, "Model Prediction With Given Prior (y_hat)"),
+                        triplet_name
                     )
 
             # optionally log best/epoch model weights

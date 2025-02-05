@@ -1,3 +1,4 @@
+import math
 import os
 import pytorch_lightning
 import torch
@@ -9,7 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from pathlib import Path
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Tuple, Union
 from torch.utils.tensorboard import SummaryWriter
 from src.util.torch_helpers import convert_to_img_like
 from src.util.config import parse_config
@@ -218,6 +219,54 @@ class ExperimentLogger:
         # TODO: support other data formats
         if name.endswith(".npy"):
             np.save(out_fp, data)
+            
+    def log_colorized_tensors(self, *samples: Tuple[torch.Tensor, str], file_name: str) -> None:
+        """
+        Log tensors with the exact shape: [B, H, W], using an added color pallet to make things pretty.
+        """
+        MAX_COLS = 3
+        IMAGE_SIZE_IN = 6
+        num_images = len(samples)
+        n_cols = min(num_images, MAX_COLS)
+        n_rows = math.ceil(num_images / MAX_COLS)
+        
+        # TODO: is 4-inches enough?... (;
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols*IMAGE_SIZE_IN, n_rows*IMAGE_SIZE_IN))
+        
+        # axes always 2d arr
+        if n_rows == 1 and n_cols == 1:
+            axes = np.array([[axes]])
+        elif n_rows == 1:
+            axes = np.expand_dims(axes, axis=0)
+        elif n_cols == 1:
+            axes = np.expand_dims(axes, axis=1)
+            
+        for idx, (tensor, name) in enumerate(samples):
+            row = idx // MAX_COLS
+            col = idx % MAX_COLS
+            # only use first tensor in batch
+            img = tensor[0, ...]
+            # strange, convert to img like returns a list...
+            img = convert_to_img_like(img)[0]
+            ax = axes[row, col]
+            ax.imshow(img)
+            ax.set_title(name, fontsize=14)
+            ax.axis("off")
+
+        # turn off extra subplots
+        # idk, chat thinks this a good idea
+        total_cells = n_rows * n_cols
+        for idx in range(num_images, total_cells):
+            row = idx // MAX_COLS 
+            col = idx % MAX_COLS
+            axes[row, col].axis("off")
+            
+        outdir = os.path.join(self.exp_dir, FIGURES_DIR_NAME)
+        os.makedirs(outdir, exist_ok=True)
+        out_fp = os.path.join(outdir, file_name)
+        plt.savefig(out_fp, bbox_inches="tight", pad_inches=0.1, dpi=300)
+        plt.close(fig)
+
 
     def log_original_masked_predicted_sample_triplet(
         self,
