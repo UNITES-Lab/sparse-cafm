@@ -3,4 +3,7 @@
 2. Use test-cases to 100% guarentee that our dataloading does not...
     - A. have any data contamination
     - B. never flips a mask during data augmentation
-3. Re-run evals for all checkpoints evaled with wrong sparse prior
+3. Experiments
+    - 3a. Surrogate Loss: {L1 (baseline), OLDER, OLDER + L1, sigmoid(OLDER) + L1}
+    - 3b. Formulations: {p(y|y_sparse), p(y|X), p(y|y_sparse, X)}
+4. Eval 3a, 3b
