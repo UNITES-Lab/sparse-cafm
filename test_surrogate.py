@@ -21,7 +21,7 @@ from src.util.config import (
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.our_method.older_surrogate import OlderSurrogate
 
-EVAL_CONFIG_FP = os.path.abspath("configs/train-configs/older_surrogate.yaml")
+EVAL_CONFIG_FP = os.path.abspath("/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/train-configs/eval_older_surrogate.yaml")
 
 
 def setup_logger(train_config: SurrogateEvalConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
@@ -121,8 +121,6 @@ def eval(args: argparse.Namespace, config: SurrogateEvalConfig, model_config: Mo
         # ---- forward : p(y|y_sparse) ----
         outputs = denoising_model(y_sparse)
         # ---------------------------------
-        
-        breakpoint()
         
         # log final predicted image
         triplet_name = f"eval_step_{step}.png"
