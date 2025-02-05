@@ -29,8 +29,8 @@ class ImageInpaintingL1Loss(nn.Module):
         :param mask: (B, C, H, W)
         """
         # mask = 0: obstructed
-        given_pixels = target_image * ~mask
-        pred_pixels = predicted_image * mask
+        given_pixels = target_image * mask
+        pred_pixels = predicted_image * ~mask
         final_prediction = given_pixels + pred_pixels
         return torch.nn.functional.l1_loss(final_prediction, target_image)
 
@@ -38,8 +38,8 @@ class ImageInpaintingL1Loss(nn.Module):
     def get_final_prediction(
         predicted_image: torch.Tensor, target_image: torch.Tensor, mask: torch.Tensor
     ):
-        given_pixels = target_image * ~mask
-        pred_pixels = predicted_image * mask
+        given_pixels = target_image * mask
+        pred_pixels = predicted_image * ~mask
         final_prediction = given_pixels + pred_pixels
         return final_prediction
 

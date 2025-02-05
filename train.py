@@ -173,7 +173,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             if i % 100 == 0:
                 triplet_name = f"train_epoch_{epoch}_step_{i}.png"
                 final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                    predicted_image=outputs, target_image=X, mask=y_mask
+                    predicted_image=outputs, target_image=y, mask=y_mask
                 )
                 logger.log_colorized_tensors(
                     (X, "Topology Map (X)"),
@@ -211,7 +211,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 loss = val_loss(outputs, y)
                 # NOTE: inpainting loss
                 # loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
-
+                
                 val_running_loss += loss.item() * y_sparse.size(0)
                 logger.log(
                     **{
@@ -237,7 +237,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 if i % 100 == 0:
                     triplet_name = f"train_epoch_{epoch}_step_{i}.png"
                     final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                        predicted_image=outputs, target_image=X, mask=y_mask
+                        predicted_image=outputs, target_image=y, mask=y_mask
                     )
                     logger.log_colorized_tensors(
                         (X, "Topology Map (X)"),
