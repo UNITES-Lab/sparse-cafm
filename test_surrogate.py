@@ -8,22 +8,23 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from pathlib import Path
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
-from src.models.our_method.swin_cafm import SwinCAFM
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.logger import ExperimentLogger
 from src.util.loss import ImageInpaintingL1Loss
 from src.util.metrics import OLDER, PSNR, MSE, MAE, SSIM
 from src.util.config import (
-    EvalConfig,
+    SurrogateEvalConfig,
     ModelConfig,
     LOSS_FUNCTIONS,
     MODELS,
 )
+from src.models.our_method.swin_cafm import SwinCAFM
+from src.models.our_method.older_surrogate import OlderSurrogate
 
 EVAL_CONFIG_FP = os.path.abspath("configs/train-configs/older_surrogate.yaml")
 
 
-def setup_logger(train_config: EvalConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
+def setup_logger(train_config: SurrogateEvalConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
     logger = ExperimentLogger(
         train_config_dict=train_config.to_dict(),
         model_config_dict = model_config.to_dict() if model_config != None else None,
@@ -35,12 +36,12 @@ def setup_logger(train_config: EvalConfig, model_config: Optional[ModelConfig]) 
     return logger
 
 
-def create_model(config: EvalConfig) -> nn.Module:
-    model_fn = MODELS[config.model_name]["fn"]
-    model_weights = MODELS[config.model_name]["weights"]
+def create_denoising_model(config: SurrogateEvalConfig) -> nn.Module:
+    model_fn = MODELS[config.denoising_model_name]["fn"]
+    model_weights = MODELS[config.denoising_model_name]["weights"]
     if model_weights:
         model = model_fn(weights=model_weights)
-    elif config.model_name == "hiera":
+    elif config.denoising_model_name == "hiera":
         model = model_fn
         model.freeze()
     else:
@@ -49,14 +50,28 @@ def create_model(config: EvalConfig) -> nn.Module:
     return model.cuda(config.device).float()
 
 
-def create_dataloader(config: EvalConfig, split: str) -> DataLoader:
+def create_surrogate_model(config: SurrogateEvalConfig) -> nn.Module:
+    model_fn = MODELS[config.older_surrogate_model_name]["fn"]
+    model_weights = MODELS[config.older_surrogate_model_name]["weights"]
+    if model_weights:
+        model = model_fn(weights=model_weights)
+    elif config.older_surrogate_model_name == "hiera":
+        model: torch.nn.Module = model_fn
+        model.freeze()
+    else:
+        model = model_fn()
+    assert isinstance(model, nn.Module)
+    return model.cuda(config.device).float()
+
+
+def create_dataloader(config: SurrogateEvalConfig, split: str) -> DataLoader:
     img_size = int(config.image_size)
     dataset = MOS2SEFDataset(
         split=split,
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
         steps_per_epoch=(
-            config.steps_per_epoch if split == "train" else config.val_steps_per_epoch
+            config.val_steps_per_epoch if split == "train" else config.val_steps_per_epoch
         ),
         device=config.device,
         original_image_size=(img_size, img_size),
@@ -71,46 +86,49 @@ def create_dataloader(config: EvalConfig, split: str) -> DataLoader:
 
 
 @torch.no_grad()
-def eval(args: argparse.Namespace, config: EvalConfig, model_config: ModelConfig) -> None:
+def eval(args: argparse.Namespace, config: SurrogateEvalConfig, model_config: ModelConfig) -> None:
 
     logger = setup_logger(config, model_config)
-    model = create_model(config)
+    denoising_model = create_denoising_model(config)
+    surrogate_older_model = create_surrogate_model(config)
     
     val_dataloader = create_dataloader(config, "val")
     val_dataset: MOS2SEFDataset = val_dataloader.dataset
     device = config.device
 
     # load weights from checkpoint
-    if config.weights != None:
-        model = torch.load(config.weights)
-    assert isinstance(model, torch.nn.Module)
-
+    if config.denoising_model_weights != None:
+        denoising_model = torch.load(config.denoising_model_weights)
+    if config.older_surrogate_model_weights != None:
+        denoising_model = torch.load(config.older_surrogate_model_weights)
+        
     # validation loop
-    model.eval()
+    surrogate_older_model.eval()
+    denoising_model.eval()
 
     for step, batch in enumerate(tqdm(val_dataloader, desc=f"Evaluating...:")):
-
+        
         # target: y
         y: torch.Tensor = batch["y"].cuda(device)
-
+        
         # mask
         y_mask: torch.Tensor = batch["y_mask"].cuda(device)
         y_sparse = (y * y_mask).float()
-
+        
+        # TODO: denoising model outputs must be clamped between [0-1];
+        # we'll training a new model using sigmoid out act...
+        
         # ---- forward : p(y|y_sparse) ----
-        outputs = model(y_sparse)
-            
-        # forward : p(y|y_sparse)
-        # y_hat: torch.Tensor = model(y_sparse, y, y_mask)
+        outputs = denoising_model(y_sparse)
         # ---------------------------------
-
+        
+        breakpoint()
+        
         # log final predicted image
         triplet_name = f"eval_step_{step}.png"
-        
         y_hat = ImageInpaintingL1Loss.get_final_prediction(
             predicted_image=outputs, target_image=y, mask=y_mask
-        )
-                
+        )       
         mean, std = val_dataset.current_maps_mean, val_dataset.current_maps_std
         
         # ---- characterize(y) ----
@@ -128,55 +146,34 @@ def eval(args: argparse.Namespace, config: EvalConfig, model_config: ModelConfig
         # x' = mu + (sigma * z)
         data = mean + (std * z)
         y_sparse_char = celano_lab_characterization(data, val_dataset.img_size_um)
-        
+
         # calculate older scores
         older_gt = OLDER(y_char, y_sparse_char)
-        older_pred = older_surrogate_model(y_sparse, y_hat)
-        
-        # HACK: [y-y=0]
-        # ---- minimize older w.r.t. denoising model weights ----
-        loss = val_loss(older_pred, older_pred * 0)
+        older_pred = surrogate_older_model(y_sparse, y_hat)
         
         # ----  minimize || older_pred - older_gt || w.r.t. surrogate model weights  ----
         B = y.shape[0]
         older_gt_tensor = torch.Tensor([[older_gt]] * B).float().cuda()
         surrogate_loss = torch.nn.functional.l1_loss(older_pred, older_gt_tensor)
     
-        val_running_loss += loss.item() * y_sparse.size(0)
-        logger.log(
-            **{
-                "global_train_step": None,
-                "global_val_step": len(val_dataloader) * (epoch) + i,
-                "epoch": epoch,
-                "train_denoising_loss": None,
-                "val_denoising_loss": loss.item(),
-                "train_surrogate_loss": None,
-                "val_surrogate_loss": surrogate_loss.item(),
-            }
-        )
-    
         # log a triplet (original, masked, predicted) every 100 steps
-        if i % 100 == 0:
-            triplet_name = f"val_epoch_{epoch}_step_{i}.png"
-            final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                predicted_image=outputs, target_image=y, mask=y_mask
-            )
-            logger.log_original_masked_predicted_sample_triplet(
-                y, y_sparse, final_pred, triplet)
+        logger.log_original_masked_predicted_sample_triplet(
+            y, y_sparse, y_hat, triplet_name
+        )
 
         # 1. MAE
-        mae = MAE(final_pred, y)
+        mae = MAE(y_hat, y)
         # 2. MSE
-        mse = MSE(final_pred, y)
+        mse = MSE(y_hat, y)
         # 3. PSNR; assume data in range [0, 1]
-        psnr = PSNR(final_pred, y, val_dataset.normalized_data_range)
+        psnr = PSNR(y_hat, y, val_dataset.normalized_data_range)
 
         # (B, H, W) -> (B, 1, H, W)
-        final_pred_img_like = final_pred.clone()
+        final_pred_img_like = y_hat.clone()
         final_pred_img_like = final_pred_img_like.unsqueeze(1)
         # (B, 1, H, W) -> (B, 3, H, W)
         final_pred_img_like = final_pred_img_like.repeat(1, 3, 1, 1)
-
+ 
         # (B, H, W) -> (B, 1, H, W)
         y_img_like = y.clone()
         y_img_like = y_img_like.unsqueeze(1)
@@ -198,7 +195,7 @@ def eval(args: argparse.Namespace, config: EvalConfig, model_config: ModelConfig
 
         # 5b. characterize(y_sparse)
         # z: [0, 1] -> [-1, 1] (i.e., standard normal)
-        z = (final_pred * 2) - 1
+        z = (y_hat * 2) - 1
         # [-1, 1] -> original dist
         # x' = mu + (sigma * z)
         data = mean + (std * z)
@@ -211,6 +208,7 @@ def eval(args: argparse.Namespace, config: EvalConfig, model_config: ModelConfig
                 "mse": mse.item(),
                 "psnr": psnr.item(),
                 "ssim": ssim_val.item(),
+                "surrogate_loss": surrogate_loss.item(),
                 "older": OLDER(y_char, y_sparse_char),
                 "celano_script_y": y_char,
                 "celano_script_y_sparse": y_sparse_char,
@@ -220,11 +218,11 @@ def eval(args: argparse.Namespace, config: EvalConfig, model_config: ModelConfig
 
 def main(args: argparse.Namespace):
 
-    config = EvalConfig(EVAL_CONFIG_FP)
+    config = SurrogateEvalConfig(EVAL_CONFIG_FP)
     model_config: Optional[ModelConfig] = None
     
     # optional: parse model config
-    if config.model_config_file != None:
+    if config.denoising_model_config_file != None:
         model_config_abs_path = os.path.join(
             Path(EVAL_CONFIG_FP).parent.__str__(), config.model_config_file
         )
@@ -235,10 +233,11 @@ def main(args: argparse.Namespace):
         
     # -------------------- training config args --------------------
     config.exp_name = args.exp_name
-    config.weights = args.model_weights_path
+    config.older_surrogate_model_weights = args.older_surrogate_model_weights_path
+    config.denoising_model_weights = args.denoising_model_weights_path
     
     # run eval
-    eval(config, model_config)
+    eval(args, config, model_config)
 
 
 if __name__ == "__main__":

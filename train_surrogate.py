@@ -23,7 +23,7 @@ from src.util.config import (
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.metrics import OLDER
 
-TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/older_surrogate.yaml")
+TRAIN_CONFIG_FP = os.path.abspath("/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/older_surrogate.yaml")
 
 
 def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
@@ -78,6 +78,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     """
     Train OLDER surrogate model.
     
+    TODO: verify this isn't just dumb
     It may be easier to attempt to train two models at the same time.
     1. Model-A: p(y | y_sparse)
     2. Model-B  p(older | y_sparse, y_hat)
@@ -90,7 +91,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     """
 
     logger = setup_logger(config, model_config)
-    model = create_model(config)
+    infilling_model = create_model(config)
     older_surrogate_model = OlderSurrogate()
     
     train_dataloader = create_dataloader(config, "train")
@@ -99,10 +100,6 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
-    surrogate_optimizer: torch.optim.Optimizer = torch.optim.Adam(
-        params=older_surrogate_model.parameters(),
-        lr=1e-4
-    )
 
     best_loss = sys.maxsize
     num_epochs = config.epochs
@@ -111,31 +108,38 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     # create model using model config obj
     # NOTE: only supported for SwinCAFM atm
     if config.model_config_file != None:
-        assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
-        model = SwinCAFM.init_from_config(model_config.to_dict())
+        assert isinstance(infilling_model, SwinCAFM), f"Only SwinCAFM supports init from config."
+        infilling_model = SwinCAFM.init_from_config(model_config.to_dict())
 
     # load weights from checkpoint
     if config.weights != None:
         # load weights only:
         # model.load_state_dict(torch.load(config["model"]["weights"]), strict=False)
         # load enitre model object:
-        model = torch.load(config.weights).float().cuda()
-
-    model.cuda(device)
-    model.float()
+        infilling_model = torch.load(config.weights).float().cuda()
+    
+    infilling_model.cuda(device)
+    infilling_model.float()
     older_surrogate_model.cuda(device)
     older_surrogate_model.float()
     
-    optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
-        model.parameters(), lr=float(config.learning_rate)
+    surrogate_optimizer: torch.optim.Optimizer = torch.optim.Adam(
+        params=older_surrogate_model.parameters(),
+        lr=1e-4
     )
-    
+    infilling_optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
+        infilling_model.parameters(), lr=float(config.learning_rate)
+    )
+   
     train_dataset: MOS2SEFDataset = train_dataloader.dataset
     val_dataset: MOS2SEFDataset = val_dataloader.dataset
     
     # ---------- training loop ----------
     for epoch in range(num_epochs):
-        model.train()
+        
+        infilling_model.train()
+        older_surrogate_model.train()
+        
         running_loss = 0.0
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
@@ -149,12 +153,12 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             y_sparse = (y * y_mask).float()
 
             # zero gradients
-            optimizer.zero_grad()
+            infilling_optimizer.zero_grad()
             surrogate_optimizer.zero_grad()
 
             # p(y_hat|y_sparse)]
             # forward: [H, W]
-            outputs = model(y_sparse)
+            outputs = infilling_model(y_sparse)
             y_hat = ImageInpaintingL1Loss.get_final_prediction(
                 predicted_image=outputs, target_image=y, mask=y_mask
             )
@@ -183,9 +187,19 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             
             # HACK: [y-y=0]
             # ---- minimize older w.r.t. denoising model weights ----
-            loss = train_loss(older_pred, older_pred * 0)
+            # 1. OLDER + L1
+            # infilling_loss = train_loss(older_pred, older_pred * 0)
+            
+            # 2. combo loss: OLDER + L1
+            # infilling_loss = train_loss(older_pred, older_pred * 0) + torch.nn.functional.l1_loss(y, y_hat)
+            
+            # 3. combo loss: sigmoid(OLDER) + L1
+            _older_pred_norm = torch.nn.functional.sigmoid(older_pred)
+            infilling_loss = train_loss(_older_pred_norm, _older_pred_norm * 0) + torch.nn.functional.l1_loss(y, y_hat)
+            # ------------------------------------------------------
+            
             # NOTE: must retain graph, we will backprop again using surrogate model
-            loss.backward(retain_graph=True)
+            infilling_loss.backward(retain_graph=True)
             
             # ----  minimize || older_pred - older_gt || w.r.t. surrogate model weights  ----
             B = y.shape[0]
@@ -194,21 +208,22 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             surrogate_loss.backward()
             
             surrogate_optimizer.step()
-            optimizer.step()
+            infilling_optimizer.step()
             
-            running_loss += loss.item() * y_sparse.size(0)
+            running_loss += infilling_loss.item() * y_sparse.size(0)
+            
             logger.log(
                 **{
                     "global_train_step": len(train_dataloader) * (epoch) + i,
                     "global_val_step": None,
                     "epoch": epoch,
-                    "train_denoising_loss": loss.item(),
+                    "train_denoising_loss": infilling_loss.item(),
                     "val_denoising_loss": None,
                     "train_surrogate_loss": surrogate_loss.item(),
                     "val_surrogate_loss": None,
                 }
             )
-            
+         
             # log a triplet (original, masked, predicted) every 100 steps
             if i % 100 == 0:
                 triplet_name = f"train_epoch_{epoch}_step_{i}.png"
@@ -220,9 +235,10 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 )
 
         # validation
-        model.eval()
+        infilling_model.eval()
         older_surrogate_model.eval()
         val_running_loss = 0.0
+        
         avg_val_loss = 0.0
         num_val_steps = 0
 
@@ -240,7 +256,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
                 # forward
                 # p(y_hat | y_sparse)
-                outputs = model(y_sparse)
+                outputs = infilling_model(y_sparse)
                 y_hat = ImageInpaintingL1Loss.get_final_prediction(
                     predicted_image=outputs, target_image=y, mask=y_mask
                 )
@@ -307,14 +323,14 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 if bool(config.save_only_best_weights):
                     if avg_val_loss < best_loss:
                         best_loss = avg_val_loss
-                        logger.save_weights(model, "best_denoiser")
+                        logger.save_weights(infilling_model, "best_infilling_model")
                         logger.save_weights(older_surrogate_model, "best_older_surrogate")
                     else:
                         # NOTE: we overwrite previous "latest" weights
-                        logger.save_weights(model, "latest_denoiser")
+                        logger.save_weights(infilling_model, "latest_infilling_model")
                         logger.save_weights(older_surrogate_model, "latest_older_surrogate")
                 else:
-                    logger.save_weights(model, f"epoch_{epoch}_denoiser")
+                    logger.save_weights(infilling_model, f"epoch_{epoch}_infilling_model")
                     logger.save_weights(older_surrogate_model, f"epoch_{epoch}_surrogate")
 
 
@@ -339,10 +355,15 @@ def main(args: argparse.Namespace) -> None:
     
     # -------------------- model config args --------------------
     if model_config != None:
-        # custom transformer block depths
-        # e.g., [6, 6, 6, 6, 6, 6]
-        model_config.depths = [args.depths] * 6
-        
+        # transformer block depths; e.g., [6, 6, 6, 6, 6, 6]
+        model_config.depths = [args.depths] * args.num_blocks
+        # num heads per block; e.g., [6, 6, 6, 6, 6, 6]
+        model_config.num_heads = [args.num_heads] * args.num_blocks
+        # size of sifted-attention window
+        model_config.window_size = args.window_size
+        model_config.drop_path_rate = args.drop_path_rate
+        model_config.norm_layer = args.norm_layer    
+    
     # train
     train(config, model_config)
 
@@ -354,9 +375,11 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
     
     # -------------------- model config args --------------------
-    parser.add_argument(
-        "-dps", "--depths", type=int, help="Depths of SwinIR blocks", 
-        default=6
-    )
+    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
+    parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
+    parser.add_argument("-nhs", "--num_heads", type=int, help="Number of heads per RSTB block", default=6)
+    parser.add_argument("-wsz", "--window_size", type=int, help="Size of shifted attention window", default=8)
+    parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
+    parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
     args = parser.parse_args()
     main(args)

@@ -6,11 +6,14 @@ global:
 denoising_model:
   name: ours
   pretrained: True
-  weights:
+  weights: 
   config:
 
 older_surrogate_model:
-  target:
+  name: older_surrogate
+  pretrained: True
+  weights:
+  config:
 
 training:
   batch_size: 1

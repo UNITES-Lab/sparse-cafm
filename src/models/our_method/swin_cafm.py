@@ -1192,10 +1192,6 @@ class SwinCAFM(nn.Module):
         # NOTE: just choose on channel dim;
         # it is CRITICAL that this is not removed
         x = x[:, 1, :, :]
-
-        # clamp -> [0, 1]
-        # NOTE: remove sigmoid
-        # x = nn.functional.sigmoid(x)
         
         # HACK: final image with a unet
         # out = self.blend_conv(self.out_unet())
@@ -1204,11 +1200,12 @@ class SwinCAFM(nn.Module):
         # --------------------------------------------------------------------
         # we want to adapt the pre-trained transformer backbone to our setting
         # idea: blend frozen model prediction with UNet pred
-        
         # x = x + self.blend_conv(unet_pred)
         # return self.out_unet(x_original)
         # ---------------------------------------------------------------------
         
+        # clamp outputs to -> [0, 1]
+        x = torch.nn.functional.sigmoid(x)
         return x
         
 

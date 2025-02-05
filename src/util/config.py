@@ -394,9 +394,9 @@ class EvalConfig:
             yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
 
 
-class ModelConfig:
+class SurrogateEvalConfig:
     """
-    Object representing a config file for a SwinIR model.
+    Object representing a config file for an evaluation run of an older-surrogate model pair.
     """
 
     def __init__(self, config_fp: str):
@@ -406,75 +406,126 @@ class ModelConfig:
 
         config_dict: dict = parse_config(config_fp)
 
-        # --- Top-level setting: weights_fp ---
-        self.weights_fp: str = config_dict.get("weights_fp", "")
+        # --- Global settings ---
+        global_cfg: dict = config_dict.get("global", {})
+        self.device: int = global_cfg.get("device", 0)
+        self.mode: str = global_cfg.get("mode", "train")
+        self.formulation: Optional[str] = global_cfg.get("formulation", None)
 
-        # --- Hyperparameters ---
-        hyperparams: dict = config_dict.get("hyperparams", {})
-        self.upscale: int = hyperparams.get("upscale", 8)
-        self.img_size: List[int] = hyperparams.get("img_size", [128, 128])
-        self.window_size: int = hyperparams.get("window_size", 8)
-        self.img_range: float = hyperparams.get("img_range", 1.0)
-        self.depths: List[int] = hyperparams.get("depths", [8, 8, 8, 8, 8, 8])
-        self.embed_dim: int = hyperparams.get("embed_dim", 180)
-        self.num_heads: List[int] = hyperparams.get("num_heads", [6, 6, 6, 6, 6, 6])
-        self.mlp_ratio: int = hyperparams.get("mlp_ratio", 2)
-        self.upsampler: str = hyperparams.get("upsampler", "no_upscale")
-        self.resi_connection: str = hyperparams.get("resi_connection", "1conv")
-        self.drop_path_rate=config_dict.get("hyperparams", {}).get("drop_path_rate", 0.1),
-        
-        # layer norm
-        self.layer_norm_str = config_dict.get("hyperparams", {}).get("norm_layer", None)
-        layer_norm = torch.nn.LayerNorm if self.layer_norm_str == "torch.nn.LayerNorm" else None
-        self.norm_layer = layer_norm
-        
+        # --- Denoising model settings ---
+        denoising_model_cfg: dict = config_dict.get("denoising_model", {})
+        self.denoising_model_name: str = denoising_model_cfg.get("name", "")
+        self.denoising_model_pretrained: bool = denoising_model_cfg.get("pretrained", False)
+        self.denoising_model_weights: Optional[str] = denoising_model_cfg.get("weights", None)
+        self.denoising_model_config_file: Optional[str] = denoising_model_cfg.get("config", None)
+
+        # --- Older surrogate model settings ---
+        older_surrogate_model_cfg: dict = config_dict.get("older_surrogate_model", {})
+        self.older_surrogate_model_name: str = older_surrogate_model_cfg.get("name", "")
+        self.older_surrogate_model_pretrained: bool = older_surrogate_model_cfg.get("pretrained", False)
+        self.older_surrogate_model_weights: Optional[str] = older_surrogate_model_cfg.get("weights", None)
+        self.older_surrogate_model_config_file: Optional[str] = older_surrogate_model_cfg.get("config", None)
+
+        # --- Training settings ---
+        training_cfg: dict = config_dict.get("training", {})
+        self.train_batch_size: int = training_cfg.get("batch_size", 1)
+        self.train_steps_per_epoch: int = training_cfg.get("steps_per_epoch", 1024)
+        self.epochs: int = training_cfg.get("epochs", 100)
+        self.train_loss: Optional[str] = training_cfg.get("loss", None)
+        self.lr: float = training_cfg.get("lr", 1e-4)
+        self.optimizer: Optional[str] = training_cfg.get("optimizer", "Adam")
+
+        # --- Validation settings ---
+        validation_cfg: dict = config_dict.get("validation", {})
+        self.val_batch_size: int = validation_cfg.get("batch_size", 1)
+        self.val_steps_per_epoch: int = validation_cfg.get("steps_per_epoch", 256)
+        self.val_loss: Optional[str] = validation_cfg.get("loss", None)
+
+        # --- Dataset settings ---
+        dataset_cfg: dict = config_dict.get("dataset", {})
+        self.dataset_name: str = dataset_cfg.get("name", "")
+        self.image_size: Optional[int] = dataset_cfg.get("image_size", None)
+        self.crop_size: Optional[int] = dataset_cfg.get("crop_size", None)
+        self.num_workers: int = dataset_cfg.get("num_workers", 0)
+        self.masking_ratio: int = dataset_cfg.get("masking_ratio", 1)
+
+        # --- Logging settings ---
+        logging_cfg: dict = config_dict.get("logging", {})
+        self.log_root: str = logging_cfg.get("root", "")
+        self.exp_name: str = logging_cfg.get("exp_name", "")
+        self.result_columns: List = logging_cfg.get("result_columns", [])
+        self.save_weights: bool = logging_cfg.get("save_weights", True)
+        self.save_only_best_weights: bool = logging_cfg.get("save_only_best_weights", True)
+        self.enable_tensorboard: bool = logging_cfg.get("enable_tensorboard", False)
+        self.log_figures: bool = logging_cfg.get("log_figures", False)
+        self.log_interval: int = logging_cfg.get("log_interval", 1)
 
     def to_dict(self) -> dict:
+        """
+        Return the configuration as a dictionary matching the YAML file structure.
+        """
         config_dict = {
-            "weights_fp": self.weights_fp,
-            "hyperparams": {
-                "upscale": self.upscale,
-                "img_size": self.img_size,
-                "window_size": self.window_size,
-                "img_range": self.img_range,
-                "depths": self.depths,
-                "embed_dim": self.embed_dim,
-                "num_heads": self.num_heads,
-                "mlp_ratio": self.mlp_ratio,
-                "drop_path_rate": self.drop_path_rate,
-                "norm_layer": self.layer_norm_str,
-                "upsampler": self.upsampler,
-                "resi_connection": self.resi_connection,
+            "global": {
+                "device": self.device,
+                "mode": self.mode,
+                "formulation": self.formulation,
+            },
+            "denoising_model": {
+                "name": self.denoising_model_name,
+                "pretrained": self.denoising_model_pretrained,
+                "weights": self.denoising_model_weights,
+                "config": self.denoising_model_config_file,
+            },
+            "older_surrogate_model": {
+                "name": self.older_surrogate_model_name,
+                "pretrained": self.older_surrogate_model_pretrained,
+                "weights": self.older_surrogate_model_weights,
+                "config": self.older_surrogate_model_config_file,
+            },
+            "training": {
+                "batch_size": self.train_batch_size,
+                "steps_per_epoch": self.train_steps_per_epoch,
+                "epochs": self.epochs,
+                "loss": self.train_loss,
+                "lr": self.lr,
+                "optimizer": self.optimizer,
+            },
+            "validation": {
+                "batch_size": self.val_batch_size,
+                "steps_per_epoch": self.val_steps_per_epoch,
+                "loss": self.val_loss,
+            },
+            "dataset": {
+                "name": self.dataset_name,
+                "image_size": self.image_size,
+                "crop_size": self.crop_size,
+                "num_workers": self.num_workers,
+                "masking_ratio": self.masking_ratio,
+            },
+            "logging": {
+                "root": self.log_root,
+                "exp_name": self.exp_name,
+                "result_columns": self.result_columns,
+                "save_weights": self.save_weights,
+                "save_only_best_weights": self.save_only_best_weights,
+                "enable_tensorboard": self.enable_tensorboard,
+                "log_figures": self.log_figures,
+                "log_interval": self.log_interval,
             },
         }
         return config_dict
 
     def save_config(self, output_fp: str) -> None:
         """
-        Save the current configuration to a YAML file, preserving the original format.
+        Save the current configuration to a YAML file, preserving the original structure.
         """
-        config_dict = {
-            "weights_fp": self.weights_fp,
-            "hyperparams": {
-                "upscale": self.upscale,
-                "img_size": self.img_size,
-                "window_size": self.window_size,
-                "img_range": self.img_range,
-                "depths": self.depths,
-                "embed_dim": self.embed_dim,
-                "num_heads": self.num_heads,
-                "mlp_ratio": self.mlp_ratio,
-                "upsampler": self.upsampler,
-                "resi_connection": self.resi_connection,
-            },
-        }
+        config_dict = self.to_dict()
         with open(output_fp, "w") as f:
             yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
 
-
-class SurrogateModelConfig:
+class ModelConfig:
     """
-    Object representing a config file for an older-surrogate model.
+    Object representing a config file for a SwinIR model.
     """
 
     def __init__(self, config_fp: str):
