@@ -143,7 +143,9 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
             # forward: p(y | y_sparse)
             # outputs = model(y_sparse)
-            outputs = model(X_sparse)
+            # outputs = model(X_sparse)
+            assert isinstance(model, SwinCAFM)
+            outputs = model.two_item_forward(X_sparse, y_sparse)
 
             final_pred = ImageInpaintingL1Loss.get_final_prediction(
                 predicted_image=outputs, target_image=y, mask=y_mask
@@ -151,7 +153,6 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
             # NOTE: standard loss (e.g., L1)
             loss = train_loss(outputs, y)
-
             # NOTE: inpainting loss
             # loss: torch.Tensor = train_loss(
             #     predicted_image=outputs, target_image=y, mask=y_mask
@@ -189,7 +190,8 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 logger.log_colorized_tensors(
                     (X, "Topology Map (X)"),
                     (y, "Target (y)"),
-                    (X_sparse, "Model Input (y_sparse)"), 
+                    (y_sparse, "Model Input (y_sparse)"),
+                    (X_sparse, "Model Input (X_sparse)"), 
                     (outputs, "Raw Model Prediction"),
                     (final_pred, "Model Prediction With Given Prior (y_hat)"),
                     file_name=triplet_name
@@ -217,7 +219,8 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
                 # forward : p(y | y_sparse)
                 # outputs = model(y_sparse)
-                outputs = model(X_sparse)
+                # outputs = model(X_sparse)
+                outputs = model.two_item_forward(X_sparse, y_sparse)
 
                 # NOTE: standard loss (e.g., L1)
                 loss = val_loss(outputs, y)
@@ -255,10 +258,11 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                     logger.log_colorized_tensors(
                         (X, "Topology Map (X)"),
                         (y, "Target (y)"),
-                        (X_sparse, "Model Input (y_sparse)"), 
+                        (y_sparse, "Model Input (y_sparse)"),
+                        (X_sparse, "Model Input (X_sparse)"), 
                         (outputs, "Raw Model Prediction"),
                         (final_pred, "Model Prediction With Given Prior (y_hat)"),
-                        triplet_name
+                        file_name=triplet_name
                     )
 
             # optionally log best/epoch model weights

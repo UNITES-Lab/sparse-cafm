@@ -15,24 +15,14 @@ NORM_LAYER=torch.nn.LayerNorm
 
 # ---- train in-filling model ----
 export CUDA_VISIBLE_DEVICES=7
-# nohup python train.py \
-#     --exp_name "swinir-depth=32" \
-#     --depths $DEPTH \
-#     --num_heads $NUM_HEADS \
-#     --num_blocks $NUM_BLOCKS \
-#     --window_size $WINDOW_SIZE \
-#     --drop_path_rate $DPR \
-#     --norm_layer $NORM_LAYER \
-#     > "_swinir-depth=32-p(y | X_sparse).out" 2>&1 &
-
-python train.py \
+nohup python train.py \
     --exp_name "swinir-depth=32" \
     --depths $DEPTH \
     --num_heads $NUM_HEADS \
     --num_blocks $NUM_BLOCKS \
     --window_size $WINDOW_SIZE \
     --drop_path_rate $DPR \
-    --norm_layer $NORM_LAYER
-
+    --norm_layer $NORM_LAYER \
+    > "_swinir-depth=32-p(y | X_sparse, y_sparse).out" 2>&1 &
 # -------------------------------
 exit
