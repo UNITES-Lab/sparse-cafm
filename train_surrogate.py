@@ -187,15 +187,15 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             
             # HACK: [y-y=0]
             # ---- minimize older w.r.t. denoising model weights ----
-            # 1. OLDER + L1
+            # 1. OLDER
             # infilling_loss = train_loss(older_pred, older_pred * 0)
             
-            # 2. combo loss: OLDER + L1
+            # 2. OLDER + L1
             # infilling_loss = train_loss(older_pred, older_pred * 0) + torch.nn.functional.l1_loss(y, y_hat)
             
-            # 3. combo loss: sigmoid(OLDER) + L1
+            # 3. sigmoid(OLDER) + L1
             _older_pred_norm = torch.nn.functional.sigmoid(older_pred)
-            infilling_loss = train_loss(_older_pred_norm, _older_pred_norm * 0) + torch.nn.functional.l1_loss(y, y_hat)
+            infilling_loss: torch.Tensor = train_loss(_older_pred_norm, _older_pred_norm * 0) + torch.nn.functional.l1_loss(y, y_hat)
             # ------------------------------------------------------
             
             # NOTE: must retain graph, we will backprop again using surrogate model
