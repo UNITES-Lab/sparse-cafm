@@ -120,19 +120,19 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     for epoch in range(num_epochs):
         
         model.train()
-       
         running_loss = 0.0
+        
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
-            # feature: X
+            # topo-map:    X
             X: torch.Tensor = batch["X"].cuda(device)
-            # target: y
+            # current-map: y
             y: torch.Tensor = batch["y"].cuda(device)
-            # remove masked pixels
-            y_mask: torch.Tensor = batch["y_mask"].cuda(device)
-            y_sparse = (y * y_mask).float()
-            X_sparse = (X * y_mask).float()
+            # ---- remove masked pixels ----
+            mask: torch.Tensor = batch["mask"].cuda(device)
+            y_sparse = (y * mask).float()
+            X_sparse = (X * mask).float()
             # zero gradients
             optimizer.zero_grad()
             # ---- forward: p(y | y_sparse) ----
@@ -140,12 +140,18 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # outputs = model(X_sparse)
             outputs = model.two_item_forward(X_sparse, y_sparse)
             # ----------------------------------
+            # TODO: all losses should be defined in a flexible way
+            # i.e., we shouldn't have to worry so much about the number of args
+            # each time we change out a loss
+            
             # NOTE: standard loss (e.g., L1)
             loss: torch.Tensor = train_loss(outputs, y)
+            
             # NOTE: inpainting loss
             # loss: torch.Tensor = train_loss(
             #     predicted_image=outputs, target_image=y, mask=y_mask
             # )
+            
             loss.backward()
             optimizer.step()
             
@@ -160,30 +166,20 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 }
             )
             
-            # log a triplet (original, masked, predicted) every 100 steps
-            # if i % 100 == 0:
-            #     triplet_name = f"train_epoch_{epoch}_step_{i}.png"
-            #     final_pred = ImageInpaintingL1Loss.get_final_prediction(
-            #         predicted_image=outputs, target_image=y, mask=y_mask
-            #     )
-            #     logger.log_original_masked_predicted_sample_triplet(
-            #         y, y_sparse, final_pred, triplet_name
-            #     )
-            
-            if i % 100 == 0:
-                triplet_name = f"train_epoch_{epoch}_step_{i}.png"
-                final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                    predicted_image=outputs, target_image=y, mask=y_mask
-                )
-                logger.log_colorized_tensors(
-                    (X, "Topology Map (X)"),
-                    (y, "Target (y)"),
-                    (y_sparse, "Model Input (y_sparse)"),
-                    (X_sparse, "Model Input (X_sparse)"), 
-                    (outputs, "Raw Model Prediction"),
-                    (final_pred, "Model Prediction With Given Prior (y_hat)"),
-                    file_name=triplet_name
-                )
+            if i % 100 != 0: continue
+            triplet_name = f"train_epoch_{epoch}_step_{i}.png"
+            final_pred = ImageInpaintingL1Loss.get_final_prediction(
+                predicted_image=outputs, target_image=y, mask=mask
+            )
+            logger.log_colorized_tensors(
+                (X, "Topology Map (X)"),
+                (y, "Target (y)"),
+                (y_sparse, "Model Input (y_sparse)"),
+                (X_sparse, "Model Input (X_sparse)"), 
+                (outputs, "Raw Model Prediction"),
+                (final_pred, "Model Prediction With Given Prior (y_hat)"),
+                file_name=triplet_name
+            )
 
         # validation
         model.eval()
@@ -194,23 +190,31 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             for i, batch in enumerate(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
-                # feature: X
+                # topo-map:    X
                 X: torch.Tensor = batch["X"].cuda(device)
-                # target: y
+                # current-map: y
                 y: torch.Tensor = batch["y"].cuda(device)
-                # remove masked pixels
-                y_mask: torch.Tensor = batch["y_mask"].cuda(device)
-                y_sparse = (y * y_mask).float()
-                X_sparse = (X * y_mask).float()
+                # ---- remove masked pixels ----
+                mask: torch.Tensor = batch["mask"].cuda(device)
+                y_sparse = (y * mask).float()
+                X_sparse = (X * mask).float()
                 # ---- forward: p(y | y_sparse) ----
+                # TODO: add support for different forwards
                 # outputs = model(y_sparse)
                 # outputs = model(X_sparse)
                 outputs = model.two_item_forward(X_sparse, y_sparse)
                 # ----------------------------------
+                # TODO: all losses should be defined in a flexible way
+                # i.e., we shouldn't have to worry so much about the number of args
+                # each time we change out a loss
+                
                 # NOTE: standard loss (e.g., L1)
-                loss = val_loss(outputs, y)
+                loss: torch.Tensor = train_loss(outputs, y)
+                
                 # NOTE: inpainting loss
-                # loss = val_loss(predicted_image=outputs, target_image=y, mask=y_mask)
+                # loss: torch.Tensor = train_loss(
+                #     predicted_image=outputs, target_image=y, mask=y_mask
+                # )
                 
                 val_running_loss += loss.item() * y_sparse.size(0)
                 logger.log(
@@ -223,45 +227,36 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                     }
                 )
                 num_val_steps += 1
-
-                # log a triplet (original, masked, predicted) every 100 steps
-                # if i % 100 == 0:
-                #     triplet_name = f"train_epoch_{epoch}_step_{i}.png"
-                #     final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                #         predicted_image=outputs, target_image=y, mask=y_mask
-                #     )
-                #     logger.log_original_masked_predicted_sample_triplet(
-                #         y, y_sparse, final_pred, triplet_name
-                #     )
                 
-                if i % 100 == 0:
-                    triplet_name = f"train_epoch_{epoch}_step_{i}.png"
-                    final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                        predicted_image=outputs, target_image=y, mask=y_mask
-                    )
-                    logger.log_colorized_tensors(
-                        (X, "Topology Map (X)"),
-                        (y, "Target (y)"),
-                        (y_sparse, "Model Input (y_sparse)"),
-                        (X_sparse, "Model Input (X_sparse)"), 
-                        (outputs, "Raw Model Prediction"),
-                        (final_pred, "Model Prediction With Given Prior (y_hat)"),
-                        file_name=triplet_name
-                    )
+                # figure logging
+                if i % 100 != 0: continue
+                triplet_name = f"val_epoch_{epoch}_step_{i}.png"
+                final_pred = ImageInpaintingL1Loss.get_final_prediction(
+                    predicted_image=outputs, target_image=y, mask=mask
+                )
+                logger.log_colorized_tensors(
+                    (X, "Topology Map (X)"),
+                    (y, "Target (y)"),
+                    (y_sparse, "Model Input (y_sparse)"),
+                    (X_sparse, "Model Input (X_sparse)"), 
+                    (outputs, "Raw Model Prediction"),
+                    (final_pred, "Model Prediction With Given Prior (y_hat)"),
+                    file_name=triplet_name
+                )
 
             # optionally log best/epoch model weights
             avg_val_loss = val_running_loss / num_val_steps
 
-            if bool(config.save_weights):
-                if bool(config.save_only_best_weights):
-                    if avg_val_loss < best_loss:
-                        best_loss = avg_val_loss
-                        logger.save_weights(model, "best")
-                    else:
-                        # NOTE: we overwrite previous "latest" weights
-                        logger.save_weights(model, f"latest")
+            if not bool(config.save_weights): continue
+            if bool(config.save_only_best_weights):
+                if avg_val_loss < best_loss:
+                    best_loss = avg_val_loss
+                    logger.save_weights(model, "best")
                 else:
-                    logger.save_weights(model, f"epoch_{epoch}")
+                    # NOTE: we overwrite previous "latest" weights
+                    logger.save_weights(model, f"latest")
+            else:
+                logger.save_weights(model, f"epoch_{epoch}")
 
 
 def main(args: argparse.Namespace) -> None:
