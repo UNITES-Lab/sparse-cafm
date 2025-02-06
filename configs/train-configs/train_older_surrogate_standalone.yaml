@@ -1,13 +1,13 @@
 global:
   device: 0
   mode: train  # ['train', 'eval']
-  formulation: p(OLDER|y,y_aug)
+  formulation: p(older|y,y_aug)
 
 model:
   name: ours
   pretrained: True
   weights:
-  config: model-configs/swinir.yaml
+  config:
 
 training:
   batch_size: 1

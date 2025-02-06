@@ -14,11 +14,11 @@ NORM_LAYER=torch.nn.LayerNorm
 # ------------------------------------------------
 
 # ---- train standalone-OLDER surrogate model ----
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=2
 nohup python train_surrogate_standalone.py \
-    --exp_name "" \
+    --exp_name "standalone_init_test" \
     --depths $DEPTH \
-    > "_.out" 2>&1 &
+    > "_standalone_init_test.out" 2>&1 &
 
 # ---- train in-filling model ----
 # export CUDA_VISIBLE_DEVICES=0

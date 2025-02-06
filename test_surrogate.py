@@ -100,7 +100,7 @@ def eval(args: argparse.Namespace, config: SurrogateEvalConfig, model_config: Mo
     if config.denoising_model_weights != None:
         denoising_model = torch.load(config.denoising_model_weights)
     if config.older_surrogate_model_weights != None:
-        denoising_model = torch.load(config.older_surrogate_model_weights)
+        surrogate_older_model = torch.load(config.older_surrogate_model_weights)
         
     # validation loop
     surrogate_older_model.eval()
@@ -232,7 +232,7 @@ def main(args: argparse.Namespace):
     # -------------------- training config args --------------------
     config.exp_name = args.exp_name
     config.older_surrogate_model_weights = args.older_surrogate_model_weights_path
-    config.denoising_model_weights = args.denoising_model_weights_path
+    config.denoising_model_weights = args.infilling_model_weights_path
     
     # run eval
     eval(args, config, model_config)
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     # -------------------- eval run config args --------------------
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
     parser.add_argument("-osp", "--older_surrogate_model_weights_path", type=str, help="Path to older surrogate model checkpoint to evaluate.")
-    parser.add_argument("-dmp", "--denoising_model_weights_path", type=str, help="Path to denosing model checkpoint to evaluate.")
+    parser.add_argument("-dmp", "--infilling_model_weights_path", type=str, help="Path to denosing model checkpoint to evaluate.")
     # --------------------------------------------------------------
     args = parser.parse_args()
     main(args)

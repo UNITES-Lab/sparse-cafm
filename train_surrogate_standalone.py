@@ -23,7 +23,7 @@ from src.util.config import (
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.metrics import OLDER
 
-TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/train_older_surrogate_standalone.yaml")
+TRAIN_CONFIG_FP = os.path.abspath("/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/train-configs/train_older_surrogate_standalone.yaml")
 
 
 def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
@@ -90,6 +90,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
 
+    # HACK: hard-code L1 loss
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
@@ -146,6 +147,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # calculate older scores
             older_gt = OLDER(y_char, y_aug_char)
+            
             # ---- forward surrogate ----
             older_pred = older_surrogate_model(y, y_aug)
             # ---------------------------

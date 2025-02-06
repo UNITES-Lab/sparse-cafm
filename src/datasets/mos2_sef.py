@@ -47,8 +47,8 @@ class Formulation(Enum):
             return Formulation.P_Y_BAR_Y_SPARSE_CN
         elif formulation_str == "p(y|y_sparse_benchmark_cn)":
             return Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN
-        elif formulation_str == "p(OLDER|y,y_aug)":
-            return Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN
+        elif formulation_str == "p(older|y,y_aug)":
+            return Formulation.P_OLDER_BAR_Y_Y_AUG
         else:
             raise KeyError
 
@@ -397,10 +397,8 @@ class MOS2SEFDataset(Dataset):
                 A.HorizontalFlip(p=0.5),
                 A.VerticalFlip(p=0.2),
                 A.RandomRotate90(p=0.5),
-                A.GaussNoise(var_limit=(10.0, 50.0), p=0.3),
                 A.MotionBlur(blur_limit=5, p=0.3),
                 A.GaussianBlur(blur_limit=(3, 7), p=0.3),
-                A.MedianBlur(blur_limit=3, p=0.2),
                 A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
                 A.Resize(
                     width=self.side_length,
@@ -436,17 +434,14 @@ class MOS2SEFDataset(Dataset):
         # H' < H | W' < W
         # [H', W']
         y_aug: np.ndarray = augmented["image"]
-        y_aug = torch.tensor(y).float()
+        y_aug = torch.tensor(y_aug).float()
         y: np.ndarray = augmented["y"]
         y = torch.tensor(y).float()
         
         # normalize y -> [0, 1]
-        y = (y - self.current_maps_min) / (
-            self.current_maps_max - self.current_maps_min
-        )
-        y_aug = (y_aug - self.current_maps_min) / (
-            self.current_maps_max - self.current_maps_min
-        )
+        y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
+        y_aug = (y_aug - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
+        y_aug = (y_aug - y_aug.flatten().min()) / (y_aug.flatten().max() - y_aug.flatten().min())
         
         assert y.max() <= 1.0 and y.min() >= 0.0, f"Error normalizing y sample: {y.shape}"
         assert y_aug.max() <= 1.0 and y_aug.min() >= 0.0, f"Error normalizing y sample: {y_aug.shape}"
@@ -476,7 +471,7 @@ class MOS2SEFDataset(Dataset):
             Formulation.P_Y_BAR_Y_SPARSE_CN: self.get_item_p_y_bar_y_sparse_cn,
             Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK: self.get_item_p_y_bar_y_sparse_deterministic,
             Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN: self.get_item_p_y_bar_y_sparse_deterministic_cn,
-            Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN: self.get_item_p_older_bar_y_y_aug,
+            Formulation.P_OLDER_BAR_Y_Y_AUG: self.get_item_p_older_bar_y_y_aug,
         }
         if self.formulation not in fn_map:
             raise Exception(
