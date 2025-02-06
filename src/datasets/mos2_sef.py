@@ -209,8 +209,6 @@ class MOS2SEFDataset(Dataset):
         self.topo_maps_min = np.amin(np.array(self.topo_maps))
 
     def _create_augmentation_pipeline(self, resize_to_og_height=True):
-        # HACK: optionaly resize image to original height after taking random crop.
-        # We do not resize images when training a ControlNet, hence the need for the conditional.
         return A.Compose(
             [
                 A.HorizontalFlip(p=0.5),
@@ -223,9 +221,6 @@ class MOS2SEFDataset(Dataset):
             ],
             additional_targets={
                 "y": "mask",
-                "X_og": "mask",
-                "y_og": "mask",
-                "y_unnormed": "mask",
                 "sparse_mask": "mask",
             },
         )
@@ -293,25 +288,18 @@ class MOS2SEFDataset(Dataset):
         
         # [H, W]; un-normalized topography map
         X: np.ndarray = self.topo_maps[sample_idx]
-        
-        # [H, W]; copy of original X for figure loging
-        X_og = X.copy()
 
         # [H, W]; get sparse mask w/ shape
-        mask = np.ones(tuple(X.shape))
-        mask[:: self.masking_ratio + 1, :] = 0
+        sparse_mask = np.ones(tuple(X.shape))
+        sparse_mask[:: self.masking_ratio + 1, :] = 0
         # TODO: add a better way to allow differnt sparse ratio selection
 
         # [H, W]; get un-normed current map
         y: np.ndarray = self.current_maps[sample_idx]
 
-        # [H, W]; copy of original y for figure logging
-        y_og = y.copy()
-        y_unnormed = y.copy()
-
         # ---- augment samples ----
         augmented = p_y_bar_x_augmentation_pipeline(
-            image=X, y=y, X_og=X_og, y_og=y_og, y_unnormed=y_unnormed, mask=mask
+            image=X, y=y, sparse_mask=sparse_mask
         )
 
         # H' < H | W' < W
@@ -323,12 +311,6 @@ class MOS2SEFDataset(Dataset):
         y = torch.tensor(y).float()
         # [H', W']
         mask: torch.Tensor = torch.Tensor(augmented["sparse_mask"]).bool()
-        # (H, W)
-        X_og = torch.tensor(augmented["X_og"]).float()
-        # (H, W)
-        y_og = torch.tensor(augmented["y_og"]).float()
-        # (H, W)
-        y_unnormed: np.ndarray = augmented["y_unnormed"]
 
         # normalize X, y -> [0, 1]
         X = (X - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
@@ -343,8 +325,6 @@ class MOS2SEFDataset(Dataset):
             "X": X,
             "y": y,
             "mask": mask,
-            "X_og": X_og,
-            "y_og": y_og,
         }
 
     def get_item_p_y_bar_y_sparse_deterministic(self, index: int) -> Dict:
