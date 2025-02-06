@@ -209,7 +209,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 # each time we change out a loss
                 
                 # NOTE: standard loss (e.g., L1)
-                loss: torch.Tensor = train_loss(outputs, y)
+                loss: torch.Tensor = val_loss(outputs, y)
                 
                 # NOTE: inpainting loss
                 # loss: torch.Tensor = train_loss(
@@ -277,6 +277,7 @@ def main(args: argparse.Namespace) -> None:
         
     # -------------------- training config args --------------------
     config.exp_name = args.exp_name
+    config.log_root = args.root
     # -------------------- model config args --------------------
     if model_config != None:
         # transformer block depths; e.g., [6, 6, 6, 6, 6, 6]
@@ -296,6 +297,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # -------------------- training config args --------------------
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
+    parser.add_argument("r", "--root", type=str, help="Root directory to save experiment in", default="__exps__/")
     # -------------------- model config args --------------------
     parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)

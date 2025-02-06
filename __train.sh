@@ -17,6 +17,7 @@ NORM_LAYER=torch.nn.LayerNorm
 export CUDA_VISIBLE_DEVICES=3
 nohup python train.py \
     --exp_name "swinir-depth=32-mask-flip" \
+    --root "__exps__/y-task-formulations/p(y | X_sparse, y_sparse)/a. train-runs" \
     --depths $DEPTH \
     --num_heads $NUM_HEADS \
     --num_blocks $NUM_BLOCKS \
