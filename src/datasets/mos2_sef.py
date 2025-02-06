@@ -226,7 +226,7 @@ class MOS2SEFDataset(Dataset):
                 "X_og": "mask",
                 "y_og": "mask",
                 "y_unnormed": "mask",
-                "y_mask": "mask",
+                "sparse_mask": "mask",
             },
         )
 
@@ -270,7 +270,7 @@ class MOS2SEFDataset(Dataset):
 
     def get_item_p_y_bar_y_sparse(self, index: int) -> Dict:
         """
-        Item getter method for p(y | y_sparse) formulation.
+        Item getter method for p(y|y_sparse) formulation.
         Partially mask the original current map y; currently row-wise masking.
         """
 
@@ -278,8 +278,7 @@ class MOS2SEFDataset(Dataset):
             resize_to_og_height=False
         )
 
-        # NOTE: we should only consider samples: [0, 1, 2, 3];
-        # 4th sample is collected under slightly different conditions
+        # NOTE: we only consider samples: [0, 1, 2, 3];
         # HACK: hard-coded train/val splits
         # choose a random sample idx
         if self.split == TRAIN_SPLIT:
@@ -291,56 +290,44 @@ class MOS2SEFDataset(Dataset):
             sample_idx = len(self.current_maps) - 1
         else:
             raise Exception(f"Invalid split: {self.split}")
-
-        # get un-normed topography map
+        
+        # [H, W]; un-normalized topography map
         X: np.ndarray = self.topo_maps[sample_idx]
-        # copy of original X for figure loging
+        
+        # [H, W]; copy of original X for figure loging
         X_og = X.copy()
 
-        # get mask based on masking ratio
-        # mask w/ shape [H, W]
-        y_mask = np.ones(tuple(X.shape))
-        y_mask[:: self.masking_ratio + 1, :] = 0
+        # [H, W]; get sparse mask w/ shape
+        mask = np.ones(tuple(X.shape))
+        mask[:: self.masking_ratio + 1, :] = 0
+        # TODO: add a better way to allow differnt sparse ratio selection
 
-        # # HACK ---------------
-        # y_mask[:, 0::10, :] = 0
-        # y_mask[:, 1::10, :] = 0
-        # y_mask[:, 2::10, :] = 0
-        # y_mask[:, 3::10, :] = 0
-        # y_mask[:, 4::10, :] = 0
-        # y_mask[:, 5::10, :] = 0
-        # y_mask[:, 6::10, :] = 0
-        # y_mask[:, 7::10, :] = 0
-        # y_mask[:, 8::10, :] = 0
-        # # ---------------------
-
-        # get un-normed current map
+        # [H, W]; get un-normed current map
         y: np.ndarray = self.current_maps[sample_idx]
 
-        # copy of original y for figure logging
+        # [H, W]; copy of original y for figure logging
         y_og = y.copy()
         y_unnormed = y.copy()
 
-        # augment samples
-        # X recieves pixel-value normalization, all other data do not
+        # ---- augment samples ----
         augmented = p_y_bar_x_augmentation_pipeline(
-            image=X, y=y, X_og=X_og, y_og=y_og, y_unnormed=y_unnormed, y_mask=y_mask
+            image=X, y=y, X_og=X_og, y_og=y_og, y_unnormed=y_unnormed, mask=mask
         )
 
-        # convert all data -> tensor
+        # H' < H | W' < W
+        # [H', W']
         X: np.ndarray = augmented["image"]
-        # (64, 64)
         X = torch.tensor(X).float()
+        # [H', W']
         y: np.ndarray = augmented["y"]
-        # (64, 64)
         y = torch.tensor(y).float()
-        # (512, 512)
+        # [H', W']
+        mask: torch.Tensor = torch.Tensor(augmented["sparse_mask"]).bool()
+        # (H, W)
         X_og = torch.tensor(augmented["X_og"]).float()
-        # (512, 512)
+        # (H, W)
         y_og = torch.tensor(augmented["y_og"]).float()
-        # (64, 64)
-        y_mask: torch.Tensor = torch.Tensor(augmented["y_mask"]).bool()
-        # (512, 512)
+        # (H, W)
         y_unnormed: np.ndarray = augmented["y_unnormed"]
 
         # normalize X, y -> [0, 1]
@@ -348,11 +335,14 @@ class MOS2SEFDataset(Dataset):
         y = (y - self.current_maps_min) / (
             self.current_maps_max - self.current_maps_min
         )
+        
+        assert X.max() <= 1.0 and X.min() >= 0.0, f"Error normalizing X sample: {X.shape}"
+        assert y.max() <= 1.0 and y.min() >= 0.0, f"Error normalizing y sample: {y.shape}"
 
         return {
             "X": X,
             "y": y,
-            "y_mask": y_mask,
+            "mask": mask,
             "X_og": X_og,
             "y_og": y_og,
         }
