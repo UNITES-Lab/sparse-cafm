@@ -115,7 +115,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     #     else:
     #         param.requires_grad = False  # All others are frozen
     # ---------------------------------------
-    
+
     # ---------- training loop ----------
     for epoch in range(num_epochs):
         
@@ -136,9 +136,10 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # zero gradients
             optimizer.zero_grad()
             # ---- forward: p(y | y_sparse) ----
-            # outputs = model(y_sparse)
+            outputs = model(y_sparse)
             # outputs = model(X_sparse)
-            outputs = model.two_item_forward(X_sparse, y_sparse)
+            # assert isinstance(model, SwinCAFM)
+            # outputs = model.two_item_forward(X_sparse, y_sparse)
             # ----------------------------------
             # TODO: all losses should be defined in a flexible way
             # i.e., we shouldn't have to worry so much about the number of args
@@ -172,10 +173,10 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 predicted_image=outputs, target_image=y, mask=mask
             )
             logger.log_colorized_tensors(
-                (X, "Topology Map (X)"),
+                # (X, "Topology Map (X)"),
                 (y, "Target (y)"),
                 (y_sparse, "Model Input (y_sparse)"),
-                (X_sparse, "Model Input (X_sparse)"), 
+                # (X_sparse, "Model Input (X_sparse)"), 
                 (outputs, "Raw Model Prediction"),
                 (final_pred, "Model Prediction With Given Prior (y_hat)"),
                 file_name=triplet_name
@@ -200,9 +201,9 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 X_sparse = (X * mask).float()
                 # ---- forward: p(y | y_sparse) ----
                 # TODO: add support for different forwards
-                # outputs = model(y_sparse)
+                outputs = model(y_sparse)
                 # outputs = model(X_sparse)
-                outputs = model.two_item_forward(X_sparse, y_sparse)
+                # outputs = model.two_item_forward(X_sparse, y_sparse)
                 # ----------------------------------
                 # TODO: all losses should be defined in a flexible way
                 # i.e., we shouldn't have to worry so much about the number of args
@@ -235,10 +236,10 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                     predicted_image=outputs, target_image=y, mask=mask
                 )
                 logger.log_colorized_tensors(
-                    (X, "Topology Map (X)"),
+                    # (X, "Topology Map (X)"),
                     (y, "Target (y)"),
                     (y_sparse, "Model Input (y_sparse)"),
-                    (X_sparse, "Model Input (X_sparse)"), 
+                    # (X_sparse, "Model Input (X_sparse)"), 
                     (outputs, "Raw Model Prediction"),
                     (final_pred, "Model Prediction With Given Prior (y_hat)"),
                     file_name=triplet_name
@@ -297,7 +298,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # -------------------- training config args --------------------
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
-    parser.add_argument("r", "--root", type=str, help="Root directory to save experiment in", default="__exps__/")
+    parser.add_argument("-r", "--root", type=str, help="Root directory to save experiment in", default="__exps__/")
     # -------------------- model config args --------------------
     parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)

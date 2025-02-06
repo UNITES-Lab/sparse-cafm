@@ -88,32 +88,25 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
     model.eval()
 
     for step, batch in enumerate(tqdm(val_dataloader, desc=f"Evaluating...:")):
-
-        # target: y
+        # topo-map:    X
+        X: torch.Tensor = batch["X"].cuda(device)
+        # current-map: y
         y: torch.Tensor = batch["y"].cuda(device)
+        # ---- remove masked pixels ----
+        mask: torch.Tensor = batch["mask"].cuda(device)
+        y_sparse = (y * mask).float()
+        X_sparse = (X * mask).float()
+        # ---- forward: p(y | y_sparse) ----
+        # TODO: add support for different forwards
+        y_hat = model(y_sparse)
+        # outputs = model(X_sparse)
+        # outputs = model.two_item_forward(X_sparse, y_sparse)
+        # ----------------------------------
 
-        # mask
-        y_mask: torch.Tensor = batch["y_mask"].cuda(device)
-        y_sparse = (y * y_mask).float()
-
-        # ---- forward : p(y|y_sparse) ----
-        if isinstance(model, SwinCAFM):
-            y_hat: torch.Tensor = model(y_sparse)
-        else:
-            y_hat: torch.Tensor = model(y_sparse, y_mask)
-            
-        # forward : p(y|y_sparse)
-        # y_hat: torch.Tensor = model(y_sparse, y, y_mask)
-        # ---------------------------------
-
-        # log final predicted image
+        # get final predicted image
         triplet_name = f"eval_step_{step}.png"
         final_pred = ImageInpaintingL1Loss.get_final_prediction(
-            predicted_image=y_hat, target_image=y, mask=y_mask
-        )
-
-        logger.log_original_masked_predicted_sample_triplet(
-            y, y_sparse, final_pred, triplet_name
+            predicted_image=y_hat, target_image=y, mask=mask
         )
 
         # 1. MAE
@@ -167,6 +160,15 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
                 "celano_script_y": y_char,
                 "celano_script_y_sparse": y_sparse_char,
             }
+        )
+        logger.log_colorized_tensors(
+            # (X, "Topology Map (X)"),
+            (y, "Target (y)"),
+            (y_sparse, "Model Input (y_sparse)"),
+            # (X_sparse, "Model Input (X_sparse)"), 
+            (y_hat, "Raw Model Prediction"),
+            (final_pred, "Model Prediction With Given Prior (y_hat)"),
+            file_name=triplet_name
         )
 
 
