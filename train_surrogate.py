@@ -23,7 +23,7 @@ from src.util.config import (
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.metrics import OLDER
 
-TRAIN_CONFIG_FP = os.path.abspath("/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/older_surrogate.yaml")
+TRAIN_CONFIG_FP = os.path.abspath("configs/older_surrogate.yaml")
 
 
 def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
@@ -123,6 +123,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     older_surrogate_model.cuda(device)
     older_surrogate_model.float()
     
+    # NOTE: always init your optimizers LAST lads...
     surrogate_optimizer: torch.optim.Optimizer = torch.optim.Adam(
         params=older_surrogate_model.parameters(),
         lr=1e-4
@@ -149,7 +150,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             y: torch.Tensor = batch["y"].cuda(device)
 
             # mask
-            y_mask: torch.Tensor = batch["y_mask"].cuda(device)
+            y_mask: torch.Tensor = batch["mask"].cuda(device)
             y_sparse = (y * y_mask).float()
 
             # zero gradients
@@ -183,19 +184,21 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             
             # calculate older scores
             older_gt = OLDER(y_char, y_sparse_char)
+            # ---- forward surrogate ----
             older_pred = older_surrogate_model(y_sparse, y_hat)
+            # ---------------------------
             
             # HACK: [y-y=0]
             # ---- minimize older w.r.t. denoising model weights ----
             # 1. OLDER
-            # infilling_loss = train_loss(older_pred, older_pred * 0)
-            
-            # 2. OLDER + L1
+            infilling_loss: torch.Tensor = train_loss(older_pred, older_pred * 0)
+            # 2. sigmoid(OLDER)
+            # ...
+            # 3. OLDER + L1
             # infilling_loss = train_loss(older_pred, older_pred * 0) + torch.nn.functional.l1_loss(y, y_hat)
-            
-            # 3. sigmoid(OLDER) + L1
-            _older_pred_norm = torch.nn.functional.sigmoid(older_pred)
-            infilling_loss: torch.Tensor = train_loss(_older_pred_norm, _older_pred_norm * 0) + torch.nn.functional.l1_loss(y, y_hat)
+            # 4. sigmoid(OLDER) + L1
+            # _older_pred_norm = torch.nn.functional.sigmoid(older_pred)
+            # infilling_loss: torch.Tensor = train_loss(_older_pred_norm, _older_pred_norm * 0) + torch.nn.functional.l1_loss(y, y_hat)
             # ------------------------------------------------------
             
             # NOTE: must retain graph, we will backprop again using surrogate model
@@ -225,14 +228,17 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             )
          
             # log a triplet (original, masked, predicted) every 100 steps
-            if i % 100 == 0:
-                triplet_name = f"train_epoch_{epoch}_step_{i}.png"
-                final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                    predicted_image=outputs, target_image=y, mask=y_mask
-                )
-                logger.log_original_masked_predicted_sample_triplet(
-                    y, y_sparse, final_pred, triplet_name
-                )
+            if i % 100 != 0: continue
+            triplet_name = f"train_epoch_{epoch}_step_{i}.png"
+            logger.log_colorized_tensors(
+                # (X, "Topology Map (X)"),
+                (y, "Target (y)"),
+                (y_sparse, "Model Input (y_sparse)"),
+                # (X_sparse, "Model Input (X_sparse)"), 
+                (outputs, "Raw Model Prediction"),
+                (y_hat, "Model Prediction With Given Prior (y_hat)"),
+                file_name=triplet_name
+            )
 
         # validation
         infilling_model.eval()
@@ -306,32 +312,36 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 )
             
                 # log a triplet (original, masked, predicted) every 100 steps
-                if i % 100 == 0:
-                    triplet_name = f"val_epoch_{epoch}_step_{i}.png"
-                    final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                        predicted_image=outputs, target_image=y, mask=y_mask
-                    )
-                    logger.log_original_masked_predicted_sample_triplet(
-                        y, y_sparse, final_pred, triplet_name
-                    )
+                # figure logging
+                if i % 100 != 0: continue
+                triplet_name = f"val_epoch_{epoch}_step_{i}.png"
+                logger.log_colorized_tensors(
+                    # (X, "Topology Map (X)"),
+                    (y, "Target (y)"),
+                    (y_sparse, "Model Input (y_sparse)"),
+                    # (X_sparse, "Model Input (X_sparse)"), 
+                    (outputs, "Raw Model Prediction"),
+                    (y_hat, "Model Prediction With Given Prior (y_hat)"),
+                    file_name=triplet_name
+                )
     
             # optionally log best/epoch model weights
             if num_val_steps > 0:
                 avg_val_loss = val_running_loss / num_val_steps
             
-            if bool(config.save_weights):
-                if bool(config.save_only_best_weights):
-                    if avg_val_loss < best_loss:
-                        best_loss = avg_val_loss
-                        logger.save_weights(infilling_model, "best_infilling_model")
-                        logger.save_weights(older_surrogate_model, "best_older_surrogate")
-                    else:
-                        # NOTE: we overwrite previous "latest" weights
-                        logger.save_weights(infilling_model, "latest_infilling_model")
-                        logger.save_weights(older_surrogate_model, "latest_older_surrogate")
+            if not bool(config.save_weights): continue
+            if bool(config.save_only_best_weights):
+                if avg_val_loss < best_loss:
+                    best_loss = avg_val_loss
+                    logger.save_weights(infilling_model, "best_infilling_model")
+                    logger.save_weights(older_surrogate_model, "best_older_surrogate")
                 else:
-                    logger.save_weights(infilling_model, f"epoch_{epoch}_infilling_model")
-                    logger.save_weights(older_surrogate_model, f"epoch_{epoch}_surrogate")
+                    # NOTE: we overwrite previous "latest" weights
+                    logger.save_weights(infilling_model, "latest_infilling_model")
+                    logger.save_weights(older_surrogate_model, "latest_older_surrogate")
+            else:
+                logger.save_weights(infilling_model, f"epoch_{epoch}_infilling_model")
+                logger.save_weights(older_surrogate_model, f"epoch_{epoch}_surrogate")
 
 
 def main(args: argparse.Namespace) -> None:

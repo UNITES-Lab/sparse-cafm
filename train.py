@@ -132,7 +132,6 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # ---- remove masked pixels ----
             mask: torch.Tensor = batch["mask"].cuda(device)
             y_sparse = (y * mask).float()
-            X_sparse = (X * mask).float()
             # zero gradients
             optimizer.zero_grad()
             # ---- forward: p(y | y_sparse) ----
