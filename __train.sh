@@ -6,11 +6,11 @@ DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 
 # ---- train infilling + OLDER surrogate model ----
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=3
 nohup python train_surrogate.py \
-    --exp_name "infiller-swinir-D=32-loss=OLDER" \
+    --exp_name "infiller-swinir-D=32-loss=sig(OLDER)+L1" \
     --depths $DEPTH \
-    > "_infiller-swinir-D=32-loss=OLDER.out" 2>&1 &
+    > "_infiller-swinir-D=32-loss=sig(OLDER)+L1.out" 2>&1 &
 # ------------------------------------------------
 
 # ---- train in-filling model ----

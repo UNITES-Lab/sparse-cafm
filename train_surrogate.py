@@ -74,14 +74,13 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     )
 
 
-def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
+def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
     """
     Train OLDER surrogate model.
     
-    TODO: verify this isn't just dumb
-    It may be easier to attempt to train two models at the same time.
-    1. Model-A: p(y | y_sparse)
-    2. Model-B  p(older | y_sparse, y_hat)
+    TODO: two approaches
+    1. train older-surrogate & infiller at the same time
+    2. train older-surrogate -> train infiller
     
     Given:
         1. y_sparse
@@ -120,6 +119,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     
     infilling_model.cuda(device)
     infilling_model.float()
+    
     older_surrogate_model.cuda(device)
     older_surrogate_model.float()
     
@@ -153,16 +153,15 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             y_mask: torch.Tensor = batch["mask"].cuda(device)
             y_sparse = (y * y_mask).float()
 
-            # zero gradients
             infilling_optimizer.zero_grad()
             surrogate_optimizer.zero_grad()
 
-            # p(y_hat|y_sparse)]
-            # forward: [H, W]
-            outputs = infilling_model(y_sparse)
-            y_hat = ImageInpaintingL1Loss.get_final_prediction(
-                predicted_image=outputs, target_image=y, mask=y_mask
-            )
+            # ---- forward: [H, W] ----
+            if args.train_infiller:
+                outputs = infilling_model(y_sparse)
+                y_hat = ImageInpaintingL1Loss.get_final_prediction(
+                    predicted_image=outputs, target_image=y, mask=y_mask
+                )
             
             mean, std = train_dataset.current_maps_mean, train_dataset.current_maps_std
             
@@ -174,7 +173,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             data = mean + (std * z)
             y_char = celano_lab_characterization(data, train_dataset.img_size_um)
             
-            # ---- characterize(y_sparse) ----
+            # ---- characterize(y_hat) ----
             # z: [0, 1] -> [-1, 1] (i.e., standard normal)
             z = (y_hat * 2) - 1
             # [-1, 1] -> original dist
@@ -191,14 +190,15 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # HACK: [y-y=0]
             # ---- minimize older w.r.t. denoising model weights ----
             # 1. OLDER
-            infilling_loss: torch.Tensor = train_loss(older_pred, older_pred * 0)
+            # infilling_loss: torch.Tensor = train_loss(older_pred, older_pred * 0)
             # 2. sigmoid(OLDER)
-            # ...
+            # _older_pred_norm = torch.nn.functional.sigmoid(older_pred)
+            # infilling_loss: torch.Tensor = train_loss(_older_pred_norm, _older_pred_norm * 0)
             # 3. OLDER + L1
             # infilling_loss = train_loss(older_pred, older_pred * 0) + torch.nn.functional.l1_loss(y, y_hat)
             # 4. sigmoid(OLDER) + L1
-            # _older_pred_norm = torch.nn.functional.sigmoid(older_pred)
-            # infilling_loss: torch.Tensor = train_loss(_older_pred_norm, _older_pred_norm * 0) + torch.nn.functional.l1_loss(y, y_hat)
+            _older_pred_norm = torch.nn.functional.sigmoid(older_pred)
+            infilling_loss: torch.Tensor = train_loss(_older_pred_norm, _older_pred_norm * 0) + torch.nn.functional.l1_loss(y, y_hat)
             # ------------------------------------------------------
             
             # NOTE: must retain graph, we will backprop again using surrogate model
@@ -257,7 +257,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 y: torch.Tensor = batch["y"].cuda(device)
 
                 # mask
-                y_mask: torch.Tensor = batch["y_mask"].cuda(device)
+                y_mask: torch.Tensor = batch["mask"].cuda(device)
                 y_sparse = (y * y_mask).float()
 
                 # forward
@@ -362,7 +362,6 @@ def main(args: argparse.Namespace) -> None:
         
     # -------------------- training config args --------------------
     config.exp_name = args.exp_name
-    
     # -------------------- model config args --------------------
     if model_config != None:
         # transformer block depths; e.g., [6, 6, 6, 6, 6, 6]
@@ -375,15 +374,13 @@ def main(args: argparse.Namespace) -> None:
         model_config.norm_layer = args.norm_layer    
     
     # train
-    train(config, model_config)
+    train(args, config, model_config)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    
     # -------------------- training config args --------------------
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
-    
     # -------------------- model config args --------------------
     parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
