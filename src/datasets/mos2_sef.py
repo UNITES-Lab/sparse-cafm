@@ -28,6 +28,7 @@ class Formulation(Enum):
     P_Y_BAR_Y_SPARSE_BENCHMARK = 4
     P_Y_BAR_Y_SPARSE = 5
     P_Y_BAR_Y_SPARSE_BENCHMARK_CN = 6
+    P_OLDER_BAR_Y_Y_AUG = 7
 
     @staticmethod
     def get_formulation_from_str(formulation_str: str) -> Enum:
@@ -45,6 +46,8 @@ class Formulation(Enum):
         elif formulation_str == "p(y|y_sparse_cn)":
             return Formulation.P_Y_BAR_Y_SPARSE_CN
         elif formulation_str == "p(y|y_sparse_benchmark_cn)":
+            return Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN
+        elif formulation_str == "p(OLDER|y,y_aug)":
             return Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN
         else:
             raise KeyError
@@ -382,6 +385,76 @@ class MOS2SEFDataset(Dataset):
         y_img_like = (y_img_like * 2) - 1
 
         return dict(jpg=y_img_like, txt="", hint=y_sparse_img_like)
+    
+    def get_item_p_older_bar_y_y_aug(self, index: int) -> dict: 
+        """
+        Item getter method for p(y|y_sparse) formulation.
+        Partially mask the original current map y; currently row-wise masking.
+        """
+
+        augmentation_pipeline = A.Compose(
+            [
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.2),
+                A.RandomRotate90(p=0.5),
+                A.GaussNoise(var_limit=(10.0, 50.0), p=0.3),
+                A.MotionBlur(blur_limit=5, p=0.3),
+                A.GaussianBlur(blur_limit=(3, 7), p=0.3),
+                A.MedianBlur(blur_limit=3, p=0.2),
+                A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
+                A.Resize(
+                    width=self.side_length,
+                    height=self.side_length,
+                    interpolation=cv2.INTER_AREA,
+                ),
+            ],
+            additional_targets={
+                "y": "mask",
+            },
+        )
+
+        # NOTE: we only consider samples: [0, 1, 2, 3];
+        # HACK: hard-coded train/val splits
+        # choose a random sample idx
+        if self.split == TRAIN_SPLIT:
+            # randint is inclusive: [a, b]
+            # select a random sample from self.data[:-1]
+            sample_idx = random.randint(0, len(self.current_maps) - 2)
+        elif self.split == VAL_SPLIT:
+            # select the final data sample: self.data[-1]
+            sample_idx = len(self.current_maps) - 1
+        else:
+            raise Exception(f"Invalid split: {self.split}")
+
+        # [H, W]; get un-normed current map
+        y: np.ndarray = self.current_maps[sample_idx]
+        y_aug = y.copy()
+
+        # ---- augment samples ----
+        augmented = augmentation_pipeline(image=y_aug, y=y)
+
+        # H' < H | W' < W
+        # [H', W']
+        y_aug: np.ndarray = augmented["image"]
+        y_aug = torch.tensor(y).float()
+        y: np.ndarray = augmented["y"]
+        y = torch.tensor(y).float()
+        
+        # normalize y -> [0, 1]
+        y = (y - self.current_maps_min) / (
+            self.current_maps_max - self.current_maps_min
+        )
+        y_aug = (y_aug - self.current_maps_min) / (
+            self.current_maps_max - self.current_maps_min
+        )
+        
+        assert y.max() <= 1.0 and y.min() >= 0.0, f"Error normalizing y sample: {y.shape}"
+        assert y_aug.max() <= 1.0 and y_aug.min() >= 0.0, f"Error normalizing y sample: {y_aug.shape}"
+
+        return {
+            "y": y,
+            "y_aug": y_aug,
+        }
 
     def __getitem__(self, index: int) -> Dict:
         """
@@ -403,6 +476,7 @@ class MOS2SEFDataset(Dataset):
             Formulation.P_Y_BAR_Y_SPARSE_CN: self.get_item_p_y_bar_y_sparse_cn,
             Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK: self.get_item_p_y_bar_y_sparse_deterministic,
             Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN: self.get_item_p_y_bar_y_sparse_deterministic_cn,
+            Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN: self.get_item_p_older_bar_y_y_aug,
         }
         if self.formulation not in fn_map:
             raise Exception(
