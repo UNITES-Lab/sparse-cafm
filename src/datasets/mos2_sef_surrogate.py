@@ -11,15 +11,51 @@ CROPPED_IMAGE_SIDE_LENGTH = 128
 ORIGINAL_IMAGE_SIZE = (512, 512)
 
 CHARACTERISTIC_NORMALIZATION_DICT = {
-    "coverage_percentage": None,
-    "total_len_detected_curves": None,
-    "total_area_circular_shapes": None,
-    "total_area_extended_shapes": None,
-    "total_defect_area": None,
-    "num_circular_shapes": None,
-    "num_extended_shapes": None,
-    "num_curved_lines": None,
-    "average_surface_current": None,
+    "coverage_percentage": 
+        {
+            "mean": 44.20514771,
+            "std": 18.16990309,
+        },
+    "total_len_detected_curves": 
+        {
+            "mean": 18.40427719,
+            "std": 4.57835860,
+        },
+    "total_area_circular_shapes":
+        {
+            "mean": 0.91592283,
+            "std": 0.14692457,
+        },
+    "total_area_extended_shapes": 
+        {
+            "mean": 0.03225828, 
+            "std": 0.05968977,
+        },
+    "total_defect_area": 
+        {
+            "mean": 0.0057872382,
+            "std": 0.0008519035,
+        },
+    "num_circular_shapes": 
+        {
+            "mean": 75.2265000000, 
+            "std": 14.1692059675,
+        },
+    "num_extended_shapes": 
+        {
+            "mean": 0.3658000000, 
+            "std": 0.6335537546,
+        },
+    "num_curved_lines": 
+        {
+            "mean": 1.6506000000, 
+            "std": 0.8053071712,
+        },
+    "average_surface_current": 
+        {
+            "mean": 495686994.9221611619, 
+            "std": 62729659.3002319783
+        },
 }
 
 class MOS2SefOLDERSurrogate(Dataset):
@@ -53,8 +89,20 @@ class MOS2SefOLDERSurrogate(Dataset):
     def __getitem__(self, index: int) -> Dict:
         
         batch: dict  = self.dataset[index]
+        
         # [B, H, W]
         y: torch.Tensor = batch["y"]
-        y_char = process_image(y)
-
+        y_char = process_image(y, self.dataset.img_size_um)
         
+        # ---- normalize all vals -> std normal ----
+        for k in y_char:
+            val = y_char[k]
+            mean = CHARACTERISTIC_NORMALIZATION_DICT[k]['mean']
+            std = CHARACTERISTIC_NORMALIZATION_DICT[k]['std']
+            y_char[k] = (val - mean) / std
+            
+        
+
+if __name__ == "__main__":
+    ds = MOS2SefOLDERSurrogate()
+    _ = ds[0]

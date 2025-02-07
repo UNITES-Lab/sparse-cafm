@@ -67,10 +67,11 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
             Average surface current across the entire image, in nanoamperes.
     """
 
-    # HACK: DANGEROUS!! Must be removed!!
+    # HACK: we always assume BS=1
     # [B, H, W] -> [H, W]
-    if len(data.shape) > 2:
-        # assume bs=1
+    if len(data.shape) == 2:
+        pass
+    elif len(data.shape) == 3:
         data = data[0, ...]
     else:
         raise Exception(f"Error: only batch size of one supported for celano-lab evaluation function.")
