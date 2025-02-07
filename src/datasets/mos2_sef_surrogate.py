@@ -101,7 +101,9 @@ class MOS2SefOLDERSurrogate(Dataset):
             std = CHARACTERISTIC_NORMALIZATION_DICT[k]['std']
             y_char[k] = (val - mean) / std
             
-        
+        item = y_char.copy()
+        item['y'] = y
+        return item
 
 if __name__ == "__main__":
     ds = MOS2SefOLDERSurrogate()
