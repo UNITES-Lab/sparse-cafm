@@ -112,7 +112,7 @@ def eval(args: argparse.Namespace, config: SurrogateEvalConfig, model_config: Mo
         y: torch.Tensor = batch["y"].cuda(device)
         
         # mask
-        y_mask: torch.Tensor = batch["y_mask"].cuda(device)
+        y_mask: torch.Tensor = batch["mask"].cuda(device)
         y_sparse = (y * y_mask).float()
         
         # TODO: denoising model outputs must be clamped between [0-1];

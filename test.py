@@ -98,9 +98,10 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
         X_sparse = (X * mask).float()
         # ---- forward: p(y | y_sparse) ----
         # TODO: add support for different forwards
+        assert isinstance(model, SwinCAFM)
+        # y_hat = model.two_item_forward(X_sparse, y_sparse)
+        # y_hat = model(X_sparse)
         y_hat = model(y_sparse)
-        # outputs = model(X_sparse)
-        # outputs = model.two_item_forward(X_sparse, y_sparse)
         # ----------------------------------
 
         # get final predicted image
@@ -162,7 +163,7 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
             }
         )
         logger.log_colorized_tensors(
-            # (X, "Topology Map (X)"),
+            (X, "Topology Map (X)"),
             (y, "Target (y)"),
             (y_sparse, "Model Input (y_sparse)"),
             # (X_sparse, "Model Input (X_sparse)"), 
