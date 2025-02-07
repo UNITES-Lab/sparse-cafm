@@ -176,8 +176,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 # targets
                 target: torch.Tensor = batch['target'].cuda(device)
 
-                surrogate_optimizer.zero_grad()
-
                 # ---- forward: [H, W] ----
                 pred = older_surrogate_model(y)
                 

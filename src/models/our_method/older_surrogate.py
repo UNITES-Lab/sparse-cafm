@@ -15,9 +15,7 @@ class MultiHeadOlderSurrogate(nn.Module):
         # scalar value heads for each characteristic
         self.heads = nn.ModuleList([
             nn.Sequential(
-                nn.Linear(1000, 128),
-                nn.ReLU(),
-                nn.Linear(128, 1)
+                nn.Linear(1000, 1),
             ) for _ in range(NUM_HEADS)
         ])
 
