@@ -8,12 +8,10 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
-from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.our_method.older_surrogate import MultiHeadOlderSurrogate
 from src.datasets.mos2_sef import Formulation as F
 from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogate
 from src.util.logger import ExperimentLogger
-from src.util.loss import ImageInpaintingL1Loss
 from src.util.config import (
     TrainConfig,
     ModelConfig,
@@ -183,10 +181,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 # ---- forward: [H, W] ----
                 pred = older_surrogate_model(y)
                 
-                loss: torch.Tensor = train_loss(pred, target)
-                loss.backward()
-                surrogate_optimizer.step()
-                
+                loss: torch.Tensor = val_loss(pred, target)
                 val_running_loss += loss.item() * y.size(0)
                 
                 logger.log(
