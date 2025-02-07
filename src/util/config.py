@@ -126,6 +126,11 @@ class TrainConfig:
         self.pretrained: str = model_cfg.get("pretrained", False)
         self.weights: str = model_cfg.get("weights", None)
         self.model_config_file: str = model_cfg.get("config", None)
+        
+        # --- Surrogate settings ---
+        surrogate_cfg: dict = config_dict.get("surrogate", {})
+        self.surrogate_name: str = surrogate_cfg.get("name", "")
+        self.surgate_weights: str = surrogate_cfg.get("weights", None)
 
         # --- Training settings ---
         training_cfg: str = config_dict.get("training", {})
@@ -176,6 +181,10 @@ class TrainConfig:
                 "weights": self.weights,
                 "config": self.model_config_file,
             },
+            "surrogate": {
+                "name": self.surrogate_name,
+                "weights": self.surgate_weights,
+            },
             "training": {
                 "batch_size": self.train_batch_size,
                 "steps_per_epoch": self.steps_per_epoch,
@@ -224,6 +233,10 @@ class TrainConfig:
                 "pretrained": self.pretrained,
                 "weights": self.weights,
                 "config": self.model_config_file,
+            },
+            "surrogate": {
+                "name": self.surrogate_name,
+                "weights": self.surgate_weights,
             },
             "training": {
                 "batch_size": self.train_batch_size,
