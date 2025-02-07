@@ -24,7 +24,7 @@ from src.models.classic_recon import (
     NearestNeighborsInpainter,
 )
 from src.models.our_method.swin_cafm import SwinCAFM
-from src.models.our_method.older_surrogate import OlderSurrogate
+from src.models.our_method.older_surrogate import OlderSurrogate, MultiHeadOlderSurrogate
 from src.models.prev_methods.sstem import SSTEM
 from src.models.prev_methods.gpstruct import GPSTRUCT
 from _SwinIR.models.network_swinir import SwinIR
@@ -92,7 +92,8 @@ MODELS = {
     "nn_interpolation": {"fn": NearestNeighborsInpainter.get, "weights": None},
     "sstem_interpolation": {"fn": SSTEM.get, "weights": None},
     "gpstruct_interpolation": {"fn": GPSTRUCT.get, "weights": None},
-    "older_surrogate": {"fn": OlderSurrogate.get, "weights": None}
+    "older_surrogate": {"fn": OlderSurrogate.get, "weights": None},
+    "older_surrogate_mh": {"fn": MultiHeadOlderSurrogate.get, "weights": None}
 }
 
 OPTIMIZERS = {

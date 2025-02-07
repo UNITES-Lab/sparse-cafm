@@ -2,6 +2,51 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 
+NUM_HEADS = 9
+
+class MultiHeadOlderSurrogate(nn.Module):
+    """
+    Predict Celano-Lab characterizations of samples.
+    """
+    def __init__(self, num_heads: int = NUM_HEADS):
+        super(MultiHeadOlderSurrogate, self).__init__()
+        self.num_heads = num_heads
+        self.backbone = models.resnet152()
+        # scalar value heads for each characteristic
+        self.heads = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(1000, 128),
+                nn.ReLU(),
+                nn.Linear(128, 1)
+            ) for _ in range(NUM_HEADS)
+        ])
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Parameters
+        ---
+        :param y: current-map [H, W]
+        
+        Returns
+        ---
+        older_predicted_value: [1]
+        """
+        # [B, H, W] -> [B, 1, H, W]
+        x = x.unsqueeze(1)
+        # [B, 1, H, W] -> [B, 3, H, W]
+        x = x.repeat(1, 3, 1, 1)
+        # [B, 3, H, W] -> [B, 1000]
+        x = self.backbone(x)
+        preds = [head(x) for head in self.heads]
+        out = torch.cat(preds, dim=-1)
+        # [B, NUM_HEADS]
+        return out
+    
+    @staticmethod
+    def get(weights=None):
+        return MultiHeadOlderSurrogate()
+
+
 class OlderSurrogate(nn.Module):
     """
     Predict OLDER: [0, inf) from ground-truth current-maps y.
@@ -46,6 +91,5 @@ class OlderSurrogate(nn.Module):
         return OlderSurrogate()
     
 if __name__ == '__main__':
-    model = OlderSurrogate()
-    y = torch.rand((1, 128, 128))
-    model(y)
+    breakpoint()
+    

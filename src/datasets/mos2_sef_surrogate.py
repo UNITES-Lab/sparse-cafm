@@ -101,8 +101,15 @@ class MOS2SefOLDERSurrogate(Dataset):
             std = CHARACTERISTIC_NORMALIZATION_DICT[k]['std']
             y_char[k] = (val - mean) / std
             
+        target_arr = []
+        keys_sorted = sorted(list(y_char.keys()))
+        for k in keys_sorted:
+            target_arr.append(y_char[k])
+        target = torch.Tensor(target_arr).float()
+        
         item = y_char.copy()
         item['y'] = y
+        item['target'] = target
         return item
 
 if __name__ == "__main__":

@@ -5,20 +5,12 @@ NUM_BLOCKS=6
 DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 
-# ---- train infilling + OLDER surrogate model ----
-# export CUDA_VISIBLE_DEVICES=3
-# nohup python train_surrogate.py \
-#     --exp_name "infiller-swinir-D=32-loss=sig(OLDER)+L1" \
-#     --depths $DEPTH \
-#     > "_infiller-swinir-D=32-loss=sig(OLDER)+L1.out" 2>&1 &
-# ------------------------------------------------
-
 # ---- train standalone-OLDER surrogate model ----
-export CUDA_VISIBLE_DEVICES=2
-nohup python train_surrogate_standalone.py \
-    --exp_name "standalone_init_test" \
+export CUDA_VISIBLE_DEVICES=1
+nohup python train_multi_head_surrogate.py \
+    --exp_name "older_surrogate_mh-initial" \
     --depths $DEPTH \
-    > "_standalone_init_test.out" 2>&1 &
+    > "_older_surrogate_mh-initialt.out" 2>&1 &
 
 # ---- train in-filling model ----
 # export CUDA_VISIBLE_DEVICES=0
@@ -33,5 +25,4 @@ nohup python train_surrogate_standalone.py \
 #     --norm_layer $NORM_LAYER \
 #     > "_swinir-depth=32-p(y|y_sparse).out" 2>&1 &
 # -------------------------------
-
 exit

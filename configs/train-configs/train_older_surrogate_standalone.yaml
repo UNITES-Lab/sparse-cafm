@@ -1,10 +1,10 @@
 global:
   device: 0
   mode: train  # ['train', 'eval']
-  formulation: p(older|y,y_aug)
+  formulation: p(y|y_sparse)
 
 model:
-  name: ours
+  name: older_surrogate_mh
   pretrained: True
   weights:
   config:
@@ -23,8 +23,8 @@ validation:
   loss: L1
 
 dataset:
-  name: SapphireDataset
-  image_size: 224
+  name: MOS2SefOLDERSurrogate
+  image_size: 512
   crop_size: 128
   num_workers: 0
   masking_ratio: 1
@@ -32,7 +32,7 @@ dataset:
 logging:
   root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs"
   exp_name: older-surrogate
-  result_columns: ["global_train_step", "global_val_step", "epoch", "train_loss", "val_loss", "z"]
+  result_columns: [""]
   save_weights: true
   save_only_best_weights: true
   enable_tensorboard: false
