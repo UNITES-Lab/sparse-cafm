@@ -230,11 +230,12 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
     extended_shapes_area_um2 = extended_shapes_area * (pixel_size_um**2)
     curves_length_um = curves_length * pixel_size_um
 
-    curves_length_um_without_boundary= curves_length_um - (2*(height+width))
+    curves_length_um_without_boundary = curves_length_um - (2*(height+width))
     Total_Defect_Area = circular_shapes_area_um2 + extended_shapes_area_um2
     Total_Defect_Percentage = 100 * Total_Defect_Area/ (height*width)
     
     # NOTE: we remove `curves_length_um_without_boundary`, as this metric is consistently negative
+    # TODO: normalize all values to a "reasonable" range
     return {
         # "total_len_detected_curves_without_boundary": curves_length_um_without_boundary,
         "coverage_percentage": coverage_percentage,
