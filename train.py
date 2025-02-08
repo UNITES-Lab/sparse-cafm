@@ -299,7 +299,7 @@ if __name__ == "__main__":
     # -------------------- training config args --------------------
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name.", default="my-experiment")
     parser.add_argument("-r", "--root", type=str, help="Root directory to save experiment in.", default="__exps__/")
-    parser.add_argument("-sfp", "--surrogate_weights_file_path", type=Optional[str], help="Initialize surrogate from checkpoint.", default=None)
+    parser.add_argument("-sfp", "--surrogate_weights_file_path", type=str, help="Initialize surrogate from checkpoint.", default="")
     # -------------------- model config args --------------------
     parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
