@@ -109,10 +109,15 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     older_surrogate_model.cuda(device)
     older_surrogate_model.float()
     
+    # ---- optional: freeze backbone ----
+    for param in older_surrogate_model.backbone.parameters():
+        param.requires_grad = False
+    
     # NOTE: always init your optimizers LAST lads...
-    surrogate_optimizer: torch.optim.Optimizer = torch.optim.Adam(
+    surrogate_optimizer: torch.optim.Optimizer = torch.optim.AdamW(
         params=older_surrogate_model.parameters(),
-        lr=1e-4
+        lr=1e-4,
+        weight_decay=1e-3,
     )
     
     # ---------- training loop ----------

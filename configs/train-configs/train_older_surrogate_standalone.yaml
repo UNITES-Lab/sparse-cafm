@@ -6,7 +6,7 @@ global:
 model:
   name: older_surrogate_mh
   pretrained: True
-  weights:
+  weights: 
   config:
 
 training:

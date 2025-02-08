@@ -93,7 +93,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     logger = setup_logger(config, model_config)
     model = create_model(config)
     surrogate: MultiHeadOlderSurrogate = create_surrogate(config)
-    
+
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
 
@@ -122,7 +122,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
     model.cuda(device)
     model.float()
-    
+
     # surrogate model is used purely as an evaluator
     surrogate.eval()
 
@@ -137,27 +137,28 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
         ):
             # topo-map:    X
             X: torch.Tensor = batch["X"].cuda(device)
-            
+
             # current-map: y
             y: torch.Tensor = batch["y"].cuda(device)
-            
+
             # ---- remove masked pixels ----
             mask: torch.Tensor = batch["mask"].cuda(device)
             y_sparse = (y * mask).float()
-            
+
             # zero gradients
             optimizer.zero_grad()
-            
+
             # ---- forward: p(y | y_sparse) ----
             outputs = model(y_sparse)
-            
+
             # final model prediction with given unmasked pixels
             y_hat = ImageInpaintingL1Loss.get_final_prediction(
-                predicted_image=outputs, target_image=y, mask=mask)
+                predicted_image=outputs, target_image=y, mask=mask
+            )
 
             # NOTE: standard loss (e.g., L1)
-            # loss: torch.Tensor = train_loss(outputs, y))
-            loss: torch.Tensor = (surrogate(y_hat) - surrogate(y)).flatten().mean()
+            char_1 = surrogate(y); char_2 = surrogate(y_hat)
+            loss: torch.Tensor = train_loss(char_1, char_2)
 
             loss.backward()
             optimizer.step()
@@ -175,24 +176,22 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
             if i % 100 != 0:
                 continue
+            
             triplet_name = f"train_epoch_{epoch}_step_{i}.png"
-            final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                predicted_image=outputs, target_image=y, mask=mask
-            )
             logger.log_colorized_tensors(
                 # (X, "Topology Map (X)"),
+                # (X_sparse, "Model Input (X_sparse)"),
                 (y, "Target (y)"),
                 (y_sparse, "Model Input (y_sparse)"),
-                # (X_sparse, "Model Input (X_sparse)"),
                 (outputs, "Raw Model Prediction"),
-                (final_pred, "Model Prediction With Given Prior (y_hat)"),
+                (y_hat, "Model Prediction With Given Prior (y_hat)"),
                 file_name=triplet_name,
             )
 
         # validation
         model.eval()
         val_running_loss = 0.0
-        num_val_steps = 0
+        num_val_steps = 1
 
         with torch.no_grad():
             for i, batch in enumerate(
@@ -200,56 +199,49 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             ):
                 # topo-map:    X
                 X: torch.Tensor = batch["X"].cuda(device)
+
                 # current-map: y
                 y: torch.Tensor = batch["y"].cuda(device)
+
                 # ---- remove masked pixels ----
                 mask: torch.Tensor = batch["mask"].cuda(device)
                 y_sparse = (y * mask).float()
-                X_sparse = (X * mask).float()
+
                 # ---- forward: p(y | y_sparse) ----
-                # TODO: add support for different forwards
                 outputs = model(y_sparse)
-                # outputs = model(X_sparse)
-                # outputs = model.two_item_forward(X_sparse, y_sparse)
-                # ----------------------------------
-                # TODO: all losses should be defined in a flexible way
-                # i.e., we shouldn't have to worry so much about the number of args
-                # each time we change out a loss
+
+                # final model prediction with given unmasked pixels
+                y_hat = ImageInpaintingL1Loss.get_final_prediction(
+                    predicted_image=outputs, target_image=y, mask=mask
+                )
 
                 # NOTE: standard loss (e.g., L1)
-                loss: torch.Tensor = val_loss(outputs, y)
+                # loss: torch.Tensor = train_loss(outputs, y))
+                char_1 = surrogate(y); char_2 = surrogate(y_hat)
+                loss: torch.Tensor = train_loss(char_1, char_2)
 
-                # NOTE: inpainting loss
-                # loss: torch.Tensor = train_loss(
-                #     predicted_image=outputs, target_image=y, mask=y_mask
-                # )
-
-                val_running_loss += loss.item() * y_sparse.size(0)
+                running_loss += loss.item() * y_sparse.size(0)
                 logger.log(
                     **{
-                        "global_train_step": None,
-                        "global_val_step": len(val_dataloader) * (epoch) + i,
+                        "global_train_step": len(train_dataloader) * (epoch) + i,
+                        "global_val_step": None,
                         "epoch": epoch,
                         "train_loss": None,
                         "val_loss": loss.item(),
                     }
                 )
-                num_val_steps += 1
 
-                # figure logging
                 if i % 100 != 0:
                     continue
+
                 triplet_name = f"val_epoch_{epoch}_step_{i}.png"
-                final_pred = ImageInpaintingL1Loss.get_final_prediction(
-                    predicted_image=outputs, target_image=y, mask=mask
-                )
                 logger.log_colorized_tensors(
                     # (X, "Topology Map (X)"),
                     (y, "Target (y)"),
                     (y_sparse, "Model Input (y_sparse)"),
                     # (X_sparse, "Model Input (X_sparse)"),
                     (outputs, "Raw Model Prediction"),
-                    (final_pred, "Model Prediction With Given Prior (y_hat)"),
+                    (y_hat, "Model Prediction With Given Prior (y_hat)"),
                     file_name=triplet_name,
                 )
 

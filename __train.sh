@@ -1,4 +1,4 @@
-DEPTH=32
+DEPTH=6
 WINDOW_SIZE=8
 NUM_HEADS=6
 NUM_BLOCKS=6
@@ -6,16 +6,16 @@ DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 
 # ---- train standalone-OLDER surrogate model ----
-export CUDA_VISIBLE_DEVICES=5
+export CUDA_VISIBLE_DEVICES=0
 nohup python train_multi_head_surrogate.py \
-    --exp_name "older_surrogate_mh-deeper-heads" \
+    --exp_name "older_surrogate_mh-vit+layernorm" \
     --depths $DEPTH \
-    > "_older_surrogate_mh-deeper-heads.out" 2>&1 &
+    > "_older_surrogate_mh-resnet152+layernorm.out" 2>&1 &
 
 # ---- train in-filling model ----
 # export CUDA_VISIBLE_DEVICES=0
 # nohup python train.py \
-#     --exp_name "swinir-depth=32" \
+#     --exp_name "swinir-depth=$DEPTH-loss=surrogate" \
 #     --root "__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs" \
 #     --depths $DEPTH \
 #     --num_heads $NUM_HEADS \
@@ -23,6 +23,7 @@ nohup python train_multi_head_surrogate.py \
 #     --window_size $WINDOW_SIZE \
 #     --drop_path_rate $DPR \
 #     --norm_layer $NORM_LAYER \
-#     > "_swinir-depth=32-p(y|y_sparse).out" 2>&1 &
+#     > "_swinir-depth=$DEPTH-loss=surrogate.out"  2>&1 &
+
 # -------------------------------
 exit

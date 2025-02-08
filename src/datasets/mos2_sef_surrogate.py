@@ -10,6 +10,8 @@ from src.util.celano_lab_scripts import process_image
 CROPPED_IMAGE_SIDE_LENGTH = 128
 ORIGINAL_IMAGE_SIZE = (512, 512)
 
+# NOTE: these values are calculated by sampling 10k times from
+# train a val sets of MOS2SEFDataset. We directly feed y into characterization script.
 CHARACTERISTIC_NORMALIZATION_DICT = {
     "coverage_percentage": 
         {
@@ -87,6 +89,17 @@ class MOS2SefOLDERSurrogate(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, index: int) -> Dict:
+        """
+        Provide a current-map y and a "target" Tensor.
+        
+        Returns
+        ---
+        {
+            "y": torch.Tensor: [H, W]
+            "target": torch.Tensor: [9]
+                - All nine Celano-Lab characterisitics normalized to standard normal.
+        }
+        """
         
         batch: dict  = self.dataset[index]
         

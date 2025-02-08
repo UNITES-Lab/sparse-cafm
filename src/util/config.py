@@ -24,7 +24,10 @@ from src.models.classic_recon import (
     NearestNeighborsInpainter,
 )
 from src.models.our_method.swin_cafm import SwinCAFM
-from src.models.our_method.older_surrogate import OlderSurrogate, MultiHeadOlderSurrogate
+from src.models.our_method.older_surrogate import (
+    OlderSurrogate,
+    MultiHeadOlderSurrogate,
+)
 from src.models.prev_methods.sstem import SSTEM
 from src.models.prev_methods.gpstruct import GPSTRUCT
 from _SwinIR.models.network_swinir import SwinIR
@@ -93,7 +96,7 @@ MODELS = {
     "sstem_interpolation": {"fn": SSTEM.get, "weights": None},
     "gpstruct_interpolation": {"fn": GPSTRUCT.get, "weights": None},
     "older_surrogate": {"fn": OlderSurrogate.get, "weights": None},
-    "older_surrogate_mh": {"fn": MultiHeadOlderSurrogate.get, "weights": None}
+    "older_surrogate_mh": {"fn": MultiHeadOlderSurrogate.get, "weights": None},
 }
 
 OPTIMIZERS = {
@@ -126,7 +129,7 @@ class TrainConfig:
         self.pretrained: str = model_cfg.get("pretrained", False)
         self.weights: str = model_cfg.get("weights", None)
         self.model_config_file: str = model_cfg.get("config", None)
-        
+
         # --- Surrogate settings ---
         surrogate_cfg: dict = config_dict.get("surrogate", {})
         self.surrogate_name: str = surrogate_cfg.get("name", "")
@@ -272,7 +275,7 @@ class TrainConfig:
         # save config
         with open(output_fp, "w") as f:
             yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
-            
+
 
 class EvalConfig:
     """
@@ -429,16 +432,28 @@ class SurrogateEvalConfig:
         # --- Denoising model settings ---
         denoising_model_cfg: dict = config_dict.get("denoising_model", {})
         self.denoising_model_name: str = denoising_model_cfg.get("name", "")
-        self.denoising_model_pretrained: bool = denoising_model_cfg.get("pretrained", False)
-        self.denoising_model_weights: Optional[str] = denoising_model_cfg.get("weights", None)
-        self.denoising_model_config_file: Optional[str] = denoising_model_cfg.get("config", None)
+        self.denoising_model_pretrained: bool = denoising_model_cfg.get(
+            "pretrained", False
+        )
+        self.denoising_model_weights: Optional[str] = denoising_model_cfg.get(
+            "weights", None
+        )
+        self.denoising_model_config_file: Optional[str] = denoising_model_cfg.get(
+            "config", None
+        )
 
         # --- Older surrogate model settings ---
         older_surrogate_model_cfg: dict = config_dict.get("older_surrogate_model", {})
         self.older_surrogate_model_name: str = older_surrogate_model_cfg.get("name", "")
-        self.older_surrogate_model_pretrained: bool = older_surrogate_model_cfg.get("pretrained", False)
-        self.older_surrogate_model_weights: Optional[str] = older_surrogate_model_cfg.get("weights", None)
-        self.older_surrogate_model_config_file: Optional[str] = older_surrogate_model_cfg.get("config", None)
+        self.older_surrogate_model_pretrained: bool = older_surrogate_model_cfg.get(
+            "pretrained", False
+        )
+        self.older_surrogate_model_weights: Optional[str] = (
+            older_surrogate_model_cfg.get("weights", None)
+        )
+        self.older_surrogate_model_config_file: Optional[str] = (
+            older_surrogate_model_cfg.get("config", None)
+        )
 
         # --- Training settings ---
         training_cfg: dict = config_dict.get("training", {})
@@ -469,7 +484,9 @@ class SurrogateEvalConfig:
         self.exp_name: str = logging_cfg.get("exp_name", "")
         self.result_columns: List = logging_cfg.get("result_columns", [])
         self.save_weights: bool = logging_cfg.get("save_weights", True)
-        self.save_only_best_weights: bool = logging_cfg.get("save_only_best_weights", True)
+        self.save_only_best_weights: bool = logging_cfg.get(
+            "save_only_best_weights", True
+        )
         self.enable_tensorboard: bool = logging_cfg.get("enable_tensorboard", False)
         self.log_figures: bool = logging_cfg.get("log_figures", False)
         self.log_interval: int = logging_cfg.get("log_interval", 1)
@@ -537,6 +554,7 @@ class SurrogateEvalConfig:
         with open(output_fp, "w") as f:
             yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
 
+
 class ModelConfig:
     """
     Object representing a config file for a SwinIR model.
@@ -564,13 +582,16 @@ class ModelConfig:
         self.mlp_ratio: int = hyperparams.get("mlp_ratio", 2)
         self.upsampler: str = hyperparams.get("upsampler", "no_upscale")
         self.resi_connection: str = hyperparams.get("resi_connection", "1conv")
-        self.drop_path_rate=config_dict.get("hyperparams", {}).get("drop_path_rate", 0.1),
-        
+        self.drop_path_rate = (
+            config_dict.get("hyperparams", {}).get("drop_path_rate", 0.1),
+        )
+
         # layer norm
         self.layer_norm_str = config_dict.get("hyperparams", {}).get("norm_layer", None)
-        layer_norm = torch.nn.LayerNorm if self.layer_norm_str == "torch.nn.LayerNorm" else None
+        layer_norm = (
+            torch.nn.LayerNorm if self.layer_norm_str == "torch.nn.LayerNorm" else None
+        )
         self.norm_layer = layer_norm
-        
 
     def to_dict(self) -> dict:
         config_dict = {
