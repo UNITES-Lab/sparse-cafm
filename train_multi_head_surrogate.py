@@ -116,7 +116,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     # NOTE: always init your optimizers LAST lads...
     surrogate_optimizer: torch.optim.Optimizer = torch.optim.AdamW(
         params=older_surrogate_model.parameters(),
-        lr=1e-4,
+        lr=1e-5,
         weight_decay=1e-3,
     )
     

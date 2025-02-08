@@ -1,4 +1,5 @@
 import torch
+import torchvision
 import torch.nn as nn
 import torchvision.models as models
 import torchvision.models.resnet as resnet
@@ -9,28 +10,42 @@ NUM_HEADS = 9
 class MultiHeadOlderSurrogate(nn.Module):
     """
     Predict Celano-Lab characterizations of samples.
-    
-    NOTE: LayerNorm seems to prevent exploading grads.
-    TODO: this model tends to suffer from exploading parameter values.
-    - We observe random loss spikes of 100+ at test time.
-    TODO: we can easily try different backbones (e.g., ViT)
     """
 
     def __init__(self, num_heads: int = NUM_HEADS):
         super(MultiHeadOlderSurrogate, self).__init__()
         self.num_heads = num_heads
         
-        self.backbone = models.resnet152(weights=models.ResNet152_Weights.DEFAULT)
+        # ---- Resnet-152 Backbone ----
+        # self.backbone = models.resnet152(weights=models.ResNet152_Weights.DEFAULT)
         
-        # replace the final layer of the backbone
-        # allows us to grab the feature representation just after
-        # global pooling is applied
-        self.backbone.fc = nn.Identity()
+        # # replace the final layer of the backbone
+        # # allows us to grab the feature representation just after
+        # # global pooling is applied
+        # self.backbone.fc = nn.Identity()
 
-        # ---- scalar value heads for each characteristic ----
+        # # ---- scalar value heads for each characteristic ----
+        # self.heads = nn.ModuleList([
+        #     nn.Sequential(
+        #         nn.Linear(2048, 512),
+        #         nn.ReLU(),
+        #         nn.LayerNorm(512),
+        #         nn.Dropout(p=0.3),
+        #         nn.Linear(512, 256),
+        #         nn.ReLU(),
+        #         nn.LayerNorm(256),
+        #         nn.Dropout(p=0.3),
+        #         nn.Linear(256, 1),
+        # ) for _ in range(NUM_HEADS)
+        # ])
+        #  -----------------------------
+        
+        #  ------- ViT Backbone --------
+        self.backbone = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
+        self.backbone.heads = nn.Identity()
         self.heads = nn.ModuleList([
             nn.Sequential(
-                nn.Linear(2048, 512),
+                nn.Linear(768, 512),
                 nn.ReLU(),
                 nn.LayerNorm(512),
                 nn.Dropout(p=0.3),
@@ -39,9 +54,9 @@ class MultiHeadOlderSurrogate(nn.Module):
                 nn.LayerNorm(256),
                 nn.Dropout(p=0.3),
                 nn.Linear(256, 1),
-        ) for _ in range(NUM_HEADS)
+            ) for _ in range(num_heads)
         ])
-
+        # -----------------------------
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -53,6 +68,10 @@ class MultiHeadOlderSurrogate(nn.Module):
         ---
         older_predicted_value: [1]
         """
+        
+        if isinstance(self.backbone, torchvision.models.vision_transformer.VisionTransformer):
+            x = torchvision.transforms.Resize((224, 224))(x)
+        
         # [B, H, W] -> [B, 1, H, W]
         x = x.unsqueeze(1)
         # [B, 1, H, W] -> [B, 3, H, W]

@@ -6,11 +6,11 @@ DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 
 # ---- train standalone-OLDER surrogate model ----
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 nohup python train_multi_head_surrogate.py \
-    --exp_name "older_surrogate_mh-vit+layernorm" \
+    --exp_name "older_surrogate_mh-ViT-l[-2]+layernorm-adamW-lr=1e-5" \
     --depths $DEPTH \
-    > "_older_surrogate_mh-resnet152+layernorm.out" 2>&1 &
+    > "_older_surrogate_mh-ViT-l[-2]+layernorm-adamW-lr=1e-5.out" 2>&1 &
 
 # ---- train in-filling model ----
 # export CUDA_VISIBLE_DEVICES=0
