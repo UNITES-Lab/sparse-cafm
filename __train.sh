@@ -13,17 +13,16 @@ nohup python train_multi_head_surrogate.py \
     > "_older_surrogate_mh-ViT-L16-l[-2]+layernorm-adamW-lr=1e-4.out" 2>&1 &
 
 # ---- train in-filling model ----
-# export CUDA_VISIBLE_DEVICES=0
-# nohup python train.py \
-#     --exp_name "swinir-depth=$DEPTH-loss=surrogate" \
-#     --root "__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs" \
-#     --depths $DEPTH \
-#     --num_heads $NUM_HEADS \
-#     --num_blocks $NUM_BLOCKS \
-#     --window_size $WINDOW_SIZE \
-#     --drop_path_rate $DPR \
-#     --norm_layer $NORM_LAYER \
-#     > "_swinir-depth=$DEPTH-loss=surrogate.out"  2>&1 &
-
+export CUDA_VISIBLE_DEVICES=0
+nohup python train.py \
+    --exp_name "swinir-depth=$DEPTH-loss=surrogate" \
+    --root "__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs" \
+    --depths $DEPTH \
+    --num_heads $NUM_HEADS \
+    --num_blocks $NUM_BLOCKS \
+    --window_size $WINDOW_SIZE \
+    --drop_path_rate $DPR \
+    --norm_layer $NORM_LAYER \
+    > "_swinir-depth=$DEPTH-loss=surrogate.out"  2>&1 &
 # -------------------------------
 exit

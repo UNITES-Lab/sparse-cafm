@@ -101,7 +101,9 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
 
-    best_loss = sys.maxsize
+    # use to save model checkpoints
+    best_val_loss = sys.maxsize
+    
     num_epochs = config.epochs
     device = config.device
 
@@ -130,7 +132,6 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
     for epoch in range(num_epochs):
 
         model.train()
-        running_loss = 0.0
 
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
@@ -162,8 +163,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
             loss.backward()
             optimizer.step()
-
-            running_loss += loss.item() * y_sparse.size(0)
+            
             logger.log(
                 **{
                     "global_train_step": len(train_dataloader) * (epoch) + i,
@@ -220,7 +220,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 char_1 = surrogate(y); char_2 = surrogate(y_hat)
                 loss: torch.Tensor = train_loss(char_1, char_2)
 
-                running_loss += loss.item() * y_sparse.size(0)
+                val_running_loss += loss.item() * y_sparse.size(0)
                 logger.log(
                     **{
                         "global_train_step": len(train_dataloader) * (epoch) + i,
@@ -245,14 +245,14 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                     file_name=triplet_name,
                 )
 
-            # optionally log best/epoch model weights
+            # optional: log best/recent model weights
             avg_val_loss = val_running_loss / num_val_steps
 
             if not bool(config.save_weights):
                 continue
             if bool(config.save_only_best_weights):
-                if avg_val_loss < best_loss:
-                    best_loss = avg_val_loss
+                if avg_val_loss < val_running_loss:
+                    val_running_loss = avg_val_loss
                     logger.save_weights(model, "best")
                 else:
                     # NOTE: we overwrite previous "latest" weights
