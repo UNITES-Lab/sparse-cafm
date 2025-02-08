@@ -61,13 +61,11 @@ def create_surrogate(config: TrainConfig) -> nn.Module:
     surrogate: MultiHeadOlderSurrogate = surrogate_fn()
     if surrogate_weights:
         surrogate.load_state_dict(torch.load(surrogate_weights))
-    assert isinstance(surrogate, nn.Module)
+    assert isinstance(surrogate, MultiHeadOlderSurrogate)
     return surrogate.cuda(config.device).float()
 
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
-
-    split_str = "training" if split == "train" else "validation"
     img_size = int(config.image_size)
     dataset = MOS2SEFDataset(
         split=split,
@@ -280,6 +278,7 @@ def main(args: argparse.Namespace) -> None:
     # -------------------- training config args --------------------
     config.exp_name = args.exp_name
     config.log_root = args.root
+    config.surgate_weights = args.surrogate_weights_file_path
     # -------------------- model config args --------------------
     if model_config != None:
         # transformer block depths; e.g., [6, 6, 6, 6, 6, 6]
@@ -298,44 +297,15 @@ def main(args: argparse.Namespace) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # -------------------- training config args --------------------
-    parser.add_argument(
-        "-e",
-        "--exp_name",
-        type=str,
-        help="Experiment directory name",
-        default="my-experiment",
-    )
-    parser.add_argument(
-        "-r",
-        "--root",
-        type=str,
-        help="Root directory to save experiment in",
-        default="__exps__/",
-    )
+    parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name.", default="my-experiment")
+    parser.add_argument("-r", "--root", type=str, help="Root directory to save experiment in.", default="__exps__/")
+    parser.add_argument("-sfp", "--surrogate_weights_file_path", type=Optional[str], help="Initialize surrogate from checkpoint.", default=None)
     # -------------------- model config args --------------------
-    parser.add_argument(
-        "-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6
-    )
-    parser.add_argument(
-        "-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6
-    )
-    parser.add_argument(
-        "-nhs",
-        "--num_heads",
-        type=int,
-        help="Number of heads per RSTB block",
-        default=6,
-    )
-    parser.add_argument(
-        "-wsz",
-        "--window_size",
-        type=int,
-        help="Size of shifted attention window",
-        default=8,
-    )
+    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
+    parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
+    parser.add_argument("-nhs", "--num_heads", type=int, help="Number of heads per RSTB block", default=6)
+    parser.add_argument("-wsz", "--window_size", type=int, help="Size of shifted attention window", default=8)
     parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
-    parser.add_argument(
-        "-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm"
-    )
+    parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
     args = parser.parse_args()
     main(args)
