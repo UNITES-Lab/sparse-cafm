@@ -41,11 +41,11 @@ class MultiHeadOlderSurrogate(nn.Module):
         #  -----------------------------
         
         #  ------- ViT Backbone --------
-        self.backbone = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
+        self.backbone = models.vit_l_16(weights=models.ViT_L_16_Weights.IMAGENET1K_V1)
         self.backbone.heads = nn.Identity()
         self.heads = nn.ModuleList([
             nn.Sequential(
-                nn.Linear(768, 512),
+                nn.Linear(1024, 512),
                 nn.ReLU(),
                 nn.LayerNorm(512),
                 nn.Dropout(p=0.3),
