@@ -133,6 +133,9 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # input: y
             y: torch.Tensor = batch["y"].cuda(device)
             
+            # char
+            
+            
             # targets
             target: torch.Tensor = batch['target'].cuda(device)
 
