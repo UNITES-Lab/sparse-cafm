@@ -157,7 +157,13 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
 
             # NOTE: standard loss (e.g., L1)
             char_1 = surrogate(y); char_2 = surrogate(y_hat)
-            loss: torch.Tensor = train_loss(char_1, char_2)
+            
+            # Loss: L1
+            # loss: torch.Tensor = torch.nn.functional.l1_loss(y, outputs)
+            # Loss: OLDER
+            # loss: torch.Tensor = train_loss(char_1, char_2)
+            # Loss: OLDER + L1
+            loss: torch.Tensor = train_loss(char_1, char_2) + torch.nn.functional.l1_loss(y, outputs)
 
             loss.backward()
             optimizer.step()
@@ -216,9 +222,16 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 # NOTE: standard loss (e.g., L1)
                 # loss: torch.Tensor = train_loss(outputs, y))
                 char_1 = surrogate(y); char_2 = surrogate(y_hat)
-                loss: torch.Tensor = train_loss(char_1, char_2)
+                
+                # Loss: L1
+                # loss: torch.Tensor = torch.nn.functional.l1_loss(y, outputs)
+                # Loss: OLDER
+                # loss: torch.Tensor = train_loss(char_1, char_2)
+                # Loss: OLDER + L1
+                loss: torch.Tensor = train_loss(char_1, char_2) + torch.nn.functional.l1_loss(y, outputs)
 
                 val_running_loss += loss.item() * y_sparse.size(0)
+                
                 logger.log(
                     **{
                         "global_train_step": len(train_dataloader) * (epoch) + i,
@@ -249,8 +262,8 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             if not bool(config.save_weights):
                 continue
             if bool(config.save_only_best_weights):
-                if avg_val_loss < val_running_loss:
-                    val_running_loss = avg_val_loss
+                if avg_val_loss < best_val_loss:
+                    best_val_loss = avg_val_loss
                     logger.save_weights(model, "best")
                 else:
                     # NOTE: we overwrite previous "latest" weights

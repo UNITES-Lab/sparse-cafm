@@ -4,7 +4,7 @@ global:
   formulation: p(y|y_sparse_benchmark)
 
 model:
-  name: ours
+  name: bicubic_interpolation
   pretrained: True
   weights:
   config:
@@ -23,7 +23,7 @@ dataset:
   masking_ratio: 1
 
 logging:
-  root: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/6b. evals
+  root: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/b. evals
   exp_name: gpstruct-eval-50%-sparse
   result_columns: ["step", "mae", "mse", "psnr", "ssim", "older", "celano_script_y", "celano_script_y_sparse"]
   save_weights: true

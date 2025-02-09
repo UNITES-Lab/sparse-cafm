@@ -26,10 +26,9 @@ validation:
   steps_per_epoch: 256
   loss: L1
 
-# TODO: this does (almost) nothing
 dataset:
-  name: SapphireDataset
-  image_size: 224
+  name: MOS2SEFDataset
+  image_size: 512
   crop_size: 128
   num_workers: 0
   masking_ratio: 1

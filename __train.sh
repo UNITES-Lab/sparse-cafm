@@ -8,17 +8,17 @@
 # ---- train in-filling model ----
 # SwinIR hyperparameters
 DEPTH=6
-WINDOW_SIZE=8
 NUM_HEADS=6
 NUM_BLOCKS=6
+WINDOW_SIZE=8
 DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=2
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
 EXP_ROOT_DIR="__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs"
-EXP_NAME="swinir-depth=$DEPTH-loss=surrogate"
-SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-08_12-46-03_older_surrogate_mh-ViT-l[-2]+layernorm-adamW-lr=1e-5/older_surrogate_mh-ViT-l[-2]+layernorm-adamW-lr=1e-5_latest_older_surrogate.pth"
+EXP_NAME="swinir-loss=OLDER+L1"
+SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-08_12-36-35_older_surrogate_mh-ViT-l[-2]+layernorm/older_surrogate_mh-ViT-l[-2]+layernorm_latest_older_surrogate.pth"
 nohup python train.py \
     --exp_name "$EXP_NAME" \
     --root "$EXP_ROOT_DIR" \

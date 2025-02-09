@@ -88,20 +88,25 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
     model.eval()
 
     for step, batch in enumerate(tqdm(val_dataloader, desc=f"Evaluating...:")):
+        
         # topo-map:    X
         X: torch.Tensor = batch["X"].cuda(device)
+        
         # current-map: y
         y: torch.Tensor = batch["y"].cuda(device)
+        
+        breakpoint()
+        
         # ---- remove masked pixels ----
         mask: torch.Tensor = batch["mask"].cuda(device)
         y_sparse = (y * mask).float()
         X_sparse = (X * mask).float()
+        
         # ---- forward: p(y | y_sparse) ----
         # TODO: add support for different forwards
-        assert isinstance(model, SwinCAFM)
         # y_hat = model.two_item_forward(X_sparse, y_sparse)
         # y_hat = model(X_sparse)
-        y_hat = model(y_sparse)
+        y_hat = model(y_sparse, mask)
         # ----------------------------------
 
         # get final predicted image
@@ -148,7 +153,7 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
         # [-1, 1] -> original dist
         # x' = mu + (sigma * z)
         data = mean + (std * z)
-        y_sparse_char = celano_lab_characterization(data, val_dataset.img_size_um)
+        y_hat_char = celano_lab_characterization(data, val_dataset.img_size_um)
 
         logger.log(
             **{
@@ -157,16 +162,16 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
                 "mse": mse.item(),
                 "psnr": psnr.item(),
                 "ssim": ssim_val.item(),
-                "older": OLDER(y_char, y_sparse_char),
+                "older": OLDER(y_char, y_hat_char),
                 "celano_script_y": y_char,
-                "celano_script_y_sparse": y_sparse_char,
+                "celano_script_y_sparse": y_hat_char,
             }
         )
         logger.log_colorized_tensors(
-            (X, "Topology Map (X)"),
+            # (X, "Topology Map (X)"),
+            # (X_sparse, "Model Input (X_sparse)"),
             (y, "Target (y)"),
             (y_sparse, "Model Input (y_sparse)"),
-            # (X_sparse, "Model Input (X_sparse)"), 
             (y_hat, "Raw Model Prediction"),
             (final_pred, "Model Prediction With Given Prior (y_hat)"),
             file_name=triplet_name

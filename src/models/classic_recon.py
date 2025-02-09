@@ -76,13 +76,6 @@ class LinearInterpolationInpainter(nn.Module):
     def __init__(self):
         super(LinearInterpolationInpainter, self).__init__()
 
-    def forward(self, target_image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        """
-        Simple linear inpainter for data shaped (B, H, W).
-        It performs a 3x3 average over known neighbors and
-        fills in the missing pixels.
-        """
-
     def __init__(self):
         super(LinearInterpolationInpainter, self).__init__()
 
