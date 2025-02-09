@@ -29,17 +29,15 @@
 #     --model_weights_path "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs/2025-02-08_15-44-36_swinir-loss=OLDER+L1/swinir-loss=OLDER+L1_best.pth" \
 #     > "_swinir_OLDER+L1-BEST.out" 2>&1 &
 
-
 # export CUDA_VISIBLE_DEVICES=5
 # nohup python test.py \
 #     --exp_name "swinir_OLDER+L1-LATEST" \
 #     --model_weights_path "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs/2025-02-08_15-44-36_swinir-loss=OLDER+L1/swinir-loss=OLDER+L1_latest.pth" \
 #     > "_swinir_OLDER+L1-LATEST.out" 2>&1 &
 
-export CUDA_VISIBLE_DEVICES=7
-python test.py \
-    --exp_name "bicubic_interpolation-baseline" \
-    > "_bicubic_interpolation-baseline.out"
-
+export CUDA_VISIBLE_DEVICES=1
+nohup python test.py \
+    --exp_name "nn_interpolation-baseline" \
+    > "_nn_interpolation-baseline.out" 2>&1 &
 # ---------------------------------------------
-# exit
+exit

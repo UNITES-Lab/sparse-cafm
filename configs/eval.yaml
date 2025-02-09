@@ -4,7 +4,7 @@ global:
   formulation: p(y|y_sparse_benchmark)
 
 model:
-  name: bicubic_interpolation
+  name: nn_interpolation
   pretrained: True
   weights:
   config:

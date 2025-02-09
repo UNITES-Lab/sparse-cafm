@@ -95,8 +95,6 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
         # current-map: y
         y: torch.Tensor = batch["y"].cuda(device)
         
-        breakpoint()
-        
         # ---- remove masked pixels ----
         mask: torch.Tensor = batch["mask"].cuda(device)
         y_sparse = (y * mask).float()
@@ -167,15 +165,17 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
                 "celano_script_y_sparse": y_hat_char,
             }
         )
-        logger.log_colorized_tensors(
-            # (X, "Topology Map (X)"),
-            # (X_sparse, "Model Input (X_sparse)"),
-            (y, "Target (y)"),
-            (y_sparse, "Model Input (y_sparse)"),
-            (y_hat, "Raw Model Prediction"),
-            (final_pred, "Model Prediction With Given Prior (y_hat)"),
-            file_name=triplet_name
-        )
+        
+        if step % 100 == 0:
+            logger.log_colorized_tensors(
+                # (X, "Topology Map (X)"),
+                # (X_sparse, "Model Input (X_sparse)"),
+                (y, "Target (y)"),
+                (y_sparse, "Model Input (y_sparse)"),
+                (y_hat, "Raw Model Prediction"),
+                (final_pred, "Model Prediction With Given Prior (y_hat)"),
+                file_name=triplet_name
+            )
 
 
 def main(args: argparse.Namespace):
