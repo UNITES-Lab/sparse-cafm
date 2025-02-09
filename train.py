@@ -158,11 +158,20 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # NOTE: standard loss (e.g., L1)
             char_1 = surrogate(y); char_2 = surrogate(y_hat)
             
-            # Loss: L1
+            # NOTE: raw model outputs
+            # --- Loss: L1 ---
             # loss: torch.Tensor = torch.nn.functional.l1_loss(y, outputs)
-            # Loss: OLDER
+            # --- Loss: OLDER ---
             # loss: torch.Tensor = train_loss(char_1, char_2)
-            # Loss: OLDER + L1
+            # --- Loss: OLDER + L1 ---
+            # loss: torch.Tensor = train_loss(char_1, char_2) + torch.nn.functional.l1_loss(y, outputs)
+            
+            # NOTE: final pred
+            # --- Loss: L1 ---
+            # loss: torch.Tensor = torch.nn.functional.l1_loss(y, y_hat)
+            # --- Loss: OLDER ---
+            # loss: torch.Tensor = train_loss(char_1, char_2)
+            # --- Loss: OLDER + L1 ---
             loss: torch.Tensor = train_loss(char_1, char_2) + torch.nn.functional.l1_loss(y, outputs)
 
             loss.backward()
@@ -224,11 +233,11 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 char_1 = surrogate(y); char_2 = surrogate(y_hat)
                 
                 # Loss: L1
-                # loss: torch.Tensor = torch.nn.functional.l1_loss(y, outputs)
+                loss: torch.Tensor = torch.nn.functional.l1_loss(y, outputs)
                 # Loss: OLDER
                 # loss: torch.Tensor = train_loss(char_1, char_2)
                 # Loss: OLDER + L1
-                loss: torch.Tensor = train_loss(char_1, char_2) + torch.nn.functional.l1_loss(y, outputs)
+                # loss: torch.Tensor = train_loss(char_1, char_2) + torch.nn.functional.l1_loss(y, outputs)
 
                 val_running_loss += loss.item() * y_sparse.size(0)
                 
