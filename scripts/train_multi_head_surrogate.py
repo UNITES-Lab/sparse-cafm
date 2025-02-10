@@ -134,7 +134,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             y: torch.Tensor = batch["y"].cuda(device)
             
             # char
-            
+            y_char: dict = batch['y_char']
             
             # targets
             target: torch.Tensor = batch['target'].cuda(device)
@@ -156,7 +156,9 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                     "global_val_step": None,
                     "epoch": epoch,
                     "train_loss": loss.item(),
-                    "val_loss": None
+                    "train_y_char": y_char,
+                    "val_loss": None,
+                    "val_y_char": None,
                 }
             )
          
@@ -181,14 +183,20 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 # input: y
                 y: torch.Tensor = batch["y"].cuda(device)
                 
+                # char
+                y_char: dict = batch['y_char']
+                
                 # targets
                 target: torch.Tensor = batch['target'].cuda(device)
+
+                surrogate_optimizer.zero_grad()
 
                 # ---- forward: [H, W] ----
                 pred = older_surrogate_model(y)
                 
-                loss: torch.Tensor = val_loss(pred, target)
-                val_running_loss += loss.item() * y.size(0)
+                loss: torch.Tensor = train_loss(pred, target)
+                
+                running_loss += loss.item() * y.size(0)
                 
                 logger.log(
                     **{
@@ -196,7 +204,9 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                         "global_val_step": len(val_dataloader) * (epoch) + i,
                         "epoch": epoch,
                         "train_loss": None,
-                        "val_loss": loss.item()
+                        "train_y_char": None,
+                        "val_loss": loss.item(),
+                        "val_y_char": y_char,
                     }
                 )
             

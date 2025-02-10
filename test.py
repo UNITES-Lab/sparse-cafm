@@ -104,7 +104,8 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
         # TODO: add support for different forwards
         # y_hat = model.two_item_forward(X_sparse, y_sparse)
         # y_hat = model(X_sparse)
-        y_hat = model(y_sparse, mask)
+        # y_hat = model(y_sparse, mask)
+        y_hat = model(y_sparse)
         # ----------------------------------
 
         # get final predicted image

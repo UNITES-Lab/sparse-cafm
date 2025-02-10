@@ -151,7 +151,7 @@ class MOS2SefOLDERSurrogate(Dataset):
         item = {}
         item['y'] = y
         item['target'] = target
-        item[y_char] = y_char
+        item['y_char'] = y_char
         
         return item
 

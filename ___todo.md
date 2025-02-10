@@ -6,5 +6,7 @@
 # **Notes**
 ---
 1. We train an OLDER surrogate that approximates the difference in characterization between two current-maps
-- We want this surrogate to encode meaningful features of each current map
-- We should scale up the size of OLDER pre-training...
+    - We want this surrogate to encode meaningful features of each current map
+    - We should scale up the size of OLDER pre-training...
+    - What would happen if we mixed in ImageNet data or something?
+2. 

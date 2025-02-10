@@ -155,6 +155,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 predicted_image=outputs, target_image=y, mask=mask
             )
 
+            breakpoint()
             # NOTE: standard loss (e.g., L1)
             char_1 = surrogate(y); char_2 = surrogate(y_hat)
             
