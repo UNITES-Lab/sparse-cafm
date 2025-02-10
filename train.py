@@ -183,6 +183,10 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # --- Loss: OLDER-Perceptual ---
             loss: torch.Tensor = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map)
             
+            # --- Loss: OLDER-Perceptual + L1 ---
+            loss: torch.Tensor = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map) + \
+                torch.nn.functional.l1_loss(y, outputs)
+            
             # --------------------------------------------------------
             
             # NOTE: standard loss (e.g., L1)
@@ -273,8 +277,8 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
                 
                 logger.log(
                     **{
-                        "global_train_step": len(train_dataloader) * (epoch) + i,
-                        "global_val_step": None,
+                        "global_train_step": None,
+                        "global_val_step": len(val_dataloader) * (epoch) + i,
                         "epoch": epoch,
                         "train_loss": None,
                         "val_loss": loss.item(),

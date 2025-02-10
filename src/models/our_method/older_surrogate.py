@@ -49,6 +49,11 @@ class MultiHeadOlderSurrogate(nn.Module):
         # ])
         #  -----------------------------
         
+        # TODO:
+        # ------
+        # 1. ablate head design
+        # 2. if we go with perceptual loss: does lower surrogate loss = better shared features?
+        
         #  ------- ViT Backbone --------
         self.backbone = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
         self.backbone.heads = nn.Identity()
