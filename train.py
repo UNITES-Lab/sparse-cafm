@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import torchvision
 import torch
 import torch.nn as nn
 
@@ -148,16 +149,44 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             optimizer.zero_grad()
 
             # ---- forward: p(y | y_sparse) ----
-            outputs = model(y_sparse)
+            outputs: torch.Tensor = model(y_sparse)
 
             # final model prediction with given unmasked pixels
             y_hat = ImageInpaintingL1Loss.get_final_prediction(
                 predicted_image=outputs, target_image=y, mask=mask
             )
-
-            breakpoint()
+            
+            # ---- NOTE: perceptual loss with surrogate backbone ----
+            
+            # [B, H, W]
+            y_feature_map = y.clone()
+            # [B, H, W] -> [B, 224, 224]
+            y_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_feature_map)
+            # [B, 224, 224]] -> [B, 1, 224, 224]
+            y_feature_map = y_feature_map.unsqueeze(1)
+            # [B, 1, 224, 224] -> [B, 3, 224, 224]
+            y_feature_map = y_feature_map.repeat(1, 3, 1, 1)
+            # [B, 3, 224, 224] -> [B, 768]
+            y_feature_map = surrogate.backbone(y_feature_map)
+            
+            # [B, H, W]
+            y_hat_feature_map = outputs.clone()
+            # [B, H, W] -> [B, 224, 224]
+            y_hat_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_hat_feature_map)
+            # [B, 224, 224]] -> [B, 1, 224, 224]
+            y_hat_feature_map = y_hat_feature_map.unsqueeze(1)
+            # [B, 1, 224, 224] -> [B, 3, 224, 224]
+            y_hat_feature_map = y_hat_feature_map.repeat(1, 3, 1, 1)
+            # [B, 3, 224, 224] -> [B, 768]
+            y_hat_feature_map = surrogate.backbone(y_hat_feature_map)
+            
+            # --- Loss: OLDER-Perceptual ---
+            loss: torch.Tensor = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map)
+            
+            # --------------------------------------------------------
+            
             # NOTE: standard loss (e.g., L1)
-            char_1 = surrogate(y); char_2 = surrogate(y_hat)
+            # char_1 = surrogate(y); char_2 = surrogate(y_hat)
             
             # NOTE: raw model outputs
             # --- Loss: L1 ---
@@ -173,7 +202,7 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # --- Loss: OLDER ---
             # loss: torch.Tensor = train_loss(char_1, char_2)
             # --- Loss: OLDER + L1 ---
-            loss: torch.Tensor = train_loss(char_1, char_2) + torch.nn.functional.l1_loss(y, outputs)
+            # loss: torch.Tensor = train_loss(char_1, char_2) + torch.nn.functional.l1_loss(y, outputs)
 
             loss.backward()
             optimizer.step()

@@ -10,9 +10,18 @@ NUM_HEADS = 9
 class MultiHeadOlderSurrogate(nn.Module):
     """
     Predict Celano-Lab characterizations of samples.
+    
+    - data -> surrogate -> [9]
+    - data -> swinir -> surrogate -> [9]
+    
+    TODO: we currently use nine of the celano lab characteristics as the output feature set
+    - We have no way of knowing if this set of features is the optimal subset of all features
+    - Each feature is weighted equally, where in reality we want to weight features that correspond to L1 loss
+    - Is there a way to see which of our features best corresponds to L1?
     """
 
     def __init__(self, num_heads: int = NUM_HEADS):
+        
         super(MultiHeadOlderSurrogate, self).__init__()
         self.num_heads = num_heads
         
@@ -69,9 +78,9 @@ class MultiHeadOlderSurrogate(nn.Module):
         older_predicted_value: [1]
         """
         
+        # [B, H, W] -> [B, 224, 224]
         if isinstance(self.backbone, torchvision.models.vision_transformer.VisionTransformer):
             x = torchvision.transforms.Resize((224, 224))(x)
-        
         # [B, H, W] -> [B, 1, H, W]
         x = x.unsqueeze(1)
         # [B, 1, H, W] -> [B, 3, H, W]
