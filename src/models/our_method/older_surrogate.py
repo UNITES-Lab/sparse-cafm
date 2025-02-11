@@ -3,7 +3,7 @@ import torchvision
 import torch.nn as nn
 import torchvision.models as models
 import torchvision.models.resnet as resnet
-
+from torchvision.models import VisionTransformer
 NUM_HEADS = 9
 
 
@@ -55,8 +55,9 @@ class MultiHeadOlderSurrogate(nn.Module):
         # 2. if we go with perceptual loss: does lower surrogate loss = better shared features?
         
         #  ------- ViT Backbone --------
-        self.backbone = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
+        self.backbone: VisionTransformer = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
         self.backbone.heads = nn.Identity()
+        
         self.heads = nn.ModuleList([
             nn.Sequential(
                 nn.Linear(768, 512),

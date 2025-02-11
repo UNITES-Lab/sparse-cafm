@@ -9,6 +9,7 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
+from torchvision.models import VisionTransformer
 from src.models.our_method.older_surrogate import MultiHeadOlderSurrogate
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
@@ -124,12 +125,10 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     model.cuda(device)
     model.float()
 
-    # surrogate model is used purely as an evaluator
-    surrogate.eval()
-
     # ---------- training loop ----------
     for epoch in range(num_epochs):
 
+        surrogate.train()
         model.train()
 
         for i, batch in enumerate(
@@ -158,6 +157,13 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # ---- NOTE: perceptual loss with surrogate backbone ----
             
+            # save activations of vit-encoder layers for y_hat
+            y_activations = {}
+            def hook_fn(module, input, output):
+                y_activations[module] = output
+            for i in range(len(surrogate.backbone.encoder.layers)): 
+                surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+            
             # [B, H, W]
             y_feature_map = y.clone()
             # [B, H, W] -> [B, 224, 224]
@@ -169,6 +175,19 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # [B, 3, 224, 224] -> [B, 768]
             y_feature_map = surrogate.backbone(y_feature_map)
             
+            # [B, 12 * 768]
+            y_activations_stack = None
+            for i, (k, v) in enumerate(y_activations.items()):
+                if i == 0: y_activations_stack = v
+                else: y_activations_stack = torch.cat([y_activations_stack, v], dim=1)
+            
+            # save activations of vit-encoder layers for y_hat
+            y_hat_activations = {}
+            def hook_fn(module, input, output):
+                y_hat_activations[module] = output
+            for i in range(len(surrogate.backbone.encoder.layers)): 
+                surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+            
             # [B, H, W]
             y_hat_feature_map = outputs.clone()
             # [B, H, W] -> [B, 224, 224]
@@ -179,19 +198,28 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             y_hat_feature_map = y_hat_feature_map.repeat(1, 3, 1, 1)
             # [B, 3, 224, 224] -> [B, 768]
             y_hat_feature_map = surrogate.backbone(y_hat_feature_map)
+                
+            # [B, 12 * 768]
+            y_hat_activations_stack = None
+            for i, (k, v) in enumerate(y_hat_activations.items()):
+                if i == 0: y_hat_activations_stack = v
+                else: y_hat_activations_stack = torch.cat([y_hat_activations_stack, v], dim=1)
             
             # NOTE: mix-in surrogate loss with some weighting value (lambda)
             surrogate_perceptual_loss = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map)
             surrogate_perceptual_loss: torch.Tensor = surrogate_perceptual_loss * args.surrogate_loss_mixin
             
-            # NOTE: standard pixel-wise loss
+            # --- Loss: L1 ---
             pixel_wise_loss = torch.nn.functional.l1_loss(y, outputs)
             
             # --- Loss: OLDER-Perceptual ---
             # loss: torch.Tensor = surrogate_perceptual_loss
             
             # --- Loss: OLDER-Perceptual + L1 ---
-            loss: torch.Tensor = surrogate_perceptual_loss + pixel_wise_loss
+            # loss: torch.Tensor = surrogate_perceptual_loss + pixel_wise_loss
+            
+            # --- Loss: OLDER-Multilayer-Perceptual ---
+            loss: torch.Tensor = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack)
             # --------------------------------------------------------
             
             # NOTE: standard loss (e.g., L1)
