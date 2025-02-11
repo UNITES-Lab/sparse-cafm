@@ -139,9 +139,9 @@ SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/
 #     --norm_layer $NORM_LAYER \
 #     > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
 
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=2
 LAMBDA=1e-0
-EXP_NAME="swinir-loss=OLDER-Perceptual-Multi-Layer(raw-out, y)-lambda=${LAMBDA}"
+EXP_NAME="swinir-loss=OLDER-Perceptual-Multi-Layer+L1(raw-out, y)-lambda=${LAMBDA}"
 python train.py \
     --exp_name "$EXP_NAME" \
     --root "$EXP_ROOT_DIR" \

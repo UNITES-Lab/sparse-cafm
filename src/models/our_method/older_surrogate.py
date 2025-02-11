@@ -4,8 +4,8 @@ import torch.nn as nn
 import torchvision.models as models
 import torchvision.models.resnet as resnet
 from torchvision.models import VisionTransformer
-NUM_HEADS = 9
 
+NUM_HEADS = 9
 
 class MultiHeadOlderSurrogate(nn.Module):
     """
@@ -55,23 +55,30 @@ class MultiHeadOlderSurrogate(nn.Module):
         # 2. if we go with perceptual loss: does lower surrogate loss = better shared features?
         
         #  ------- ViT Backbone --------
-        self.backbone: VisionTransformer = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
-        self.backbone.heads = nn.Identity()
-        
-        self.heads = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(768, 512),
-                nn.ReLU(),
-                nn.LayerNorm(512),
-                nn.Dropout(p=0.3),
-                nn.Linear(512, 256),
-                nn.ReLU(),
-                nn.LayerNorm(256),
-                nn.Dropout(p=0.3),
-                nn.Linear(256, 1),
-            ) for _ in range(num_heads)
-        ])
+        # self.backbone: VisionTransformer = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
+        # self.backbone.heads = nn.Identity()
+        # self.heads = nn.ModuleList([
+        #     nn.Sequential(
+        #         nn.Linear(768, 512),
+        #         nn.ReLU(),
+        #         nn.LayerNorm(512),
+        #         nn.Dropout(p=0.3),
+        #         nn.Linear(512, 256),
+        #         nn.ReLU(),
+        #         nn.LayerNorm(256),
+        #         nn.Dropout(p=0.3),
+        #         nn.Linear(256, 1),
+        #     ) for _ in range(num_heads)
+        # ])
         # -----------------------------
+        
+        # ---- VGG-16 with BatchNorm Backbone ----
+        self.backbone = models.vgg16_bn(weights=models.VGG16_BN_Weights.DEFAULT)
+        # The VGG forward pass:
+        #   x -> features -> avgpool -> flatten -> classifier
+        # We'll truncate the classifier by removing its final layer so that
+        # we get a 4096-dim feature vector instead of 1000 class scores.
+        self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

@@ -218,8 +218,11 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # --- Loss: OLDER-Perceptual + L1 ---
             # loss: torch.Tensor = surrogate_perceptual_loss + pixel_wise_loss
             
-            # --- Loss: OLDER-Multilayer-Perceptual ---
-            loss: torch.Tensor = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack)
+            #  --- Loss: OLDER-Multilayer-Perceptual ---
+            # loss: torch.Tensor = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack)
+            
+            #  --- Loss: OLDER-Multilayer-Perceptual + L1 ---
+            loss: torch.Tensor = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack) + pixel_wise_loss
             # --------------------------------------------------------
             
             # NOTE: standard loss (e.g., L1)
