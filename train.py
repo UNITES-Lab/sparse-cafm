@@ -336,6 +336,9 @@ def main(args: argparse.Namespace) -> None:
         ), f"Bad path to model config: {model_config_abs_path}"
         model_config = ModelConfig(model_config_abs_path)
 
+    # just in case... (:
+    args.surrogate_loss_mixin = float(args.surrogate_loss_mixin)
+
     # -------------------- training config args --------------------
     config.exp_name = args.exp_name
     config.log_root = args.root
@@ -361,7 +364,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name.", default="my-experiment")
     parser.add_argument("-r", "--root", type=str, help="Root directory to save experiment in.", default="__exps__/")
     parser.add_argument("-sfp", "--surrogate_weights_file_path", type=str, help="Initialize surrogate from checkpoint.", default="")
-    parser.add_argument("-eps", "surrogate_loss_mixin", type=float, default=1.0, help="")
+    parser.add_argument("-eps", "--surrogate_loss_mixin", type=float, default=1.0, help="")
     # -------------------- model config args --------------------
     parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
