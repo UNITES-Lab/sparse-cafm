@@ -87,7 +87,7 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     )
 
 
-def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
+def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
 
     logger = setup_logger(config, model_config)
     model = create_model(config)
@@ -180,13 +180,18 @@ def train(config: TrainConfig, model_config: Optional[ModelConfig] = None) -> No
             # [B, 3, 224, 224] -> [B, 768]
             y_hat_feature_map = surrogate.backbone(y_hat_feature_map)
             
+            # NOTE: mix-in surrogate loss with some weighting value (lambda)
+            surrogate_perceptual_loss = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map)
+            surrogate_perceptual_loss: torch.Tensor = surrogate_perceptual_loss * args.surrogate_loss_mixin
+            
+            # NOTE: standard pixel-wise loss
+            pixel_wise_loss = torch.nn.functional.l1_loss(y, outputs)
+            
             # --- Loss: OLDER-Perceptual ---
-            loss: torch.Tensor = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map)
+            # loss: torch.Tensor = surrogate_perceptual_loss
             
             # --- Loss: OLDER-Perceptual + L1 ---
-            loss: torch.Tensor = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map) + \
-                torch.nn.functional.l1_loss(y, outputs)
-            
+            loss: torch.Tensor = surrogate_perceptual_loss + pixel_wise_loss
             # --------------------------------------------------------
             
             # NOTE: standard loss (e.g., L1)
@@ -347,7 +352,7 @@ def main(args: argparse.Namespace) -> None:
         model_config.norm_layer = args.norm_layer
 
     # train
-    train(config, model_config)
+    train(args, config, model_config)
 
 
 if __name__ == "__main__":
@@ -356,6 +361,7 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name.", default="my-experiment")
     parser.add_argument("-r", "--root", type=str, help="Root directory to save experiment in.", default="__exps__/")
     parser.add_argument("-sfp", "--surrogate_weights_file_path", type=str, help="Initialize surrogate from checkpoint.", default="")
+    parser.add_argument("-eps", "surrogate_loss_mixin", type=float, default=1.0, help="")
     # -------------------- model config args --------------------
     parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
