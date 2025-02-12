@@ -159,21 +159,36 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # save activations of vit-encoder layers for y_hat
             y_activations = {}
+            
             def hook_fn(module, input, output):
                 y_activations[module] = output
-            for i in range(len(surrogate.backbone.encoder.layers)): 
-                surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+                
+            #  ------- VGG -------
+            for i in range(len(surrogate.backbone.features)): 
+                if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
+                    surrogate.backbone.features[i].register_forward_hook(hook_fn)
+            # --------------------
+            
+            # ------- ViT -------
+            # for i in range(len(surrogate.backbone.encoder.layers)):
+            #     surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+            # -------------------
             
             # [B, H, W]
             y_feature_map = y.clone()
+            
+            # NOTE: VIT:
             # [B, H, W] -> [B, 224, 224]
-            y_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_feature_map)
+            # y_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_feature_map)
+            
             # [B, 224, 224]] -> [B, 1, 224, 224]
             y_feature_map = y_feature_map.unsqueeze(1)
             # [B, 1, 224, 224] -> [B, 3, 224, 224]
             y_feature_map = y_feature_map.repeat(1, 3, 1, 1)
             # [B, 3, 224, 224] -> [B, 768]
             y_feature_map = surrogate.backbone(y_feature_map)
+            
+            breakpoint()
             
             # [B, 12 * 768]
             y_activations_stack = None
@@ -183,27 +198,39 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # save activations of vit-encoder layers for y_hat
             y_hat_activations = {}
-            def hook_fn(module, input, output):
-                y_hat_activations[module] = output
-            for i in range(len(surrogate.backbone.encoder.layers)): 
-                surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+            
+            #  ------- VGG -------
+            for i in range(len(surrogate.backbone.features)): 
+                if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
+                    surrogate.backbone.features[i].register_forward_hook(hook_fn)
+            # --------------------
+            
+            # ------- ViT -------
+            # for i in range(len(surrogate.backbone.encoder.layers)):
+            #     surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+            # -------------------
             
             # [B, H, W]
             y_hat_feature_map = outputs.clone()
+            
+            # NOTE: VIT:
             # [B, H, W] -> [B, 224, 224]
-            y_hat_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_hat_feature_map)
+            # y_hat_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_hat_feature_map)
+            
             # [B, 224, 224]] -> [B, 1, 224, 224]
             y_hat_feature_map = y_hat_feature_map.unsqueeze(1)
             # [B, 1, 224, 224] -> [B, 3, 224, 224]
             y_hat_feature_map = y_hat_feature_map.repeat(1, 3, 1, 1)
             # [B, 3, 224, 224] -> [B, 768]
             y_hat_feature_map = surrogate.backbone(y_hat_feature_map)
+            
                 
             # [B, 12 * 768]
             y_hat_activations_stack = None
             for i, (k, v) in enumerate(y_hat_activations.items()):
                 if i == 0: y_hat_activations_stack = v
                 else: y_hat_activations_stack = torch.cat([y_hat_activations_stack, v], dim=1)
+
             
             # NOTE: mix-in surrogate loss with some weighting value (lambda)
             surrogate_perceptual_loss = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map)
@@ -222,7 +249,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # loss: torch.Tensor = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack)
             
             #  --- Loss: OLDER-Multilayer-Perceptual + L1 ---
-            loss: torch.Tensor = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack) + pixel_wise_loss
+            surrogate_multilayered_perceptual_loss = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack) * args.surrogate_loss_mixin
+            loss: torch.Tensor = surrogate_multilayered_perceptual_loss + pixel_wise_loss
             # --------------------------------------------------------
             
             # NOTE: standard loss (e.g., L1)

@@ -49,18 +49,21 @@ class ExperimentLogger:
         self.config: dict = train_config_dict
         self.model_config: Optional[dict]  = model_config_dict
         self.exp_name: str = exp_name
+        
         self.results = pd.DataFrame()
+        self.log_buffer = []
         self.log_interval: int = log_interval
         self.log_counter = 0
+        
         self.root: str = root
-        self.enable_tensorboard: bool = enable_tensorboard
         self.exp_dir: Optional[str] = None
-
-        # tensorboard support
+        
+        # ---- tensorboard support ---- 
+        self.enable_tensorboard: bool = enable_tensorboard
         self.results_out_path: Optional[str] = None
         self.summary_writer: Optional[SummaryWriter] = None
 
-        # wandb support
+        # ---- wandb support ---- 
         self.enable_wandb = enable_wandb
         if self.enable_wandb == True:
             assert (
@@ -70,6 +73,20 @@ class ExperimentLogger:
         self.wandb_run = None
 
         self._setup_exp_dir()
+        
+    def _flush(self) -> None:
+        if not self.log_buffer: return
+        # init new results table from buffer
+        _logs = pd.DataFrame.from_records(self.log_buffer)
+        # append results in memory
+        self.results = pd.concat([self.results, _logs], ignore_index=True)
+        if not os.path.exists(self.results_out_path):
+            # create new file
+            _logs.to_csv(self.results_out_path, index=False)
+        else:
+            # write to csv in append mode
+            _logs.to_csv(self.results_out_path, mode="a", header=False, index=False)
+        self.log_buffer = []
 
     def _update_csv(self) -> None:
         self.results.to_csv(self.results_out_path, index=False)
@@ -130,13 +147,18 @@ class ExperimentLogger:
         self._update_csv()
 
     def log(self, **kwargs) -> None:
-        # log -> csv
-        self.results = pd.concat(
-            [self.results, pd.DataFrame.from_records([kwargs])], ignore_index=True
-        )
-        if self.log_counter % self.log_interval == 0:
-            self._update_csv()
+        """
+        Log a dictionary of items to a csv.
+        """
+        
+        # append results to mem
+        self.log_buffer.append(kwargs)
         self.log_counter += 1
+        
+        # write to out
+        if len(self.log_buffer) >= self.log_interval:
+            self._flush()
+        
         # optional: log -> tensorboard
         if self.enable_tensorboard:
             if step is None:
@@ -144,6 +166,7 @@ class ExperimentLogger:
             for k, v in kwargs.items():
                 if isinstance(v, (int, float)):
                     self.summary_writer.add_scalar(k, v, step)
+        
         # optional: log -> wandb
         if self.enable_wandb:
             step = self.log_counter
@@ -323,3 +346,4 @@ class ExperimentLogger:
         os.makedirs(outdir, exist_ok=True)
         out_fp = os.path.join(outdir, name)
         plt.savefig(out_fp, bbox_inches="tight", pad_inches=0.1, dpi=300)
+        
