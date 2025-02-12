@@ -150,7 +150,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             running_loss += loss.item() * y.size(0)
             
-            if i % 500 != 0: continue
             logger.log(
                 **{
                     "global_train_step": len(train_dataloader) * (epoch) + i,
@@ -162,7 +161,9 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                     "val_y_char": None,
                 }
             )
+            
             # log a triplet (original, masked, predicted) every 100 steps
+            if i % 100 != 0: continue
             triplet_name = f"train_epoch_{epoch}_step_{i}.png"
             logger.log_colorized_tensors(
                 (y, "Input (y)"),
@@ -210,7 +211,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 )
             
                 # log a triplet (original, masked, predicted) every 100 steps
-                if i % 500 != 0: continue
+                if i % 100 != 0: continue
                 triplet_name = f"train_epoch_{epoch}_step_{i}.png"
                 logger.log_colorized_tensors(
                     (y, "Input (y)"),

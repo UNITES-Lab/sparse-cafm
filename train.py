@@ -188,8 +188,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # [B, 3, 224, 224] -> [B, 768]
             y_feature_map = surrogate.backbone(y_feature_map)
             
-            breakpoint()
-            
             # [B, 12 * 768]
             y_activations_stack = None
             for i, (k, v) in enumerate(y_activations.items()):

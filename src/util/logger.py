@@ -78,6 +78,7 @@ class ExperimentLogger:
         if not self.log_buffer: return
         # init new results table from buffer
         _logs = pd.DataFrame.from_records(self.log_buffer)
+        
         # append results in memory
         self.results = pd.concat([self.results, _logs], ignore_index=True)
         if not os.path.exists(self.results_out_path):
@@ -139,12 +140,14 @@ class ExperimentLogger:
 
     def add_result_column(self, name: str) -> None:
         self.results[name] = None
-        self._update_csv()
+        # HACK: just ignore this for now
+        # self._update_csv()
 
     def add_result_columns(self, names: List[str]) -> None:
         for name in names:
             self.add_result_column(name)
-        self._update_csv()
+        # HACK: just ignore this for now
+        # self._update_csv()
 
     def log(self, **kwargs) -> None:
         """
