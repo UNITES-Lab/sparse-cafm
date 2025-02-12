@@ -86,6 +86,16 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
         shuffle=False,
         num_workers=config.num_workers,
     )
+    
+
+def perceptual_loss(outputs: List[torch.Tensor], targets: List[torch.Tensor], loss_fn=torch.nn.L1Loss(reduction='sum')) -> torch.Tensor:
+    
+    total_loss = 0
+    for out, tgt in zip(outputs, targets):
+        assert isinstance(out, torch.Tensor); assert isinstance(tgt, torch.Tensor)
+        layer_loss = loss_fn(out, tgt) / out.numel()
+        total_loss += layer_loss
+    return total_loss
 
 
 def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
@@ -128,10 +138,11 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     # ---------- training loop ----------
     for epoch in range(num_epochs):
 
+        # TODO: we want gradients to flow, but not train this module
         surrogate.train()
         model.train()
 
-        for i, batch in enumerate(
+        for step, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
             # topo-map:    X
@@ -189,13 +200,15 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             y_feature_map = surrogate.backbone(y_feature_map)
             
             # [B, 12 * 768]
-            y_activations_stack = None
+            y_activations_stack = []
             for i, (k, v) in enumerate(y_activations.items()):
-                if i == 0: y_activations_stack = v
-                else: y_activations_stack = torch.cat([y_activations_stack, v], dim=1)
+                y_activations_stack.append(v)
             
             # save activations of vit-encoder layers for y_hat
             y_hat_activations = {}
+            
+            def hook_fn(module, input, output):
+                y_hat_activations[module] = output
             
             #  ------- VGG -------
             for i in range(len(surrogate.backbone.features)): 
@@ -222,13 +235,10 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # [B, 3, 224, 224] -> [B, 768]
             y_hat_feature_map = surrogate.backbone(y_hat_feature_map)
             
-                
             # [B, 12 * 768]
-            y_hat_activations_stack = None
+            y_hat_activations_stack = []
             for i, (k, v) in enumerate(y_hat_activations.items()):
-                if i == 0: y_hat_activations_stack = v
-                else: y_hat_activations_stack = torch.cat([y_hat_activations_stack, v], dim=1)
-
+                y_hat_activations_stack.append(v)
             
             # NOTE: mix-in surrogate loss with some weighting value (lambda)
             surrogate_perceptual_loss = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map)
@@ -247,8 +257,10 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # loss: torch.Tensor = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack)
             
             #  --- Loss: OLDER-Multilayer-Perceptual + L1 ---
-            surrogate_multilayered_perceptual_loss = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack) * args.surrogate_loss_mixin
+            
+            surrogate_multilayered_perceptual_loss = perceptual_loss(y_activations_stack, y_hat_activations_stack) * args.surrogate_loss_mixin
             loss: torch.Tensor = surrogate_multilayered_perceptual_loss + pixel_wise_loss
+            
             # --------------------------------------------------------
             
             # NOTE: standard loss (e.g., L1)
@@ -283,7 +295,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 }
             )
 
-            if i % 100 != 0:
+            if step % 100 != 0:
                 continue
             
             triplet_name = f"train_epoch_{epoch}_step_{i}.png"
