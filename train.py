@@ -175,14 +175,14 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 y_activations[module] = output
                 
             #  ------- VGG -------
-            for i in range(len(surrogate.backbone.features)): 
-                if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
-                    surrogate.backbone.features[i].register_forward_hook(hook_fn)
+            # for i in range(len(surrogate.backbone.features)): 
+            #     if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
+            #         surrogate.backbone.features[i].register_forward_hook(hook_fn)
             # --------------------
             
             # ------- ViT -------
-            # for i in range(len(surrogate.backbone.encoder.layers)):
-            #     surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+            for i in range(len(surrogate.backbone.encoder.layers)):
+                surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
             # -------------------
             
             # [B, H, W]
@@ -190,7 +190,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # NOTE: VIT:
             # [B, H, W] -> [B, 224, 224]
-            # y_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_feature_map)
+            y_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_feature_map)
             
             # [B, 224, 224]] -> [B, 1, 224, 224]
             y_feature_map = y_feature_map.unsqueeze(1)
@@ -211,14 +211,14 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 y_hat_activations[module] = output
             
             #  ------- VGG -------
-            for i in range(len(surrogate.backbone.features)): 
-                if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
-                    surrogate.backbone.features[i].register_forward_hook(hook_fn)
+            # for i in range(len(surrogate.backbone.features)): 
+            #     if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
+            #         surrogate.backbone.features[i].register_forward_hook(hook_fn)
             # --------------------
             
             # ------- ViT -------
-            # for i in range(len(surrogate.backbone.encoder.layers)):
-            #     surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+            for i in range(len(surrogate.backbone.encoder.layers)):
+                surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
             # -------------------
             
             # [B, H, W]
@@ -226,7 +226,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # NOTE: VIT:
             # [B, H, W] -> [B, 224, 224]
-            # y_hat_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_hat_feature_map)
+            y_hat_feature_map: torch.Tensor = torchvision.transforms.Resize((224, 224))(y_hat_feature_map)
             
             # [B, 224, 224]] -> [B, 1, 224, 224]
             y_hat_feature_map = y_hat_feature_map.unsqueeze(1)
@@ -239,10 +239,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             y_hat_activations_stack = []
             for i, (k, v) in enumerate(y_hat_activations.items()):
                 y_hat_activations_stack.append(v)
-            
-            # NOTE: mix-in surrogate loss with some weighting value (lambda)
-            surrogate_perceptual_loss = torch.nn.functional.l1_loss(y_feature_map, y_hat_feature_map)
-            surrogate_perceptual_loss: torch.Tensor = surrogate_perceptual_loss * args.surrogate_loss_mixin
             
             # --- Loss: L1 ---
             pixel_wise_loss = torch.nn.functional.l1_loss(y, outputs)
@@ -257,10 +253,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # loss: torch.Tensor = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack)
             
             #  --- Loss: OLDER-Multilayer-Perceptual + L1 ---
-            
             surrogate_multilayered_perceptual_loss = perceptual_loss(y_activations_stack, y_hat_activations_stack) * args.surrogate_loss_mixin
             loss: torch.Tensor = surrogate_multilayered_perceptual_loss + pixel_wise_loss
-            
             # --------------------------------------------------------
             
             # NOTE: standard loss (e.g., L1)

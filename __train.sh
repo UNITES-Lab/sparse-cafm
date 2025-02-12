@@ -27,7 +27,7 @@ NORM_LAYER=torch.nn.LayerNorm
 
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
 EXP_ROOT_DIR="__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs"
-SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-12_10-49-50_older_surrogate_mh-VGG-l[-2]+layernorm-adamW-lr=1e-4-augs=True-iii/older_surrogate_mh-VGG-l[-2]+layernorm-adamW-lr=1e-4-augs=True-iii_best_older_surrogate.pth"
+SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-08_12-55-20_older_surrogate_mh-ViT-L16-l[-2]+layernorm-adamW-lr=1e-4/older_surrogate_mh-ViT-L16-l[-2]+layernorm-adamW-lr=1e-4_best_older_surrogate.pth"
 
 # export CUDA_VISIBLE_DEVICES=4
 # LAMBDA=1e-0
@@ -45,10 +45,10 @@ SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/
 #     --norm_layer $NORM_LAYER \
 #     > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
 
-for i in {1..7}; do
+for i in {1..8}; do
     LAMBDA="1e-${i}"
     device=$(( (i - 1) % 8 ))
-    EXP_NAME="swinir-loss=OLDER-Perceptual-VGG-Multi-Layer+L1(raw-out, y)-lambda=${LAMBDA}"
+    EXP_NAME="swinir-loss=OLDER-Perceptual-ViT-Multi-Layer+L1(raw-out, y)-lambda=${LAMBDA}"
     echo "Launching job for lambda ${LAMBDA} on CUDA device ${device}"
     CUDA_VISIBLE_DEVICES=${device} python train.py \
         --exp_name "$EXP_NAME" \
