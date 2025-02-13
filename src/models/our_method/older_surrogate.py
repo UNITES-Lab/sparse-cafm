@@ -12,6 +12,11 @@ from sklearn.metrics import mean_absolute_error
 
 NUM_HEADS = 9
 
+# NOTE: 
+# these are the mean feature-importance values for a model trained to predict L1 from gt-OLDER
+# [ground_truth_older_scores] -> RandomForestRegressor -> L1
+FEATURE_WEIGHTS = torch.Tensor([0.0969, 0.1786, 0.0878, 0.0545, 0.1596, 0.1001, 0.0105, 0.0237, 0.2882])
+
 
 class MultiHeadOlderSurrogate(nn.Module):
     """
@@ -54,11 +59,6 @@ class MultiHeadOlderSurrogate(nn.Module):
         # ])
         #  -----------------------------
         
-        # TODO:
-        # ------
-        # 1. ablate head design
-        # 2. if we go with perceptual loss: does lower surrogate loss = better shared features?
-        
         #  ------- ViT Backbone --------
         # self.backbone: VisionTransformer = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
         # self.backbone.heads = nn.Identity()
@@ -79,10 +79,7 @@ class MultiHeadOlderSurrogate(nn.Module):
         
         # ---- VGG-16 with BatchNorm Backbone ----
         self.backbone = models.vgg16_bn(weights=models.VGG16_BN_Weights.DEFAULT)
-        # The VGG forward pass:
         #   x -> features -> avgpool -> flatten -> classifier
-        # We'll truncate the classifier by removing its final layer so that
-        # we get a 4096-dim feature vector instead of 1000 class scores.
         self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
         self.heads = nn.ModuleList([
             nn.Sequential(

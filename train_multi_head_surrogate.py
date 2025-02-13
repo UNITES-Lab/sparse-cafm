@@ -8,7 +8,7 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
-from src.models.our_method.older_surrogate import MultiHeadOlderSurrogate
+from src.models.our_method.older_surrogate import FEATURE_WEIGHTS, MultiHeadOlderSurrogate
 from src.datasets.mos2_sef import Formulation as F
 from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogate
 from src.util.logger import ExperimentLogger
@@ -80,7 +80,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     Given:
         1. y
     Predict: 
-        1. characterization of y
+        1. OLDER: characterization of y
     """
 
     logger = setup_logger(config, model_config)
@@ -138,6 +138,9 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # targets
             target: torch.Tensor = batch['target'].cuda(device)
+            
+            # weight each feature by pre-computed relative correlation to L1
+            target = FEATURE_WEIGHTS.cuda(device) * target
 
             surrogate_optimizer.zero_grad()
 
