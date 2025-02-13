@@ -173,16 +173,16 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             def hook_fn(module, input, output):
                 y_activations[module] = output
-                
+                  
             #  ------- VGG -------
-            # for i in range(len(surrogate.backbone.features)): 
-            #     if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
-            #         surrogate.backbone.features[i].register_forward_hook(hook_fn)
+            for i in range(len(surrogate.backbone.features)): 
+                if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
+                    surrogate.backbone.features[i].register_forward_hook(hook_fn)
             # --------------------
             
             # ------- ViT -------
-            for i in range(len(surrogate.backbone.encoder.layers)):
-                surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+            # for i in range(len(surrogate.backbone.encoder.layers)):
+            #     surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
             # -------------------
             
             # [B, H, W]
@@ -211,14 +211,14 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 y_hat_activations[module] = output
             
             #  ------- VGG -------
-            # for i in range(len(surrogate.backbone.features)): 
-            #     if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
-            #         surrogate.backbone.features[i].register_forward_hook(hook_fn)
+            for i in range(len(surrogate.backbone.features)): 
+                if isinstance(surrogate.backbone.features[i], torch.nn.MaxPool2d): 
+                    surrogate.backbone.features[i].register_forward_hook(hook_fn)
             # --------------------
             
             # ------- ViT -------
-            for i in range(len(surrogate.backbone.encoder.layers)):
-                surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
+            # for i in range(len(surrogate.backbone.encoder.layers)):
+            #     surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
             # -------------------
             
             # [B, H, W]

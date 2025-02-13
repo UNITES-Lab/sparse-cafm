@@ -4,20 +4,25 @@ import torch.nn as nn
 import torchvision.models as models
 import torchvision.models.resnet as resnet
 from torchvision.models import VisionTransformer
+import numpy as np
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error
 
 NUM_HEADS = 9
+
 
 class MultiHeadOlderSurrogate(nn.Module):
     """
     Predict Celano-Lab characterizations of samples.
     
-    - data -> surrogate -> [9]
-    - data -> swinir -> surrogate -> [9]
+    - [H, W] -> surrogate -> [9]
+    - [H, W] -> swinir -> surrogate -> [9]
     
-    TODO: we currently use nine of the celano lab characteristics as the output feature set
-    - We have no way of knowing if this set of features is the optimal subset of all features
-    - Each feature is weighted equally, where in reality we want to weight features that correspond to L1 loss
-    - Is there a way to see which of our features best corresponds to L1?
+    TODO:
+    - Perform a rigorous study of feature importance;
+    - Determine which features are most positively correlated with L1, negatively, spuriously
     """
 
     def __init__(self, num_heads: int = NUM_HEADS):
@@ -55,33 +60,11 @@ class MultiHeadOlderSurrogate(nn.Module):
         # 2. if we go with perceptual loss: does lower surrogate loss = better shared features?
         
         #  ------- ViT Backbone --------
-        self.backbone: VisionTransformer = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
-        self.backbone.heads = nn.Identity()
-        self.heads = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(768, 512),
-                nn.ReLU(),
-                nn.LayerNorm(512),
-                nn.Dropout(p=0.3),
-                nn.Linear(512, 256),
-                nn.ReLU(),
-                nn.LayerNorm(256),
-                nn.Dropout(p=0.3),
-                nn.Linear(256, 1),
-            ) for _ in range(num_heads)
-        ])
-        # -----------------------------
-        
-        # ---- VGG-16 with BatchNorm Backbone ----
-        # self.backbone = models.vgg16_bn(weights=models.VGG16_BN_Weights.DEFAULT)
-        # # The VGG forward pass:
-        # #   x -> features -> avgpool -> flatten -> classifier
-        # # We'll truncate the classifier by removing its final layer so that
-        # # we get a 4096-dim feature vector instead of 1000 class scores.
-        # self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
+        # self.backbone: VisionTransformer = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
+        # self.backbone.heads = nn.Identity()
         # self.heads = nn.ModuleList([
         #     nn.Sequential(
-        #         nn.Linear(4096, 512),
+        #         nn.Linear(768, 512),
         #         nn.ReLU(),
         #         nn.LayerNorm(512),
         #         nn.Dropout(p=0.3),
@@ -92,6 +75,28 @@ class MultiHeadOlderSurrogate(nn.Module):
         #         nn.Linear(256, 1),
         #     ) for _ in range(num_heads)
         # ])
+        # -----------------------------
+        
+        # ---- VGG-16 with BatchNorm Backbone ----
+        self.backbone = models.vgg16_bn(weights=models.VGG16_BN_Weights.DEFAULT)
+        # The VGG forward pass:
+        #   x -> features -> avgpool -> flatten -> classifier
+        # We'll truncate the classifier by removing its final layer so that
+        # we get a 4096-dim feature vector instead of 1000 class scores.
+        self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
+        self.heads = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(4096, 512),
+                nn.ReLU(),
+                nn.LayerNorm(512),
+                nn.Dropout(p=0.3),
+                nn.Linear(512, 256),
+                nn.ReLU(),
+                nn.LayerNorm(256),
+                nn.Dropout(p=0.3),
+                nn.Linear(256, 1),
+            ) for _ in range(num_heads)
+        ])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

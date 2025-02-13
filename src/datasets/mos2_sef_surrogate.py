@@ -108,31 +108,31 @@ class MOS2SefOLDERSurrogate(Dataset):
         y: torch.Tensor = batch["y"]
         y_char = process_image(y, self.dataset.img_size_um)
     
-        # NOTE: Chat code...
-        # ----- Data Augmentation -----
-        # Random horizontal flip with probability 0.5
-        if random.random() < 0.5:
-            y = torch.flip(y, dims=[1])
+        # # NOTE: Chat code...
+        # # ----- Data Augmentation -----
+        # # Random horizontal flip with probability 0.5
+        # if random.random() < 0.5:
+        #     y = torch.flip(y, dims=[1])
         
-        # Random vertical flip with probability 0.5
-        if random.random() < 0.5:
-            y = torch.flip(y, dims=[0])
+        # # Random vertical flip with probability 0.5
+        # if random.random() < 0.5:
+        #     y = torch.flip(y, dims=[0])
         
-        # Random rotation by 90 degrees (only if image is square) with probability 0.5
-        if y.shape[0] == y.shape[1] and random.random() < 0.5:
-            y = torch.rot90(y, k=1, dims=(0, 1))
+        # # Random rotation by 90 degrees (only if image is square) with probability 0.5
+        # if y.shape[0] == y.shape[1] and random.random() < 0.5:
+        #     y = torch.rot90(y, k=1, dims=(0, 1))
         
-        # Random brightness scaling with probability 0.5
-        if random.random() < 0.5:
-            factor = random.uniform(0.9, 1.1)
-            y = y * factor
+        # # Random brightness scaling with probability 0.5
+        # if random.random() < 0.5:
+        #     factor = random.uniform(0.9, 1.1)
+        #     y = y * factor
         
-        # Random Gaussian noise addition with probability 0.5
-        if random.random() < 0.5:
-            # Scale noise relative to the intensity range of y
-            noise_std = 0.05 * (y.max() - y.min())
-            noise = torch.randn_like(y) * noise_std
-            y = y + noise
+        # # Random Gaussian noise addition with probability 0.5
+        # if random.random() < 0.5:
+        #     # Scale noise relative to the intensity range of y
+        #     noise_std = 0.05 * (y.max() - y.min())
+        #     noise = torch.randn_like(y) * noise_std
+        #     y = y + noise
         # ----- End of Data Augmentation -----
         
         # ---- normalize all vals -> std normal ----

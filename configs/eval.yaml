@@ -30,4 +30,4 @@ logging:
   save_only_best_weights: true
   enable_tensorboard: false
   log_figures: false
-  log_interval: 1
+  log_interval: 100

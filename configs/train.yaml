@@ -11,7 +11,7 @@ model:
 
 surrogate:
   name: older_surrogate_mh
-  weights: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-12_10-49-50_older_surrogate_mh-VGG-l[-2]+layernorm-adamW-lr=1e-4-augs=True-iii/older_surrogate_mh-VGG-l[-2]+layernorm-adamW-lr=1e-4-augs=True-iii_best_older_surrogate.pth
+  weights: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-12_14-26-54_older_surrogate_mh-VGG-l[-2]+layernorm-adamW-lr=1e-4-augs=False/older_surrogate_mh-VGG-l[-2]+layernorm-adamW-lr=1e-4-augs=False_best_older_surrogate.pth
 
 training:
   batch_size: 1
