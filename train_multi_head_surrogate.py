@@ -110,13 +110,13 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     older_surrogate_model.float()
     
     # ---- optional: freeze backbone ----
-    for param in older_surrogate_model.backbone.parameters():
-        param.requires_grad = False
+    # for param in older_surrogate_model.backbone.parameters():
+    #     param.requires_grad = False
     
     # NOTE: always init your optimizers LAST lads...
     surrogate_optimizer: torch.optim.Optimizer = torch.optim.AdamW(
         params=older_surrogate_model.parameters(),
-        lr=1e-6,
+        lr=1e-5,
         weight_decay=1e-3,
     )
     
@@ -135,13 +135,14 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # gt-OLDER characterization of y
             y_char: dict = batch['y_char']
+            
             # [9] | gt-OLDER characterization of y
             target: torch.Tensor = batch['target'].cuda(device)
             
             # TODO: how can we validate the order is correct?
             # TODO: does this weighting strat have the same effect as directly weighting the loss?
             # weight each feature by pre-computed relative correlation to L1
-            target = FEATURE_WEIGHTS.cuda(device) * target
+            # target = FEATURE_WEIGHTS.cuda(device) * target
 
             surrogate_optimizer.zero_grad()
 
@@ -198,7 +199,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 # TODO: how can we validate the order is correct?
                 # TODO: does this weighting strat have the same effect as directly weighting the loss?
                 # weight each feature by pre-computed relative correlation to L1
-                target = FEATURE_WEIGHTS.cuda(device) * target
+                # target = FEATURE_WEIGHTS.cuda(device) * target
 
                 surrogate_optimizer.zero_grad()
 

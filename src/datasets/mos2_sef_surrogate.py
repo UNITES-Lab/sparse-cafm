@@ -143,10 +143,9 @@ class MOS2SefOLDERSurrogate(Dataset):
         
         y_char = process_image(y, self.dataset.img_size_um)
         
-        # bootstrap y_char 20x
-        NUM_BOOTSTRAPS = 100
-        pprint.pprint(y_char)
-        
+        # ---- bootstrap y_char 10x ----
+        NUM_BOOTSTRAPS = 10
+
         for i in range(NUM_BOOTSTRAPS - 1):
             
             y_aug = y.clone()
@@ -198,8 +197,8 @@ class MOS2SefOLDERSurrogate(Dataset):
         
         item = {}
         item['y'] = y
-        item['target'] = target
         item['y_char'] = y_char
+        item['target'] = target
         
         return item
 
