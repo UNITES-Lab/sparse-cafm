@@ -116,7 +116,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     # NOTE: always init your optimizers LAST lads...
     surrogate_optimizer: torch.optim.Optimizer = torch.optim.AdamW(
         params=older_surrogate_model.parameters(),
-        lr=1e-4,
+        lr=1e-6,
         weight_decay=1e-3,
     )
     
@@ -130,15 +130,16 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
             
-            # input: y
+            # [H, W] | input: y
             y: torch.Tensor = batch["y"].cuda(device)
             
-            # char
+            # gt-OLDER characterization of y
             y_char: dict = batch['y_char']
-            
-            # targets
+            # [9] | gt-OLDER characterization of y
             target: torch.Tensor = batch['target'].cuda(device)
             
+            # TODO: how can we validate the order is correct?
+            # TODO: does this weighting strat have the same effect as directly weighting the loss?
             # weight each feature by pre-computed relative correlation to L1
             target = FEATURE_WEIGHTS.cuda(device) * target
 
@@ -147,8 +148,10 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # ---- forward: [H, W] ----
             pred = older_surrogate_model(y)
             
+            # TODO: L1 vs MSE?
             loss: torch.Tensor = train_loss(pred, target)
             loss.backward()
+            
             surrogate_optimizer.step()
             
             running_loss += loss.item() * y.size(0)
@@ -191,6 +194,11 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 
                 # targets
                 target: torch.Tensor = batch['target'].cuda(device)
+                
+                # TODO: how can we validate the order is correct?
+                # TODO: does this weighting strat have the same effect as directly weighting the loss?
+                # weight each feature by pre-computed relative correlation to L1
+                target = FEATURE_WEIGHTS.cuda(device) * target
 
                 surrogate_optimizer.zero_grad()
 

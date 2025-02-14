@@ -336,6 +336,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 
                 # Loss: L1
                 loss: torch.Tensor = torch.nn.functional.l1_loss(y, outputs)
+                
                 # Loss: OLDER
                 # loss: torch.Tensor = train_loss(char_1, char_2)
                 # Loss: OLDER + L1

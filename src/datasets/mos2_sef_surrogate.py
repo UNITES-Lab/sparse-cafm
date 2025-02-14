@@ -1,7 +1,9 @@
+import pprint
 import torch
 import cv2
 import random
 import albumentations as A
+import torch.nn.functional as F
 
 from typing import Tuple, Dict
 from torch.utils.data import Dataset
@@ -85,6 +87,38 @@ class MOS2SefOLDERSurrogate(Dataset):
             device=device,
             original_image_size=original_image_size,
         )
+    
+    def scale_image(self, image, scale):
+        """
+        Scales the input image by `scale` (using bilinear interpolation)
+        and then crops a central patch of the original size.
+        
+        Args:
+            image (torch.Tensor): A 2D tensor of shape (H, W).
+            scale (float): Scaling factor.
+            
+        Returns:
+            torch.Tensor: Processed image of shape (H, W).
+        """
+        # Original dimensions
+        H, W = image.shape
+        # New dimensions after scaling
+        new_H, new_W = int(H * scale), int(W * scale)
+        
+        # Scale the image: add batch and channel dims for interpolation.
+        image_scaled = F.interpolate(image.unsqueeze(0).unsqueeze(0).float(),
+                                    size=(new_H, new_W),
+                                    mode='bilinear',
+                                    align_corners=False)
+        # Remove batch and channel dims
+        image_scaled = image_scaled.squeeze(0).squeeze(0)
+        
+        # Crop the central region of size (H, W)
+        start_H = (new_H - H) // 2
+        start_W = (new_W - W) // 2
+        cropped_image = image_scaled[start_H:start_H+H, start_W:start_W+W]
+        
+        return cropped_image
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -106,34 +140,40 @@ class MOS2SefOLDERSurrogate(Dataset):
         
         # [H, W]
         y: torch.Tensor = batch["y"]
+        
         y_char = process_image(y, self.dataset.img_size_um)
-    
-        # # NOTE: Chat code...
-        # # ----- Data Augmentation -----
-        # # Random horizontal flip with probability 0.5
-        # if random.random() < 0.5:
-        #     y = torch.flip(y, dims=[1])
         
-        # # Random vertical flip with probability 0.5
-        # if random.random() < 0.5:
-        #     y = torch.flip(y, dims=[0])
+        # bootstrap y_char 20x
+        NUM_BOOTSTRAPS = 100
+        pprint.pprint(y_char)
         
-        # # Random rotation by 90 degrees (only if image is square) with probability 0.5
-        # if y.shape[0] == y.shape[1] and random.random() < 0.5:
-        #     y = torch.rot90(y, k=1, dims=(0, 1))
+        for i in range(NUM_BOOTSTRAPS - 1):
+            
+            y_aug = y.clone()
+            if random.random() < 0.5:
+                y_aug = torch.flip(y_aug, dims=[1])
+            if random.random() < 0.5:
+                y_aug= torch.flip(y_aug, dims=[0])
+            if y.shape[0] == y.shape[1] and random.random() < 0.5:
+                y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
+            if random.random() < 0.5:
+                factor = random.uniform(0.9, 1.1)
+                y_aug = y_aug * factor
+            if random.random() < 0.5:
+                noise_std = 0.05 * (y_aug.max() - y_aug.min())
+                noise = torch.randn_like(y_aug) * noise_std
+                y_aug = y_aug + noise
+            if random.random() < 0.5:
+                # scale randomly 1x-1.3x
+                y_aug = self.scale_image(y_aug, 1 + (random.random() * 0.3))
+
+            y_char_bootstrapped = process_image(y_aug, self.dataset.img_size_um)
+            
+            for k, v in y_char.items():
+                y_char[k] = (y_char[k] + y_char_bootstrapped[k])
         
-        # # Random brightness scaling with probability 0.5
-        # if random.random() < 0.5:
-        #     factor = random.uniform(0.9, 1.1)
-        #     y = y * factor
-        
-        # # Random Gaussian noise addition with probability 0.5
-        # if random.random() < 0.5:
-        #     # Scale noise relative to the intensity range of y
-        #     noise_std = 0.05 * (y.max() - y.min())
-        #     noise = torch.randn_like(y) * noise_std
-        #     y = y + noise
-        # ----- End of Data Augmentation -----
+        for k, v in y_char.items():
+            y_char[k] = (y_char[k] + y_char_bootstrapped[k]) / NUM_BOOTSTRAPS
         
         # ---- normalize all vals -> std normal ----
         for k in y_char:
@@ -141,11 +181,19 @@ class MOS2SefOLDERSurrogate(Dataset):
             mean = CHARACTERISTIC_NORMALIZATION_DICT[k]['mean']
             std = CHARACTERISTIC_NORMALIZATION_DICT[k]['std']
             y_char[k] = (val - mean) / std
-            
+        
+        # # HACK: we move three high-variance features
+        # y_char.pop("num_curved_lines")
+        # y_char.pop("num_extended_shapes")
+        # y_char.pop("total_area_extended_shapes")
+        
         target_arr = []
+        
+        # TODO: this may change the order of keys/features
         keys_sorted = sorted(list(y_char.keys()))
         for k in keys_sorted:
             target_arr.append(y_char[k])
+        
         target = torch.Tensor(target_arr).float()
         
         item = {}

@@ -8,9 +8,9 @@
 # NORM_LAYER=torch.nn.LayerNorm
 
 # LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-# EXP_NAME="older_surrogate_mh-VGG-l[-2]+layernorm-adamW-lr=1e-4-augs=False"
+# EXP_NAME="OLDERW_val_loss_fix_surrogate_mh-VGG-layers[-2]+layernorm-adamW-lr=1e-6-augs=False"
 
-# export CUDA_VISIBLE_DEVICES=7
+# export CUDA_VISIBLE_DEVICES=0
 # nohup python train_multi_head_surrogate.py \
 #     --exp_name "$EXP_NAME" \
 #     --depths $DEPTH \
@@ -27,19 +27,19 @@ NORM_LAYER=torch.nn.LayerNorm
 
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
 EXP_ROOT_DIR="__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs"
-SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-12_14-26-54_older_surrogate_mh-VGG-l[-2]+layernorm-adamW-lr=1e-4-augs=False/older_surrogate_mh-VGG-l[-2]+layernorm-adamW-lr=1e-4-augs=False_best_older_surrogate.pth"
+SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-13_11-37-56_OLDERW_val_loss_fix_surrogate_mh-VGG-layers[-2]+layernorm-adamW-lr=1e-5-augs=False/OLDERW_val_loss_fix_surrogate_mh-VGG-layers[-2]+layernorm-adamW-lr=1e-5-augs=False_best_older_surrogate.pth"
 
-for i in {1..8}; do
+for i in {0..8}; do
     LAMBDA="1e-${i}"
-    device=$(( (i - 1) % 8 ))
-    EXP_NAME="swinir-loss=OLDER-Perceptual-VGG-aug=F-Multi-Layer+L1(raw-out, y)-lambda=${LAMBDA}"
+    device=$(( (i) % 8 ))
+    EXP_NAME="SwinIR-loss=OLDER-W-Perceptual-VGG-aug=F-Multi-Layer+L1(raw-out, y)-lambda=${LAMBDA}"
     echo "Launching job for lambda ${LAMBDA} on CUDA device ${device}"
     CUDA_VISIBLE_DEVICES=${device} python train.py \
         --exp_name "$EXP_NAME" \
         --root "$EXP_ROOT_DIR" \
         --surrogate_weights_file_path "$SURROGATE_CKPT" \
         --surrogate_loss_mixin $LAMBDA \
-        --depths $DEPTH \
+        --depths $DE`PTH \
         --num_heads $NUM_HEADS \
         --num_blocks $NUM_BLOCKS \
         --window_size $WINDOW_SIZE \

@@ -79,8 +79,10 @@ class MultiHeadOlderSurrogate(nn.Module):
         
         # ---- VGG-16 with BatchNorm Backbone ----
         self.backbone = models.vgg16_bn(weights=models.VGG16_BN_Weights.DEFAULT)
-        #   x -> features -> avgpool -> flatten -> classifier
+        
+        # x -> features -> avgpool -> flatten -> classifier
         self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
+        
         self.heads = nn.ModuleList([
             nn.Sequential(
                 nn.Linear(4096, 512),
@@ -94,6 +96,8 @@ class MultiHeadOlderSurrogate(nn.Module):
                 nn.Linear(256, 1),
             ) for _ in range(num_heads)
         ])
+        
+        # --------------------------------------
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
