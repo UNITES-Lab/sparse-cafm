@@ -77,12 +77,34 @@ class MultiHeadOlderSurrogate(nn.Module):
         # ])
         # -----------------------------
         
-        # ---- VGG-16 with BatchNorm Backbone ----
-        self.backbone = models.vgg16_bn(weights=models.VGG16_BN_Weights.DEFAULT)
+        # # ---- VGG-16 with BatchNorm Backbone ----
+        # self.backbone = models.vgg16_bn(weights=models.VGG16_BN_Weights.DEFAULT)
         
-        # x -> features -> avgpool -> flatten -> classifier
+        # # x -> features -> avgpool -> flatten -> classifier
+        # self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
+        
+        # self.heads = nn.ModuleList([
+        #     nn.Sequential(
+        #         nn.Linear(4096, 512),
+        #         nn.ReLU(),
+        #         nn.LayerNorm(512),
+        #         nn.Dropout(p=0.3),
+        #         nn.Linear(512, 256),
+        #         nn.ReLU(),
+        #         nn.LayerNorm(256),
+        #         nn.Dropout(p=0.3),
+        #         nn.Linear(256, 1),
+        #     ) for _ in range(num_heads)
+        # ])
+        
+        # ---- VGG-19 with BatchNorm Backbone ----
+        self.backbone = models.vgg19_bn(weights=models.VGG19_BN_Weights.DEFAULT)
+        
+        # Modify the classifier to remove the final layer.
+        # The classifier normally ends with a Linear(4096, 1000) layer; removing it gives a 4096-dim feature vector.
         self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
         
+        # ---- Scalar Value Heads for Each Characteristic ----
         self.heads = nn.ModuleList([
             nn.Sequential(
                 nn.Linear(4096, 512),
