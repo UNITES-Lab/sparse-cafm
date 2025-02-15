@@ -8,9 +8,9 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
-from src.models.our_method.older_surrogate import FEATURE_WEIGHTS, MultiHeadOlderSurrogate
+from src.models.our_method.older_surrogate import FEATURE_WEIGHTS, MultiHeadOLDERSurrogate
 from src.datasets.mos2_sef import Formulation as F
-from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogate
+from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogateDataset
 from src.util.logger import ExperimentLogger
 from src.util.config import (
     TrainConfig,
@@ -54,7 +54,7 @@ def create_model(config: TrainConfig) -> nn.Module:
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     split_str = "training" if split == "train" else "validation"
     img_size = int(config.image_size)
-    dataset = MOS2SefOLDERSurrogate(
+    dataset = MOS2SefOLDERSurrogateDataset(
         split=split,
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
@@ -84,12 +84,12 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     """
 
     logger = setup_logger(config, model_config)
-    older_surrogate_model: MultiHeadOlderSurrogate = create_model(config)
+    older_surrogate_model: MultiHeadOLDERSurrogate = create_model(config)
     
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
-    train_dataset: MOS2SefOLDERSurrogate = train_dataloader.dataset
-    val_dataset: MOS2SefOLDERSurrogate = val_dataloader.dataset
+    train_dataset: MOS2SefOLDERSurrogateDataset = train_dataloader.dataset
+    val_dataset: MOS2SefOLDERSurrogateDataset = val_dataloader.dataset
 
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()

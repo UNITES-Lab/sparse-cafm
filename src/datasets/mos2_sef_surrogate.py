@@ -1,10 +1,11 @@
+import cv2
 import pprint
 import torch
-import cv2
 import random
 import albumentations as A
 import torch.nn.functional as F
 
+from tqdm import tqdm
 from typing import Tuple, Dict
 from torch.utils.data import Dataset
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation
@@ -13,8 +14,9 @@ from src.util.celano_lab_scripts import process_image
 CROPPED_IMAGE_SIDE_LENGTH = 128
 ORIGINAL_IMAGE_SIZE = (512, 512)
 
+# TODO: remove:...
 # NOTE: these values are calculated by sampling 10k times from
-# train a val sets of MOS2SEFDataset. We directly feed y into characterization script.
+# train and val sets of MOS2SEFDataset; directly feed y into characterization script.
 CHARACTERISTIC_NORMALIZATION_DICT = {
     "coverage_percentage": 
         {
@@ -63,7 +65,7 @@ CHARACTERISTIC_NORMALIZATION_DICT = {
         },
 }
 
-class MOS2SefOLDERSurrogate(Dataset):
+class MOS2SefOLDERSurrogateDataset(Dataset):
     """
     Dataset class used to train an OLDER-surrogate model.
     """
@@ -78,6 +80,14 @@ class MOS2SefOLDERSurrogate(Dataset):
         device: int = 0,
         original_image_size: Tuple[int, int] = ORIGINAL_IMAGE_SIZE,
     ):
+        self.split = split
+        self.formulation = formulation
+        self.side_length = side_length
+        self.masking_ratio = masking_ratio
+        self.steps_per_epoch = steps_per_epoch
+        self.device = device
+        self.original_image_size = original_image_size
+        
         self.dataset = MOS2SEFDataset(
             split=split,
             formulation=formulation,
@@ -87,8 +97,12 @@ class MOS2SefOLDERSurrogate(Dataset):
             device=device,
             original_image_size=original_image_size,
         )
+        
+        # dictionary of {"mean": float, "std": float} values
+        self.normalization_dict: Dict[str, Dict] = {}
+        self.normalize()
     
-    def scale_image(self, image, scale):
+    def scale_image(self, image: torch.Tensor, scale: float) -> torch.Tensor:
         """
         Scales the input image by `scale` (using bilinear interpolation)
         and then crops a central patch of the original size.
@@ -100,28 +114,70 @@ class MOS2SefOLDERSurrogate(Dataset):
         Returns:
             torch.Tensor: Processed image of shape (H, W).
         """
-        # Original dimensions
+
         H, W = image.shape
-        # New dimensions after scaling
         new_H, new_W = int(H * scale), int(W * scale)
-        
-        # Scale the image: add batch and channel dims for interpolation.
         image_scaled = F.interpolate(image.unsqueeze(0).unsqueeze(0).float(),
                                     size=(new_H, new_W),
                                     mode='bilinear',
                                     align_corners=False)
-        # Remove batch and channel dims
         image_scaled = image_scaled.squeeze(0).squeeze(0)
-        
-        # Crop the central region of size (H, W)
         start_H = (new_H - H) // 2
         start_W = (new_W - W) // 2
         cropped_image = image_scaled[start_H:start_H+H, start_W:start_W+W]
-        
         return cropped_image
 
-    def __len__(self) -> int:
-        return len(self.dataset)
+    def __len__(self) -> int: return len(self.dataset)
+
+    def normalize(self) -> None:
+        """
+        Run a short test proceedure to calculate the mean and std of train/val samples;
+        set global values for mean/std so that all samples are normalized roughly to the std normal.
+        We make the apriori assumption that train/val samples belong to roughly the same distribution.
+        """
+        
+        NUM_BENCHMARK_STEPS = 200
+        train_dataset = MOS2SEFDataset(
+            split="train",
+            formulation=self.formulation,
+            side_length=self.side_length,
+            masking_ratio=self.masking_ratio,
+            steps_per_epoch=NUM_BENCHMARK_STEPS,
+            device=self.device,
+            original_image_size=self.original_image_size,
+        )
+        val_dataset = MOS2SEFDataset(
+            split="val",
+            formulation=self.formulation,
+            side_length=self.side_length,
+            masking_ratio=self.masking_ratio,
+            steps_per_epoch=NUM_BENCHMARK_STEPS,
+            device=self.device,
+            original_image_size=self.original_image_size,
+        )
+        
+        samples = {}
+        
+        # samples from train/val datasets
+        for idx in tqdm(range(NUM_BENCHMARK_STEPS), total=NUM_BENCHMARK_STEPS, desc="Calculating global mean/stds.."):
+            
+            train_item = train_dataset.__getitem__(idx)
+            val_item = val_dataset.__getitem__(idx)
+            train_y = train_item["y"]; val_y = val_item["y"]
+            
+            # characterize train/val current-maps
+            train_char = process_image(train_y, self.dataset.img_size_um)
+            val_char = process_image(val_y, self.dataset.img_size_um)
+            
+            for k, v in train_char.items():
+                if k not in samples: samples[k] = [v]
+                else: samples[k].append(v)
+            
+            for k, v in val_char.items():
+                if k not in samples: samples[k] = [v]
+                else: samples[k].append(v)
+
+        breakpoint()
 
     def __getitem__(self, index: int) -> Dict:
         """
@@ -202,6 +258,4 @@ class MOS2SefOLDERSurrogate(Dataset):
         
         return item
 
-if __name__ == "__main__":
-    ds = MOS2SefOLDERSurrogate()
-    _ = ds[0]
+if __name__ == "__main__": pass

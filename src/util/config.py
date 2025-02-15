@@ -25,8 +25,7 @@ from src.models.classic_recon import (
 )
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.our_method.older_surrogate import (
-    OlderSurrogate,
-    MultiHeadOlderSurrogate,
+    MultiHeadOLDERSurrogate,
 )
 from src.models.prev_methods.sstem import SSTEM
 from src.models.prev_methods.gpstruct import GPSTRUCT
@@ -95,8 +94,7 @@ MODELS = {
     "nn_interpolation": {"fn": NearestNeighborsInpainter.get, "weights": None},
     "sstem_interpolation": {"fn": SSTEM.get, "weights": None},
     "gpstruct_interpolation": {"fn": GPSTRUCT.get, "weights": None},
-    "older_surrogate": {"fn": OlderSurrogate.get, "weights": None},
-    "older_surrogate_mh": {"fn": MultiHeadOlderSurrogate.get, "weights": None},
+    "older_surrogate_mh": {"fn": MultiHeadOLDERSurrogate.get, "weights": None},
 }
 
 OPTIMIZERS = {
