@@ -12,7 +12,7 @@ from sklearn.metrics import mean_absolute_error
 NUM_HEADS = 6
 
 
-class MultiHeadOLDERSurrogateDataset(nn.Module):
+class MultiHeadOLDERSurrogate(nn.Module):
     """
     Predict Celano-Lab characterizations of samples.
     
@@ -26,79 +26,15 @@ class MultiHeadOLDERSurrogateDataset(nn.Module):
 
     def __init__(self, num_heads: int = NUM_HEADS):
         
-        super(MultiHeadOLDERSurrogateDataset, self).__init__()
+        super(MultiHeadOLDERSurrogate, self).__init__()
         self.num_heads = num_heads
         
-        # ---- Resnet-152 Backbone ----
-        # self.backbone = models.resnet152(weights=models.ResNet152_Weights.DEFAULT)
-        
-        # # replace the final layer of the backbone
-        # # allows us to grab the feature representation just after
-        # # global pooling is applied
-        # self.backbone.fc = nn.Identity()
-
-        # # ---- scalar value heads for each characteristic ----
-        # self.heads = nn.ModuleList([
-        #     nn.Sequential(
-        #         nn.Linear(2048, 512),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(512),
-        #         nn.Dropout(p=0.3),
-        #         nn.Linear(512, 256),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(256),
-        #         nn.Dropout(p=0.3),
-        #         nn.Linear(256, 1),
-        # ) for _ in range(NUM_HEADS)
-        # ])
-        #  -----------------------------
-        
-        #  ------- ViT Backbone --------
-        # self.backbone: VisionTransformer = models.vit_b_16(weights=models.ViT_B_16_Weights.IMAGENET1K_V1)
-        # self.backbone.heads = nn.Identity()
-        # self.heads = nn.ModuleList([
-        #     nn.Sequential(
-        #         nn.Linear(768, 512),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(512),
-        #         nn.Dropout(p=0.3),
-        #         nn.Linear(512, 256),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(256),
-        #         nn.Dropout(p=0.3),
-        #         nn.Linear(256, 1),
-        #     ) for _ in range(num_heads)
-        # ])
-        # -----------------------------
-        
-        # # ---- VGG-16 with BatchNorm Backbone ----
-        # self.backbone = models.vgg16_bn(weights=models.VGG16_BN_Weights.DEFAULT)
-        
-        # # x -> features -> avgpool -> flatten -> classifier
-        # self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
-        
-        # self.heads = nn.ModuleList([
-        #     nn.Sequential(
-        #         nn.Linear(4096, 512),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(512),
-        #         nn.Dropout(p=0.3),
-        #         nn.Linear(512, 256),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(256),
-        #         nn.Dropout(p=0.3),
-        #         nn.Linear(256, 1),
-        #     ) for _ in range(num_heads)
-        # ])
-        
-        # ---- VGG-19 with BatchNorm Backbone ----
+        # ---- VGG-19 Feature Extractor ----
         self.backbone = models.vgg19_bn(weights=models.VGG19_BN_Weights.DEFAULT)
         
-        # Modify the classifier to remove the final layer.
-        # The classifier normally ends with a Linear(4096, 1000) layer; removing it gives a 4096-dim feature vector.
+        # remove the final layer
         self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
-        
-        # ---- Scalar Value Heads for Each Characteristic ----
+
         self.heads = nn.ModuleList([
             nn.Sequential(
                 nn.Linear(4096, 512),
@@ -140,5 +76,8 @@ class MultiHeadOLDERSurrogateDataset(nn.Module):
         out = torch.cat(preds, dim=-1)
         # [B, NUM_HEADS]
         return out
+    
+    @staticmethod
+    def get(weights=None): return MultiHeadOLDERSurrogate()
 
 if __name__ == "__main__": pass
