@@ -10,9 +10,7 @@ from src.util.logger import ExperimentLogger
 from cldm.model import create_model, load_state_dict
 from cldm.logger import ImageLogger, ScuffedLogger
 
-TRAIN_CONFIG_FP = (
-    "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/train.yaml"
-)
+TRAIN_CONFIG_FP = ("/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/train-configs/train_controlnet_uncond.yaml")
 RUNS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__controlnet_runs__"
 
 
@@ -89,11 +87,12 @@ def main() -> None:
     val_dataset = val_dataloader.dataset
 
     logger = ExperimentLogger(
-        config_fp=TRAIN_CONFIG_FP,
+        config,
         root=config["logging"]["root"],
         exp_name=config["logging"]["exp_name"],
         log_interval=config["logging"]["log_interval"],
     )
+
     logger.add_result_columns(["step", "train_l1", "train_psnr", "val_l1", "val_pnsr"])
     img_logger = ImageLogger(batch_frequency=logger_freq)
     img_logger.register_logger(logger)
@@ -101,7 +100,7 @@ def main() -> None:
 
     # start training
     trainer = pl.Trainer(gpus=[0], precision=32, callbacks=[img_logger])
-
+    
     # train!
     trainer.fit(
         model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader

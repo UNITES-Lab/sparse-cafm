@@ -1,20 +1,27 @@
+# ---- train ControlNet ----
+export CUDA_VISIBLE_DEVICES=1
+LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
+EXP_NAME="ControlNet-MR=16"
+cd _ControlNet
+python train.py > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
+
 # ---- train standalone-OLDER surrogate model ----
 
-DEPTH=6
-NUM_HEADS=6
-NUM_BLOCKS=6
-WINDOW_SIZE=8
-DPR=0.1
-NORM_LAYER=torch.nn.LayerNorm
+# DEPTH=6
+# NUM_HEADS=6
+# NUM_BLOCKS=6
+# WINDOW_SIZE=8
+# DPR=0.1
+# NORM_LAYER=torch.nn.LayerNorm
 
-LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_NAME="OLDER_surrogate_mh-VGG-19-layers[-2]+layernorm-adamW-lr=1e-5-y-augs=False-6-best-features-backbone=Frozen"
+# LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
+# EXP_NAME="OLDER-surrogate-BB=VGG-19-Frozen"
 
-export CUDA_VISIBLE_DEVICES=5
-nohup python train_multi_head_surrogate.py \
-    --exp_name "$EXP_NAME" \
-    --depths $DEPTH \
-    > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
+# export CUDA_VISIBLE_DEVICES=6
+# nohup python train_multi_head_surrogate.py \
+#     --exp_name "$EXP_NAME" \
+#     --depths $DEPTH \
+#     > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
 
 # ---- train in-filling model ----
 

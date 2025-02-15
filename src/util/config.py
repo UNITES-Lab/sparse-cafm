@@ -29,7 +29,6 @@ from src.models.our_method.older_surrogate import (
 )
 from src.models.prev_methods.sstem import SSTEM
 from src.models.prev_methods.gpstruct import GPSTRUCT
-from _SwinIR.models.network_swinir import SwinIR
 
 
 def parse_config(fp: str) -> dict:
@@ -87,7 +86,6 @@ MODELS = {
     "unet": {"fn": UNet.get, "weights": None},
     "thick_unet": {"fn": ThickUNet.get, "weights": None},
     "unetr": {"fn": UNETR.get, "weights": None},
-    "swinir": {"fn": SwinIR.get, "weights": None},
     "linear_interpolation": {"fn": LinearInterpolationInpainter.get, "weights": None},
     "bicubic_interpolation": {"fn": BicubicInterpolationInpainter.get, "weights": None},
     "amp_interpolation": {"fn": AMPInpainter.get, "weights": None},
