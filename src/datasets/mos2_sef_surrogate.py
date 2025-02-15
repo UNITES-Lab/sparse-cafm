@@ -181,10 +181,10 @@ class MOS2SefOLDERSurrogate(Dataset):
             std = CHARACTERISTIC_NORMALIZATION_DICT[k]['std']
             y_char[k] = (val - mean) / std
         
-        # # HACK: we move three high-variance features
-        # y_char.pop("num_curved_lines")
-        # y_char.pop("num_extended_shapes")
-        # y_char.pop("total_area_extended_shapes")
+        # HACK: we move three high-variance features
+        y_char.pop("num_curved_lines")
+        y_char.pop("num_extended_shapes")
+        y_char.pop("total_area_extended_shapes")
         
         target_arr = []
         

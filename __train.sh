@@ -8,9 +8,9 @@ DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_NAME="OLDER_surrogate_mh-VGG-19-layers[-2]+layernorm-adamW-lr=1e-5-y-augs=False"
+EXP_NAME="OLDER_surrogate_mh-VGG-19-layers[-2]+layernorm-adamW-lr=1e-5-y-augs=False-6-best-features-backbone=Frozen"
 
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=5
 nohup python train_multi_head_surrogate.py \
     --exp_name "$EXP_NAME" \
     --depths $DEPTH \

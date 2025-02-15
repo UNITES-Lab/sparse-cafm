@@ -12,9 +12,9 @@ model:
 training:
   batch_size: 1
   steps_per_epoch: 1024
-  epochs: 50
+  epochs: 500
   loss: MSE
-  lr: 1e-4
+  lr: 1e-5
   optimizer: Adam
 
 validation:

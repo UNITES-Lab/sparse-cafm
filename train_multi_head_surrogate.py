@@ -110,8 +110,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     older_surrogate_model.float()
     
     # ---- optional: freeze backbone ----
-    # for param in older_surrogate_model.backbone.parameters():
-    #     param.requires_grad = False
+    for param in older_surrogate_model.backbone.parameters():
+        param.requires_grad = False
     
     # NOTE: always init your optimizers LAST lads...
     surrogate_optimizer: torch.optim.Optimizer = torch.optim.AdamW(
@@ -129,7 +129,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
-            
+
             # [H, W] | input: y
             y: torch.Tensor = batch["y"].cuda(device)
             
@@ -148,6 +148,9 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
 
             # ---- forward: [H, W] ----
             pred = older_surrogate_model(y)
+
+            # HACK: calculate errors by feature category; assume BS=1
+            errors = (target - pred).detach().cpu().numpy().tolist()[0]
             
             # TODO: L1 vs MSE?
             loss: torch.Tensor = train_loss(pred, target)
@@ -164,8 +167,10 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                     "epoch": epoch,
                     "train_loss": loss.item(),
                     "train_y_char": y_char,
+                    "train_errors": errors,
                     "val_loss": None,
                     "val_y_char": None,
+                    "val_errors": None,
                 }
             )
             
@@ -201,10 +206,11 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 # weight each feature by pre-computed relative correlation to L1
                 # target = FEATURE_WEIGHTS.cuda(device) * target
 
-                surrogate_optimizer.zero_grad()
-
                 # ---- forward: [H, W] ----
                 pred = older_surrogate_model(y)
+
+                # HACK: calculate errors by feature category; assume BS=1
+                errors = (target - pred).detach().cpu().numpy().tolist()[0]
                 
                 loss: torch.Tensor = train_loss(pred, target)
                 
@@ -216,9 +222,11 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                         "global_val_step": len(val_dataloader) * (epoch) + i,
                         "epoch": epoch,
                         "train_loss": None,
-                        "train_y_char": None,
+                        "train_y_char": y_char,
+                        "train_errors": None,
                         "val_loss": loss.item(),
-                        "val_y_char": y_char,
+                        "val_y_char": None,
+                        "val_errors": errors,
                     }
                 )
             
