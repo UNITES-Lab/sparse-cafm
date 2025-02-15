@@ -2,6 +2,7 @@ import cv2
 import pprint
 import torch
 import random
+import numpy as np
 import albumentations as A
 import torch.nn.functional as F
 
@@ -14,56 +15,6 @@ from src.util.celano_lab_scripts import process_image
 CROPPED_IMAGE_SIDE_LENGTH = 128
 ORIGINAL_IMAGE_SIZE = (512, 512)
 
-# TODO: remove:...
-# NOTE: these values are calculated by sampling 10k times from
-# train and val sets of MOS2SEFDataset; directly feed y into characterization script.
-CHARACTERISTIC_NORMALIZATION_DICT = {
-    "coverage_percentage": 
-        {
-            "mean": 44.20514771,
-            "std": 18.16990309,
-        },
-    "total_len_detected_curves": 
-        {
-            "mean": 18.40427719,
-            "std": 4.57835860,
-        },
-    "total_area_circular_shapes":
-        {
-            "mean": 0.91592283,
-            "std": 0.14692457,
-        },
-    "total_area_extended_shapes": 
-        {
-            "mean": 0.03225828, 
-            "std": 0.05968977,
-        },
-    "total_defect_area": 
-        {
-            "mean": 0.0057872382,
-            "std": 0.0008519035,
-        },
-    "num_circular_shapes": 
-        {
-            "mean": 75.2265000000, 
-            "std": 14.1692059675,
-        },
-    "num_extended_shapes": 
-        {
-            "mean": 0.3658000000, 
-            "std": 0.6335537546,
-        },
-    "num_curved_lines": 
-        {
-            "mean": 1.6506000000, 
-            "std": 0.8053071712,
-        },
-    "average_surface_current": 
-        {
-            "mean": 495686994.9221611619, 
-            "std": 62729659.3002319783
-        },
-}
 
 class MOS2SefOLDERSurrogateDataset(Dataset):
     """
@@ -177,7 +128,12 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
                 if k not in samples: samples[k] = [v]
                 else: samples[k].append(v)
 
-        breakpoint()
+        for k, v in samples.items():
+            self.normalization_dict[k] = {
+                "mean": np.mean(v),
+                "std": np.std(v),
+            }
+
 
     def __getitem__(self, index: int) -> Dict:
         """
@@ -242,13 +198,11 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         y_char.pop("num_extended_shapes")
         y_char.pop("total_area_extended_shapes")
         
-        target_arr = []
+        target_arr = [None] * NUM_HEADS
         
         # TODO: this may change the order of keys/features
-        keys_sorted = sorted(list(y_char.keys()))
-        for k in keys_sorted:
-            target_arr.append(y_char[k])
         
+
         target = torch.Tensor(target_arr).float()
         
         item = {}
