@@ -1,21 +1,15 @@
 import torch
 import torchvision
+import numpy as np
 import torch.nn as nn
 import torchvision.models as models
 import torchvision.models.resnet as resnet
-from torchvision.models import VisionTransformer
-import numpy as np
 
-from sklearn.ensemble import RandomForestRegressor
+from torchvision.models import VisionTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
 NUM_HEADS = 6
-
-# NOTE: 
-# these are the mean feature-importance values for a model trained to predict L1 from gt-OLDER
-# [ground_truth_older_scores] -> RandomForestRegressor -> L1
-FEATURE_WEIGHTS = torch.Tensor([0.0969, 0.1786, 0.0878, 0.0545, 0.1596, 0.1001, 0.0105, 0.0237, 0.2882])
 
 
 class MultiHeadOLDERSurrogateDataset(nn.Module):
