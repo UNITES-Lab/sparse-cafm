@@ -141,11 +141,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # [9] | gt-OLDER characterization of y
             target: torch.Tensor = batch['target'].cuda(device)
-            
-            # TODO: how can we validate the order is correct?
-            # TODO: does this weighting strat have the same effect as directly weighting the loss?
-            # weight each feature by pre-computed relative correlation to L1
-            # target = FEATURE_WEIGHTS.cuda(device) * target
 
             surrogate_optimizer.zero_grad()
 
@@ -203,11 +198,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 
                 # targets
                 target: torch.Tensor = batch['target'].cuda(device)
-                
-                # TODO: how can we validate the order is correct?
-                # TODO: does this weighting strat have the same effect as directly weighting the loss?
-                # weight each feature by pre-computed relative correlation to L1
-                # target = FEATURE_WEIGHTS.cuda(device) * target
 
                 # ---- forward: [H, W] ----
                 pred = older_surrogate_model(y)
