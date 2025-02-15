@@ -12,6 +12,7 @@ from torch.utils.data import Dataset
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation
 from src.util.celano_lab_scripts import process_image
 
+NUM_CHAR_FEATURES = 6
 CROPPED_IMAGE_SIDE_LENGTH = 128
 ORIGINAL_IMAGE_SIZE = (512, 512)
 
@@ -30,6 +31,7 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         steps_per_epoch: int = 100,
         device: int = 0,
         original_image_size: Tuple[int, int] = ORIGINAL_IMAGE_SIZE,
+        normalize_on_init: bool = False,
     ):
         self.split = split
         self.formulation = formulation
@@ -51,7 +53,8 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         
         # dictionary of {"mean": float, "std": float} values
         self.normalization_dict: Dict[str, Dict] = {}
-        self.normalize()
+        # optional: run a short benchmark to determine normalization mean/std
+        if normalize_on_init: self.normalize()
     
     def scale_image(self, image: torch.Tensor, scale: float) -> torch.Tensor:
         """
@@ -87,7 +90,7 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         We make the apriori assumption that train/val samples belong to roughly the same distribution.
         """
         
-        NUM_BENCHMARK_STEPS = 200
+        NUM_BENCHMARK_STEPS = 1000
         train_dataset = MOS2SEFDataset(
             split="train",
             formulation=self.formulation,
@@ -186,30 +189,33 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         for k, v in y_char.items():
             y_char[k] = (y_char[k] + y_char_bootstrapped[k]) / NUM_BOOTSTRAPS
         
-        # ---- normalize all vals -> std normal ----
+        # ---- normalize all vals -> ~std-normal ----
         for k in y_char:
             val = y_char[k]
-            mean = CHARACTERISTIC_NORMALIZATION_DICT[k]['mean']
-            std = CHARACTERISTIC_NORMALIZATION_DICT[k]['std']
+            mean = self.normalization_dict[k]['mean']
+            std = self.normalization_dict[k]['std']
             y_char[k] = (val - mean) / std
         
-        # HACK: we move three high-variance features
+        # NOTE: remove high variance features
         y_char.pop("num_curved_lines")
         y_char.pop("num_extended_shapes")
         y_char.pop("total_area_extended_shapes")
         
-        target_arr = [None] * NUM_HEADS
-        
-        # TODO: this may change the order of keys/features
-        
-
+        # for peace of mind; manually select features for target array
+        target_arr = [None] * NUM_CHAR_FEATURES
+        target_arr[0] = y_char['coverage_percentage']
+        target_arr[1] = y_char['total_len_detected_curves']
+        target_arr[2] = y_char['total_area_circular_shapes']
+        target_arr[3] = y_char['total_defect_area']
+        target_arr[4] = y_char['num_circular_shapes']
+        target_arr[5] = y_char['average_surface_current']
         target = torch.Tensor(target_arr).float()
         
         item = {}
         item['y'] = y
         item['y_char'] = y_char
         item['target'] = target
-        
+
         return item
 
 if __name__ == "__main__": pass

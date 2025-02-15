@@ -52,7 +52,6 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
-    split_str = "training" if split == "train" else "validation"
     img_size = int(config.image_size)
     dataset = MOS2SefOLDERSurrogateDataset(
         split=split,
@@ -64,6 +63,7 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
         device=config.device,
         original_image_size=(img_size, img_size),
         masking_ratio=int(config.masking_ratio),
+        normalize_on_init=True if split == "train" else False,
     )
     return DataLoader(
         dataset,
@@ -90,6 +90,9 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     val_dataloader = create_dataloader(config, "val")
     train_dataset: MOS2SefOLDERSurrogateDataset = train_dataloader.dataset
     val_dataset: MOS2SefOLDERSurrogateDataset = val_dataloader.dataset
+
+    # NOTE: use the same mean/std vals normalize both dataloaders to ~std normal
+    val_dataset.normalization_dict = train_dataset.normalization_dict
 
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
