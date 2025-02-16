@@ -1,9 +1,17 @@
 # ---- train ControlNet ----
-export CUDA_VISIBLE_DEVICES=1
-LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_NAME="ControlNet-MR=16"
+
+# EXP_NAME="ControlNet-MR=16"
+# cd _ControlNet
+# python train.py > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
+
 cd _ControlNet
-python train.py > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
+for i in {2..7}; do
+    export CUDA_VISIBLE_DEVICES=${i}
+    LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
+    EXP_NAME="MOS2-SEF-ControlNet-synthetic-dataset-device=${i}"
+    echo "Launching job for lambda ${LAMBDA} on CUDA device ${i}"
+    python generate_synth_dataset.py > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
+done
 
 # ---- train standalone-OLDER surrogate model ----
 

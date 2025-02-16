@@ -1,8 +1,13 @@
-indeximport torch
+from genericpath import isfile
+import os
+import torch
 import yaml
 import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
 
+from scipy.stats import norm
+from pathlib import Path
 from src.datasets.mos2_sef import (
     MOS2SEFDataset,
 )
@@ -15,11 +20,10 @@ from torchmetrics.functional.image.ssim import ssim
 from cldm.model import create_model, load_state_dict
 from src.util.metrics import OLDER
 
-
-EVAL_CONFIG_FP = (
-    "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/eval.yaml"
-)
-FT_CHECKPOINT_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/6. p(y | y_sparse)/6a. train-runs/2025-01-28_15-53-53_control_net_128x128/control_net_128x128_last.ckpt"
+NUM_TRAIN_SAMPLES = 40000
+NUM_VAL_SAMPLES = 10000
+OUT_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/mos2-cafm-controlnet-synthetic-dataset"
+FT_CHECKPOINT_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__controlnet_runs__/2025-02-15_14-56-31_controlnet-unconditional/controlnet-unconditional_last.ckpt"
 
 
 def save_results_to_fp(
@@ -65,13 +69,6 @@ def save_results_to_fp(
     y_sparse = y_sparse.unsqueeze(0)
     y_hat = y_hat.unsqueeze(0)
 
-    # 1. MAE
-    mae = (y_hat - y).abs().mean()
-    # 2. MSE
-    mse = (y_hat - y).pow(2).mean()
-    # 3. PSNR
-    psnr = 20 * torch.log10(torch.tensor(2.0)) - 10 * torch.log10(mse)
-
     # (B, H, W) -> (B, 1, H, W)
     final_pred_img_like = y_hat.clone()
     final_pred_img_like = final_pred_img_like.unsqueeze(1)
@@ -84,49 +81,22 @@ def save_results_to_fp(
     # (B, 1, H, W) -> (B, 3, H, W)
     y_img_like = y_img_like.repeat(1, 3, 1, 1)
 
-    # 4. SSIM
-    # TODO: clamp range is incorrect
-    ssim_val = ssim(
-        final_pred_img_like.clamp(0, 1).float(),  # clamp just to be safe
-        y_img_like.clamp(0, 1).float(),
-        data_range=1.0,
-    )
-
     mean, std = dataset.current_maps_mean, dataset.current_maps_std
 
-    # 5a. characterize(y)
-    # z: [0, 1] -> [-1, 1] (i.e., standard normal)
-    z = (y * 2) - 1
-    # [-1, 1] -> original dist
+    # 5b. characterize(y_hat)
+    # z: [0, 1] -> {std_normal}
+    z = norm.ppf(y_hat)
+
     # x' = mu + (sigma * z)
-    data = mean + (std * z)
-    y_char = celano_lab_characterization(data, dataset.img_size_um)
+    x_prime = mean + (std * z)
+    x_prime = x_prime.squeeze()
 
-    # 5b. characterize(y_sparse)
-    # z: [0, 1] -> [-1, 1] (i.e., standard normal)
-    z = (y_hat * 2) - 1
-    # [-1, 1] -> original dist
-    # x' = mu + (sigma * z)
-    data = mean + (std * z)
-    y_sparse_char = celano_lab_characterization(data, dataset.img_size_um)
-
-    # log metrics
-    logger.log(
-        **{
-            "step": index,
-            "mae": mae.item(),
-            "mse": mse.item(),
-            "psnr": psnr.item(),
-            "ssim": ssim_val.item(),
-            "older": OLDER(y_char, y_sparse_char),
-            "celano_script_y": y_char,
-            "celano_script_y_sparse": y_sparse_char,
-        }
-    )
-
-    logger.log_original_masked_predicted_sample_triplet(
-        y, y_sparse, y_hat, f"{index}.png"
-    )
+    subdir = "train"
+    if index > NUM_TRAIN_SAMPLES: subdir = "val"
+    cm_out_fp  = os.path.join(OUT_DIR, subdir, "normalized-current-maps", f"{index:06d}.npy") 
+    img_out_fp = os.path.join(OUT_DIR, subdir, "images", f"{index:06d}.png")
+    np.save(cm_out_fp, x_prime)
+    plt.imsave(img_out_fp, y_hat.numpy().squeeze(), cmap='viridis')
 
 
 def parse_config(fp: str) -> dict:
@@ -141,13 +111,8 @@ def main():
     Save all resulting samples as a local file.
     """
 
-    config = parse_config(EVAL_CONFIG_FP)
-    logger = ExperimentLogger(
-        config_fp=EVAL_CONFIG_FP,
-        root=config["logging"]["root"],
-        exp_name=config["logging"]["exp_name"],
-        log_interval=config["logging"]["log_interval"],
-    )
+    config = None
+    logger = None
 
     sd_locked = True
     only_mid_control = False
@@ -159,28 +124,30 @@ def main():
     model.cuda()
     model.eval()
 
-    split_str = "validation"
-    img_size = int(config["dataset"]["image_size"])
+    # perform inference
     val_dataset = MOS2SEFDataset(
-        split="val",
-        side_length=int(config["dataset"]["crop_size"]),
-        formulation=F.get_formulation_from_str(config["global"]["formulation"]),
-        steps_per_epoch=config[split_str]["steps_per_epoch"],
-        device=config["global"]["device"],
-        original_image_size=(img_size, img_size),
-        masking_ratio=int(config["dataset"]["masking_ratio"]),
+        split="train",
+        steps_per_epoch=NUM_TRAIN_SAMPLES + NUM_VAL_SAMPLES,
+        formulation=F.P_Y_BAR_Y_SPARSE_CN,
     )
     val_dataloader = DataLoader(val_dataset, num_workers=0, batch_size=1, shuffle=False)
 
     # perform inference
     for i, batch in tqdm.tqdm(enumerate(val_dataloader)):
-        # skip existing samples
+
+        index = i
+        subdir = "train"
+        if index > NUM_TRAIN_SAMPLES: subdir = "val"
+        cm_out_fp  = os.path.join(OUT_DIR, subdir, "normalized-current-maps", f"{index:06d}.npy") 
+        img_out_fp = os.path.join(OUT_DIR, subdir, "images", f"{index:06d}.png")
+        if os.path.isfile(cm_out_fp): continue
+        if os.path.isfile(img_out_fp): continue
+
         for k, v in batch.items():
             if isinstance(v, torch.Tensor):
                 v.cuda()
         log: dict = model.log_images(batch, sample=True)
         save_results_to_fp(log, "val", i, logger, val_dataset)
-
 
 if __name__ == "__main__":
     main()

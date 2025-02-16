@@ -250,6 +250,9 @@ class MOS2SEFDataset(Dataset):
         y_mask: torch.Tensor = items["mask"]
         y_sparse = (y_sig * y_mask).float()
 
+        # HACK: unconditional training
+        y_sparse = y_sparse * 0
+
         # -> [H, W, C]
         # [H, W] -> [H, W, 1]
         y_img_like = y_sig.clone()
