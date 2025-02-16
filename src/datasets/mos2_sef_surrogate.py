@@ -158,8 +158,9 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         
         # [H, W]
         y: torch.Tensor = batch["y"]
+        y_unnorm: torch.Tensor = batch["y_unnorm"]
         
-        y_char = process_image(y, self.dataset.img_size_um)
+        y_char = process_image(y_unnorm, self.dataset.img_size_um)
         
         # ---- bootstrap y_char 10x ----
         NUM_BOOTSTRAPS = 10
@@ -314,6 +315,20 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
         
         self.train_current_map_buffer.sort()
         self.train_img_buffer.sort()
+
+        # ---- HACK: val data is not ready yet, ----
+
+        # well assign an 80/20 split for now
+        total_train_items = len(self.train_current_map_buffer)
+        train_split = int(.80 * total_train_items)
+        
+        self.val_current_map_buffer = self.train_current_map_buffer[:train_split]
+        self.val_img_buffer = self.train_img_buffer[:train_split]
+        self.train_current_map_buffer = self.train_current_map_buffer[:train_split]
+        self.train_img_buffer = self.train_img_buffer[:train_split]
+
+        # ------------------------------------------
+
         self.val_current_map_buffer.sort()
         self.val_img_buffer.sort()
 
@@ -325,39 +340,42 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
     
     def __getitem__(self, index: int) -> Dict:
 
-        y = torch.Tensor(np.load(self.train_current_map_buffer[index])).float()
+        # select train/val buffer
+        buffer = self.train_current_map_buffer if self.split == "train" else self.val_current_map_buffer
+        y = torch.Tensor(np.load(buffer[index])).float()
+        
         y_char = process_image(y, self.dataset.img_size_um)
         
         # ---- bootstrap y_char 10x ----
-        NUM_BOOTSTRAPS = 10
+        # NUM_BOOTSTRAPS = 10
 
-        for i in range(NUM_BOOTSTRAPS - 1):
-            
-            y_aug = y.clone()
-            if random.random() < 0.5:
-                y_aug = torch.flip(y_aug, dims=[1])
-            if random.random() < 0.5:
-                y_aug= torch.flip(y_aug, dims=[0])
-            if y.shape[0] == y.shape[1] and random.random() < 0.5:
-                y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
-            if random.random() < 0.5:
-                factor = random.uniform(0.9, 1.1)
-                y_aug = y_aug * factor
-            if random.random() < 0.5:
-                noise_std = 0.05 * (y_aug.max() - y_aug.min())
-                noise = torch.randn_like(y_aug) * noise_std
-                y_aug = y_aug + noise
-            if random.random() < 0.5:
-                # scale randomly 1x-1.3x
-                y_aug = MOS2SefOLDERSurrogateDataset.scale_image(y_aug, 1 + (random.random() * 0.3))
+        # for i in range(NUM_BOOTSTRAPS - 1):
 
-            y_char_bootstrapped = process_image(y_aug, self.dataset.img_size_um)
+        #     y_aug = y.clone()
+        #     if random.random() < 0.5:
+        #         y_aug = torch.flip(y_aug, dims=[1])
+        #     if random.random() < 0.5:
+        #         y_aug= torch.flip(y_aug, dims=[0])
+        #     if y.shape[0] == y.shape[1] and random.random() < 0.5:
+        #         y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
+        #     if random.random() < 0.5:
+        #         factor = random.uniform(0.9, 1.1)
+        #         y_aug = y_aug * factor
+        #     if random.random() < 0.5:
+        #         noise_std = 0.05 * (y_aug.max() - y_aug.min())
+        #         noise = torch.randn_like(y_aug) * noise_std
+        #         y_aug = y_aug + noise
+        #     if random.random() < 0.5:
+        #         # scale randomly 1x-1.3x
+        #         y_aug = MOS2SefOLDERSurrogateDataset.scale_image(y_aug, 1 + (random.random() * 0.3))
+
+        #     y_char_bootstrapped = process_image(y_aug, self.dataset.img_size_um)
             
-            for k, v in y_char.items():
-                y_char[k] = (y_char[k] + y_char_bootstrapped[k])
+        #     for k, v in y_char.items():
+        #         y_char[k] = (y_char[k] + y_char_bootstrapped[k])
         
-        for k, v in y_char.items():
-            y_char[k] = (y_char[k] + y_char_bootstrapped[k]) / NUM_BOOTSTRAPS
+        # for k, v in y_char.items():
+        #     y_char[k] = (y_char[k] + y_char_bootstrapped[k]) / NUM_BOOTSTRAPS
 
         # ---- normalize all vals -> ~std-normal ----
         for k in y_char:
@@ -385,11 +403,10 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
         item['y'] = y
         item['y_char'] = y_char
         item['target'] = target
-        breakpoint()
 
         return item
 
 
 if __name__ == "__main__": 
-    dataset = SyntheticMOS2SefOLDERSurrogateDataset()
+    dataset = MOS2SefOLDERSurrogateDataset()
     dataset[0]

@@ -4,32 +4,32 @@
 # cd _ControlNet
 # python train.py > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
 
-cd _ControlNet
-for i in {2..7}; do
-    export CUDA_VISIBLE_DEVICES=${i}
-    LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-    EXP_NAME="MOS2-SEF-ControlNet-synthetic-dataset-device=${i}"
-    echo "Launching job for lambda ${LAMBDA} on CUDA device ${i}"
-    python generate_synth_dataset.py > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
-done
+# cd _ControlNet
+# for i in {2..7}; do
+#     export CUDA_VISIBLE_DEVICES=${i}
+#     LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
+#     EXP_NAME="MOS2-SEF-ControlNet-synthetic-dataset-device=${i}"
+#     echo "Launching job for lambda ${LAMBDA} on CUDA device ${i}"
+#     python generate_synth_dataset.py > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
+# done
 
 # ---- train standalone-OLDER surrogate model ----
 
-# DEPTH=6
-# NUM_HEADS=6
-# NUM_BLOCKS=6
-# WINDOW_SIZE=8
-# DPR=0.1
-# NORM_LAYER=torch.nn.LayerNorm
+DEPTH=6
+NUM_HEADS=6
+NUM_BLOCKS=6
+WINDOW_SIZE=8
+DPR=0.1
+NORM_LAYER=torch.nn.LayerNorm
 
-# LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-# EXP_NAME="OLDER-surrogate-BB=VGG-19-Frozen"
+LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
+EXP_NAME="DS=Synth-OLDER-surrogate-BB=VGG-19-Frozen"
 
-# export CUDA_VISIBLE_DEVICES=6
-# nohup python train_multi_head_surrogate.py \
-#     --exp_name "$EXP_NAME" \
-#     --depths $DEPTH \
-#     > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
+export CUDA_VISIBLE_DEVICES=7
+nohup python train_multi_head_surrogate.py \
+    --exp_name "$EXP_NAME" \
+    --depths $DEPTH \
+    > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
 
 # ---- train in-filling model ----
 

@@ -320,6 +320,8 @@ class MOS2SEFDataset(Dataset):
 
         # normalize X, y -> [0, 1]
         X = (X - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
+
+        y_unnorm = y.clone()
         y = (y - self.current_maps_min) / (
             self.current_maps_max - self.current_maps_min
         )
@@ -330,6 +332,7 @@ class MOS2SEFDataset(Dataset):
         return {
             "X": X,
             "y": y,
+            "y_unnorm": y_unnorm,
             "mask": mask,
         }
 

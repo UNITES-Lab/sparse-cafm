@@ -10,7 +10,7 @@ from typing import List, Optional
 from torch.utils.data import DataLoader
 from src.models.our_method.older_surrogate import  MultiHeadOLDERSurrogate
 from src.datasets.mos2_sef import Formulation as F
-from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogateDataset
+from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogateDataset, SyntheticMOS2SefOLDERSurrogateDataset
 from src.util.logger import ExperimentLogger
 from src.util.config import (
     TrainConfig,
@@ -53,7 +53,7 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     img_size = int(config.image_size)
-    dataset = MOS2SefOLDERSurrogateDataset(
+    dataset = SyntheticMOS2SefOLDERSurrogateDataset(
         split=split,
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
@@ -88,11 +88,12 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
-    train_dataset: MOS2SefOLDERSurrogateDataset = train_dataloader.dataset
-    val_dataset: MOS2SefOLDERSurrogateDataset = val_dataloader.dataset
+    train_dataset: SyntheticMOS2SefOLDERSurrogateDataset = train_dataloader.dataset
+    val_dataset: SyntheticMOS2SefOLDERSurrogateDataset = val_dataloader.dataset
 
     # NOTE: use the same mean/std vals normalize both dataloaders to ~std normal
     val_dataset.normalization_dict = train_dataset.normalization_dict
+    val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
 
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
@@ -113,8 +114,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     older_surrogate_model.float()
     
     # ---- optional: freeze backbone ----
-    for param in older_surrogate_model.backbone.parameters():
-        param.requires_grad = False
+    # for param in older_surrogate_model.backbone.parameters():
+    #     param.requires_grad = False
     
     # NOTE: always init your optimizers LAST lads...
     surrogate_optimizer: torch.optim.Optimizer = torch.optim.AdamW(
@@ -152,6 +153,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # TODO: L1 vs MSE?
             loss: torch.Tensor = train_loss(pred, target)
+
+            breakpoint()
             loss.backward()
             
             surrogate_optimizer.step()

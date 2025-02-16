@@ -35,6 +35,7 @@ class MultiHeadOLDERSurrogate(nn.Module):
         # remove the final layer
         self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
 
+        # ---- classification heads ----
         self.heads = nn.ModuleList([
             nn.Sequential(
                 nn.Linear(4096, 512),
@@ -48,8 +49,7 @@ class MultiHeadOLDERSurrogate(nn.Module):
                 nn.Linear(256, 1),
             ) for _ in range(num_heads)
         ])
-        
-        # --------------------------------------
+        # ------------------------------
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
