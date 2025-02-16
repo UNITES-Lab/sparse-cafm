@@ -1,3 +1,4 @@
+from glob import glob
 import cv2
 import pprint
 import torch
@@ -53,10 +54,12 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         
         # dictionary of {"mean": float, "std": float} values
         self.normalization_dict: Dict[str, Dict] = {}
+        
         # optional: run a short benchmark to determine normalization mean/std
         if normalize_on_init: self.normalize()
     
-    def scale_image(self, image: torch.Tensor, scale: float) -> torch.Tensor:
+    @staticmethod
+    def scale_image(image: torch.Tensor, scale: float) -> torch.Tensor:
         """
         Scales the input image by `scale` (using bilinear interpolation)
         and then crops a central patch of the original size.
@@ -179,7 +182,7 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
                 y_aug = y_aug + noise
             if random.random() < 0.5:
                 # scale randomly 1x-1.3x
-                y_aug = self.scale_image(y_aug, 1 + (random.random() * 0.3))
+                y_aug = MOS2SefOLDERSurrogateDataset.scale_image(y_aug, 1 + (random.random() * 0.3))
 
             y_char_bootstrapped = process_image(y_aug, self.dataset.img_size_um)
             
@@ -217,5 +220,176 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         item['target'] = target
 
         return item
+    
+class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
+    """
+    Synthetic MOS2-SEF dataset generated via ControlNet.
+    Intended for pre-training the OLDER-Surrogate model.
+    """
 
-if __name__ == "__main__": pass
+    ROOT_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/mos2-cafm-controlnet-synthetic-dataset"
+
+    def __init__(self,
+        split: str = "train",
+        formulation: Formulation = Formulation.P_Y_BAR_Y_SPARSE,
+        side_length: int = CROPPED_IMAGE_SIDE_LENGTH,
+        masking_ratio: int = 0,
+        steps_per_epoch: int = 100,
+        device: int = 0,
+        original_image_size: Tuple[int, int] = ORIGINAL_IMAGE_SIZE,
+        normalize_on_init: bool = True,
+        ):
+        super().__init__()
+
+        assert split in ["train", "val"], f"Error: expected `split` value in [train, val], got: {split}"
+        self.split = split
+
+        self.dataset = MOS2SEFDataset(
+            split=split,
+            formulation=formulation,
+            side_length=side_length,
+            masking_ratio=masking_ratio,
+            steps_per_epoch=steps_per_epoch,
+            device=device,
+            original_image_size=original_image_size,
+        )
+
+        self.train_img_buffer = []
+        self.train_current_map_buffer = []
+        self.val_img_buffer = []
+        self.val_current_map_buffer = []
+        self.__load__()
+        
+        # dictionary of {"mean": float, "std": float} values
+        self.normalization_dict: Dict[str, Dict] = {}
+
+        # optional: run a short benchmark to determine normalization mean/std
+        if normalize_on_init: self.normalize()
+
+    def normalize(self) -> None:
+        """
+        Run a short test proceedure to calculate the mean and std of train/val samples;
+        set global values for mean/std so that all samples are normalized roughly to the std normal.
+        We make the apriori assumption that train/val samples belong to roughly the same distribution.
+        """
+        
+        NUM_BENCHMARK_STEPS = 1000
+        
+        samples = {}
+        
+        # samples from train/val datasets
+        for idx in tqdm(range(NUM_BENCHMARK_STEPS), total=NUM_BENCHMARK_STEPS, desc="Calculating global mean/stds.."):
+            
+            # HACK: change train -> val buffer 
+            train_item_fp = self.train_current_map_buffer[idx]
+            val_item_fp = self.train_current_map_buffer[idx]
+
+            train_y = torch.Tensor(np.load(train_item_fp)).float()
+            val_y = torch.Tensor(np.load(val_item_fp)).float()
+            
+            # characterize train/val current-maps
+            train_char = process_image(train_y, self.dataset.img_size_um)
+            val_char = process_image(val_y, self.dataset.img_size_um)
+            
+            for k, v in train_char.items():
+                if k not in samples: samples[k] = [v]
+                else: samples[k].append(v)
+            
+            for k, v in val_char.items():
+                if k not in samples: samples[k] = [v]
+                else: samples[k].append(v)
+
+        for k, v in samples.items():
+            self.normalization_dict[k] = {
+                "mean": np.mean(v),
+                "std": np.std(v),
+            }
+    
+    def __load__(self) -> None:
+
+        self.train_current_map_buffer = glob(f"{self.ROOT_DIR}/train/normalized-current-maps/*.npy")
+        self.train_img_buffer = glob(f"{self.ROOT_DIR}/train/images/*.png")
+        self.val_current_map_buffer = glob(f"{self.ROOT_DIR}/val/normalized-current-maps/*.npy")
+        self.val_img_buffer = glob(f"{self.ROOT_DIR}/val/images/*.png")
+        
+        self.train_current_map_buffer.sort()
+        self.train_img_buffer.sort()
+        self.val_current_map_buffer.sort()
+        self.val_img_buffer.sort()
+
+        assert len(self.train_current_map_buffer) == len(self.train_img_buffer)
+        assert len(self.val_current_map_buffer) == len(self.val_img_buffer)
+
+    def __len__(self): 
+        return len(self.train_current_map_buffer) if self.split == "train" else len(self.val_current_map_buffer)
+    
+    def __getitem__(self, index: int) -> Dict:
+
+        y = torch.Tensor(np.load(self.train_current_map_buffer[index])).float()
+        y_char = process_image(y, self.dataset.img_size_um)
+        
+        # ---- bootstrap y_char 10x ----
+        NUM_BOOTSTRAPS = 10
+
+        for i in range(NUM_BOOTSTRAPS - 1):
+            
+            y_aug = y.clone()
+            if random.random() < 0.5:
+                y_aug = torch.flip(y_aug, dims=[1])
+            if random.random() < 0.5:
+                y_aug= torch.flip(y_aug, dims=[0])
+            if y.shape[0] == y.shape[1] and random.random() < 0.5:
+                y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
+            if random.random() < 0.5:
+                factor = random.uniform(0.9, 1.1)
+                y_aug = y_aug * factor
+            if random.random() < 0.5:
+                noise_std = 0.05 * (y_aug.max() - y_aug.min())
+                noise = torch.randn_like(y_aug) * noise_std
+                y_aug = y_aug + noise
+            if random.random() < 0.5:
+                # scale randomly 1x-1.3x
+                y_aug = MOS2SefOLDERSurrogateDataset.scale_image(y_aug, 1 + (random.random() * 0.3))
+
+            y_char_bootstrapped = process_image(y_aug, self.dataset.img_size_um)
+            
+            for k, v in y_char.items():
+                y_char[k] = (y_char[k] + y_char_bootstrapped[k])
+        
+        for k, v in y_char.items():
+            y_char[k] = (y_char[k] + y_char_bootstrapped[k]) / NUM_BOOTSTRAPS
+
+        # ---- normalize all vals -> ~std-normal ----
+        for k in y_char:
+            val = y_char[k]
+            mean = self.normalization_dict[k]['mean']
+            std = self.normalization_dict[k]['std']
+            y_char[k] = (val - mean) / std
+        
+        # NOTE: remove high variance features
+        y_char.pop("num_curved_lines")
+        y_char.pop("num_extended_shapes")
+        y_char.pop("total_area_extended_shapes")
+        
+        # for peace of mind; manually select features for target array
+        target_arr = [None] * NUM_CHAR_FEATURES
+        target_arr[0] = y_char['coverage_percentage']
+        target_arr[1] = y_char['total_len_detected_curves']
+        target_arr[2] = y_char['total_area_circular_shapes']
+        target_arr[3] = y_char['total_defect_area']
+        target_arr[4] = y_char['num_circular_shapes']
+        target_arr[5] = y_char['average_surface_current']
+        target = torch.Tensor(target_arr).float()
+
+        item = {}
+        item['y'] = y
+        item['y_char'] = y_char
+        item['target'] = target
+        breakpoint()
+
+        return item
+
+
+if __name__ == "__main__": 
+    dataset = SyntheticMOS2SefOLDERSurrogateDataset()
+    dataset[0]

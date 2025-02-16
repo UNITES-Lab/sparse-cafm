@@ -80,6 +80,10 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
     if isinstance(data, torch.Tensor):
         data = data.clone().detach().cpu().numpy()
     
+    # HACK: a super lazy way of nuking nan values that leak through
+    data[np.isnan(data)] = np.nanmedian(data)
+    data[np.isneginf(data)] = np.nanmedian(data)
+
     height, width = data.shape
     
     # ---- Jayed's script begins ----
