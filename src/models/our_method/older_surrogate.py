@@ -9,7 +9,7 @@ from torchvision.models import VisionTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
-NUM_HEADS = 6
+NUM_HEADS = 9
 
 
 class MultiHeadOLDERSurrogate(nn.Module):
@@ -38,15 +38,7 @@ class MultiHeadOLDERSurrogate(nn.Module):
         # ---- classification heads ----
         self.heads = nn.ModuleList([
             nn.Sequential(
-                nn.Linear(4096, 512),
-                nn.ReLU(),
-                nn.LayerNorm(512),
-                nn.Dropout(p=0.3),
-                nn.Linear(512, 256),
-                nn.ReLU(),
-                nn.LayerNorm(256),
-                nn.Dropout(p=0.3),
-                nn.Linear(256, 1),
+                nn.Linear(4096, 1),
             ) for _ in range(num_heads)
         ])
         # ------------------------------

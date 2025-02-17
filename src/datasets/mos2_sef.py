@@ -120,7 +120,7 @@ class MOS2SEFDataset(Dataset):
         self._load_imgs()
 
         # remove L -> R gradients; remove back contact bias
-        self._remove_gradients()
+        # self._remove_gradients()
 
         # find the mean/std of current and topo maps
         self._calculate_mean_std()

@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation
 from src.util.celano_lab_scripts import process_image
 
-NUM_CHAR_FEATURES = 6
+NUM_CHAR_FEATURES = 9
 CROPPED_IMAGE_SIDE_LENGTH = 128
 ORIGINAL_IMAGE_SIZE = (512, 512)
 
@@ -160,38 +160,39 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         y: torch.Tensor = batch["y"]
         y_unnorm: torch.Tensor = batch["y_unnorm"]
         
+        # get the celano-lab characterization of a raw current-map sample
         y_char = process_image(y_unnorm, self.dataset.img_size_um)
         
         # ---- bootstrap y_char 10x ----
-        NUM_BOOTSTRAPS = 10
+        # NUM_BOOTSTRAPS = 10
 
-        for i in range(NUM_BOOTSTRAPS - 1):
+        # for i in range(NUM_BOOTSTRAPS - 1):
             
-            y_aug = y.clone()
-            if random.random() < 0.5:
-                y_aug = torch.flip(y_aug, dims=[1])
-            if random.random() < 0.5:
-                y_aug= torch.flip(y_aug, dims=[0])
-            if y.shape[0] == y.shape[1] and random.random() < 0.5:
-                y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
-            if random.random() < 0.5:
-                factor = random.uniform(0.9, 1.1)
-                y_aug = y_aug * factor
-            if random.random() < 0.5:
-                noise_std = 0.05 * (y_aug.max() - y_aug.min())
-                noise = torch.randn_like(y_aug) * noise_std
-                y_aug = y_aug + noise
-            if random.random() < 0.5:
-                # scale randomly 1x-1.3x
-                y_aug = MOS2SefOLDERSurrogateDataset.scale_image(y_aug, 1 + (random.random() * 0.3))
+        #     y_aug = y.clone()
+        #     if random.random() < 0.5:
+        #         y_aug = torch.flip(y_aug, dims=[1])
+        #     if random.random() < 0.5:
+        #         y_aug= torch.flip(y_aug, dims=[0])
+        #     if y.shape[0] == y.shape[1] and random.random() < 0.5:
+        #         y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
+        #     if random.random() < 0.5:
+        #         factor = random.uniform(0.9, 1.1)
+        #         y_aug = y_aug * factor
+        #     if random.random() < 0.5:
+        #         noise_std = 0.05 * (y_aug.max() - y_aug.min())
+        #         noise = torch.randn_like(y_aug) * noise_std
+        #         y_aug = y_aug + noise
+        #     if random.random() < 0.5:
+        #         # scale randomly 1x-1.3x
+        #         y_aug = MOS2SefOLDERSurrogateDataset.scale_image(y_aug, 1 + (random.random() * 0.3))
 
-            y_char_bootstrapped = process_image(y_aug, self.dataset.img_size_um)
+        #     y_char_bootstrapped = process_image(y_aug, self.dataset.img_size_um)
             
-            for k, v in y_char.items():
-                y_char[k] = (y_char[k] + y_char_bootstrapped[k])
+        #     for k, v in y_char.items():
+        #         y_char[k] = (y_char[k] + y_char_bootstrapped[k])
         
-        for k, v in y_char.items():
-            y_char[k] = (y_char[k] + y_char_bootstrapped[k]) / NUM_BOOTSTRAPS
+        # for k, v in y_char.items():
+        #     y_char[k] = (y_char[k] + y_char_bootstrapped[k]) / NUM_BOOTSTRAPS
         
         # ---- normalize all vals -> ~std-normal ----
         for k in y_char:
@@ -274,7 +275,7 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
         We make the apriori assumption that train/val samples belong to roughly the same distribution.
         """
         
-        NUM_BENCHMARK_STEPS = 1000
+        NUM_BENCHMARK_STEPS = 100
         
         samples = {}
         
@@ -285,8 +286,19 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
             train_item_fp = self.train_current_map_buffer[idx]
             val_item_fp = self.train_current_map_buffer[idx]
 
-            train_y = torch.Tensor(np.load(train_item_fp)).float()
-            val_y = torch.Tensor(np.load(val_item_fp)).float()
+            train_y = np.load(train_item_fp)
+            val_y = np.load(val_item_fp)
+
+            # HACK: a super lazy way of nuking nan values that leak through
+            train_y[np.isnan(train_y)] = np.nanmedian(train_y)
+            train_y[np.isneginf(train_y)] = np.nanmedian(train_y)
+            
+            # HACK: a super lazy way of nuking nan values that leak through
+            val_y[np.isnan(val_y)] = np.nanmedian(val_y)
+            val_y[np.isneginf(val_y)] = np.nanmedian(val_y)
+
+            train_y = torch.Tensor(train_y).float()
+            val_y = torch.Tensor(val_y).float()
             
             # characterize train/val current-maps
             train_char = process_image(train_y, self.dataset.img_size_um)
@@ -342,9 +354,19 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
 
         # select train/val buffer
         buffer = self.train_current_map_buffer if self.split == "train" else self.val_current_map_buffer
-        y = torch.Tensor(np.load(buffer[index])).float()
         
-        y_char = process_image(y, self.dataset.img_size_um)
+        y_unnormed = np.load(buffer[index])
+        # HACK: a super lazy way of nuking nan values that leak through
+        y_unnormed[np.isnan(y_unnormed)] = np.nanmedian(y_unnormed)
+        y_unnormed[np.isneginf(y_unnormed)] = np.nanmedian(y_unnormed)
+        y_unnormed = torch.Tensor(y_unnormed).float()
+        
+        # normalized -> ~std normal
+        y = (y_unnormed - self.dataset.current_maps_mean) / self.dataset.current_maps_std
+        
+        try:
+            y_char = process_image(y_unnormed, self.dataset.img_size_um)
+        except: breakpoint()
         
         # ---- bootstrap y_char 10x ----
         # NUM_BOOTSTRAPS = 10
@@ -384,10 +406,10 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
             std = self.normalization_dict[k]['std']
             y_char[k] = (val - mean) / std
         
-        # NOTE: remove high variance features
-        y_char.pop("num_curved_lines")
-        y_char.pop("num_extended_shapes")
-        y_char.pop("total_area_extended_shapes")
+        # # NOTE: remove high variance features
+        # y_char.pop("num_curved_lines")
+        # y_char.pop("num_extended_shapes")
+        # y_char.pop("total_area_extended_shapes")
         
         # for peace of mind; manually select features for target array
         target_arr = [None] * NUM_CHAR_FEATURES
@@ -397,6 +419,9 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
         target_arr[3] = y_char['total_defect_area']
         target_arr[4] = y_char['num_circular_shapes']
         target_arr[5] = y_char['average_surface_current']
+        target_arr[6] = y_char['num_curved_lines']
+        target_arr[7] = y_char['num_extended_shapes']
+        target_arr[8] = y_char['total_area_extended_shapes']
         target = torch.Tensor(target_arr).float()
 
         item = {}
