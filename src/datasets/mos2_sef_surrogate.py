@@ -1,21 +1,49 @@
-from glob import glob
 import cv2
 import pprint
+import concurrent
 import torch
 import random
 import numpy as np
 import albumentations as A
 import torch.nn.functional as F
 
+from glob import glob
 from tqdm import tqdm
 from typing import Tuple, Dict
 from torch.utils.data import Dataset
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation
 from src.util.celano_lab_scripts import process_image
 
-NUM_CHAR_FEATURES = 9
+NUM_CHAR_FEATURES = 4
 CROPPED_IMAGE_SIDE_LENGTH = 128
 ORIGINAL_IMAGE_SIZE = (512, 512)
+
+
+def augment_and_process(y: torch.Tensor, img_size_um: float) -> torch.Tensor:
+    """
+    Performs a series of random augmentations on the image tensor `y` and processes it.
+    Returns the dictionary from process_image.
+    """
+    
+    y_aug = y.clone()
+    if random.random() < 0.5:
+        y_aug = torch.flip(y_aug, dims=[1])
+    if random.random() < 0.5:
+        y_aug = torch.flip(y_aug, dims=[0])
+    if y.shape[0] == y.shape[1] and random.random() < 0.5:
+        y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
+    if random.random() < 0.5:
+        factor = random.uniform(0.9, 1.1)
+        y_aug = y_aug * factor
+    if random.random() < 0.5:
+        noise_std = 0.05 * (y_aug.max() - y_aug.min())
+        noise = torch.randn_like(y_aug) * noise_std
+        y_aug = y_aug + noise
+    if random.random() < 0.5:
+        scale_factor = 1 + (random.random() * 0.3)
+        y_aug = MOS2SefOLDERSurrogateDataset.scale_image(y_aug, scale_factor)
+    
+    return process_image(y_aug, img_size_um)
 
 
 class MOS2SefOLDERSurrogateDataset(Dataset):
@@ -162,37 +190,27 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         
         # get the celano-lab characterization of a raw current-map sample
         y_char = process_image(y_unnorm, self.dataset.img_size_um)
+        # get a copy so that we can use non-bootstraped `average_surface_current`
+        y_char_og = y_char.copy()
         
+        # TODO: fast, concurrent bootstrapping
         # ---- bootstrap y_char 10x ----
-        # NUM_BOOTSTRAPS = 10
-
-        # for i in range(NUM_BOOTSTRAPS - 1):
-            
-        #     y_aug = y.clone()
-        #     if random.random() < 0.5:
-        #         y_aug = torch.flip(y_aug, dims=[1])
-        #     if random.random() < 0.5:
-        #         y_aug= torch.flip(y_aug, dims=[0])
-        #     if y.shape[0] == y.shape[1] and random.random() < 0.5:
-        #         y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
-        #     if random.random() < 0.5:
-        #         factor = random.uniform(0.9, 1.1)
-        #         y_aug = y_aug * factor
-        #     if random.random() < 0.5:
-        #         noise_std = 0.05 * (y_aug.max() - y_aug.min())
-        #         noise = torch.randn_like(y_aug) * noise_std
-        #         y_aug = y_aug + noise
-        #     if random.random() < 0.5:
-        #         # scale randomly 1x-1.3x
-        #         y_aug = MOS2SefOLDERSurrogateDataset.scale_image(y_aug, 1 + (random.random() * 0.3))
-
-        #     y_char_bootstrapped = process_image(y_aug, self.dataset.img_size_um)
-            
-        #     for k, v in y_char.items():
-        #         y_char[k] = (y_char[k] + y_char_bootstrapped[k])
-        
-        # for k, v in y_char.items():
-        #     y_char[k] = (y_char[k] + y_char_bootstrapped[k]) / NUM_BOOTSTRAPS
+        NUM_BOOTSTRAPS = 20
+        results = []
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [
+                executor.submit(augment_and_process, y, self.dataset.img_size_um)
+                for _ in range(NUM_BOOTSTRAPS - 1)
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                results.append(future.result())
+        # add each result from the concurrent iterations.
+        for res in results:
+            for key in y_char:
+                y_char[key] += res[key]
+        # average over the total number of bootstraps.
+        for key in y_char:
+            y_char[key] /= NUM_BOOTSTRAPS
         
         # ---- normalize all vals -> ~std-normal ----
         for k in y_char:
@@ -201,19 +219,25 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
             std = self.normalization_dict[k]['std']
             y_char[k] = (val - mean) / std
         
-        # NOTE: remove high variance features
-        y_char.pop("num_curved_lines")
-        y_char.pop("num_extended_shapes")
-        y_char.pop("total_area_extended_shapes")
-        
         # for peace of mind; manually select features for target array
         target_arr = [None] * NUM_CHAR_FEATURES
-        target_arr[0] = y_char['coverage_percentage']
-        target_arr[1] = y_char['total_len_detected_curves']
-        target_arr[2] = y_char['total_area_circular_shapes']
-        target_arr[3] = y_char['total_defect_area']
-        target_arr[4] = y_char['num_circular_shapes']
-        target_arr[5] = y_char['average_surface_current']
+        
+        # NOTE: use non-bootstraped val
+        target_arr[0] = y_char_og['average_surface_current']
+        # 
+        target_arr[1] = y_char['coverage_percentage']
+        target_arr[2] = y_char['num_extended_shapes']
+        target_arr[3] = y_char['total_area_extended_shapes']
+        
+        # target_arr[0] = y_char['coverage_percentage']
+        # target_arr[1] = y_char['total_len_detected_curves']
+        # target_arr[2] = y_char['total_area_circular_shapes']
+        # target_arr[3] = y_char['total_defect_area']
+        # target_arr[4] = y_char['num_circular_shapes']
+        # target_arr[5] = y_char['average_surface_current']
+        # target_arr[6] = y_char['num_curved_lines']
+        # target_arr[7] = y_char['num_extended_shapes']
+        # target_arr[8] = y_char['total_area_extended_shapes']
         target = torch.Tensor(target_arr).float()
         
         item = {}
@@ -370,9 +394,7 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
         
         # ---- bootstrap y_char 10x ----
         # NUM_BOOTSTRAPS = 10
-
         # for i in range(NUM_BOOTSTRAPS - 1):
-
         #     y_aug = y.clone()
         #     if random.random() < 0.5:
         #         y_aug = torch.flip(y_aug, dims=[1])
@@ -390,12 +412,9 @@ class SyntheticMOS2SefOLDERSurrogateDataset(Dataset):
         #     if random.random() < 0.5:
         #         # scale randomly 1x-1.3x
         #         y_aug = MOS2SefOLDERSurrogateDataset.scale_image(y_aug, 1 + (random.random() * 0.3))
-
         #     y_char_bootstrapped = process_image(y_aug, self.dataset.img_size_um)
-            
         #     for k, v in y_char.items():
         #         y_char[k] = (y_char[k] + y_char_bootstrapped[k])
-        
         # for k, v in y_char.items():
         #     y_char[k] = (y_char[k] + y_char_bootstrapped[k]) / NUM_BOOTSTRAPS
 

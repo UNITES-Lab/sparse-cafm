@@ -245,6 +245,7 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
     # TODO: normalize all values to a "reasonable" range
     return {
         # "total_len_detected_curves_without_boundary": curves_length_um_without_boundary,
+        "average_surface_current": data_nA,
         "coverage_percentage": coverage_percentage,
         "total_len_detected_curves": curves_length_um,
         "total_area_circular_shapes": circular_shapes_area_um2,
@@ -253,7 +254,6 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
         "num_circular_shapes": len(circular_shapes),
         "num_extended_shapes": len(extended_shapes),
         "num_curved_lines": len(curved_lines),
-        "average_surface_current": data_nA,
     }
 
 

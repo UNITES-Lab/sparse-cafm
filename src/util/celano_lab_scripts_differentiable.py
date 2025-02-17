@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 from scipy.signal import find_peaks
 
+def diff_calculate_pixel_size(img: torch.Tensor, image_size_um: float) -> float: pass
+
 
 def calculate_pixel_size(image: np.ndarray, image_size_um: float) -> float:
     """

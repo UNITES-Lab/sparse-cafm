@@ -53,7 +53,7 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     img_size = int(config.image_size)
-    dataset = SyntheticMOS2SefOLDERSurrogateDataset(
+    dataset = MOS2SefOLDERSurrogateDataset(
         split=split,
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
@@ -88,11 +88,11 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
-    train_dataset: SyntheticMOS2SefOLDERSurrogateDataset = train_dataloader.dataset
-    val_dataset: SyntheticMOS2SefOLDERSurrogateDataset = val_dataloader.dataset
+    train_dataset: MOS2SefOLDERSurrogateDataset = train_dataloader.dataset
+    val_dataset: MOS2SefOLDERSurrogateDataset = val_dataloader.dataset
 
     # NOTE: use the same mean/std vals normalize both dataloaders to ~std normal
-    val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
+    # val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
     val_dataset.normalization_dict = train_dataset.normalization_dict
 
     # define loss function and optimizer

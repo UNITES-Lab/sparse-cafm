@@ -23,14 +23,14 @@ DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_NAME="DS=Synth-OLDER-surrogate-BB=VGG-19-Trainable-y_char=unnormed-num-features=9"
+EXP_NAME="BB-VGG-19-Frozen-Bootstraps=0-average_surface_current"
 
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=0
 nohup python train_multi_head_surrogate.py \
     --exp_name "$EXP_NAME" \
     --depths $DEPTH \
     > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
-
+ 
 # ---- train in-filling model ----
 
 # DEPTH=6
