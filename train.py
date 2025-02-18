@@ -175,8 +175,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             def hook_fn(module, input, output) -> None:
                 y_activations[module] = output
-
-            breakpoint()
                   
             LAYERS = [4, 11, 24, 37, 50]
 
@@ -184,12 +182,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             feat_layer_idx = int(args.vgg_feature_layer)
             surrogate.backbone.features[feat_layer_idx].register_forward_hook(hook_fn)
             # --------------------
-            
-            # ------- ViT -------
-            # for i in range(len(surrogate.backbone.encoder.layers)):
-            #     surrogate.backbone.encoder.layers[i].register_forward_hook(hook_fn)
-            # -------------------
-            
+
             # [B, H, W]
             y_feature_map = y.clone()
             
@@ -231,21 +224,19 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             for i, (k, v) in enumerate(y_hat_activations.items()):
                 y_hat_activations_stack.append(v)
             
-            # --- Loss: L1 ---
+            # ----- calculate loss -----
             pixel_wise_loss = torch.nn.functional.l1_loss(y, outputs)
+            percep_loss = perceptual_loss(y_activations_stack, y_hat_activations_stack)
             
+            # --- Loss: L1 ---
+            # loss: torch.Tensor = pixel_wise_loss
+
             # --- Loss: OLDER-Perceptual ---
-            # loss: torch.Tensor = surrogate_perceptual_loss
+            # loss: torch.Tensor = percep_loss
             
-            # --- Loss: OLDER-Perceptual + L1 ---
-            # loss: torch.Tensor = surrogate_perceptual_loss + pixel_wise_loss
-            
-            #  --- Loss: OLDER-Multilayer-Perceptual ---
-            # loss: torch.Tensor = torch.nn.functional.l1_loss(y_activations_stack, y_hat_activations_stack)
-            
-            #  --- Loss: OLDER-Multilayer-Perceptual + L1 ---
-            surrogate_multilayered_perceptual_loss = perceptual_loss(y_activations_stack, y_hat_activations_stack) * args.surrogate_loss_mixin
-            loss: torch.Tensor = surrogate_multilayered_perceptual_loss + pixel_wise_loss
+            #  --- Loss: OLDER-Perceptual + L1 ---
+            weighted_perceptual_loss = percep_loss * args.surrogate_loss_mixin
+            loss: torch.Tensor = weighted_perceptual_loss + pixel_wise_loss
             # --------------------------------------------------------
 
             loss.backward()

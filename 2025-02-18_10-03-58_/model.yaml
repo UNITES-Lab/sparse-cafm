@@ -1,0 +1,28 @@
+hyperparams:
+    depths:
+    - 6
+    - 6
+    - 6
+    - 6
+    - 6
+    - 6
+    drop_path_rate: 0.1
+    embed_dim: 180
+    img_range: 1.0
+    img_size:
+    - 128
+    - 128
+    mlp_ratio: 2
+    norm_layer: torch.nn.LayerNorm
+    num_heads:
+    - 6
+    - 6
+    - 6
+    - 6
+    - 6
+    - 6
+    resi_connection: 1conv
+    upsampler: no_upscale
+    upscale: 8
+    window_size: 8
+weights_fp: /playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/_SwinIR/__weights__/005_colorDN_DFWB_s128w8_SwinIR-M_noise25.pth
