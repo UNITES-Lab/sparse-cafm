@@ -218,13 +218,19 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
             mean = self.normalization_dict[k]['mean']
             std = self.normalization_dict[k]['std']
             y_char[k] = (val - mean) / std
+            
+        for k in y_char_og:
+            val = y_char_og[k]
+            mean = self.normalization_dict[k]['mean']
+            std = self.normalization_dict[k]['std']
+            y_char_og[k] = (val - mean) / std
         
         # for peace of mind; manually select features for target array
         target_arr = [None] * NUM_CHAR_FEATURES
         
         # NOTE: use non-bootstraped val
         target_arr[0] = y_char_og['average_surface_current']
-        # 
+        
         target_arr[1] = y_char['coverage_percentage']
         target_arr[2] = y_char['num_extended_shapes']
         target_arr[3] = y_char['total_area_extended_shapes']

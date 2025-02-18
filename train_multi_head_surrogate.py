@@ -146,18 +146,22 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             surrogate_optimizer.zero_grad()
 
             # ---- forward: [H, W] ----
-            pred = older_surrogate_model(y)
+            pred: torch.Tensor = older_surrogate_model(y)
 
             # HACK: calculate errors by feature category; assume BS=1
-            errors = (target - pred).detach().cpu().numpy().tolist()[0]
+            errors = (target - pred).clone().detach().cpu().numpy().tolist()[0]
             
             # TODO: L1 vs MSE?
             loss: torch.Tensor = train_loss(pred, target)
 
-            if not loss > 0: breakpoint()
+            # ---- TODO: individual loss for each head ----
+            # total_loss = 0.0
+            # for idx in range(pred.shape[-1]):
+            #     breakpoint()
+            #     head_loss = train_loss(pred[..., idx], target[..., idx])
+            #     total_loss += head_loss
 
             loss.backward()
-            
             surrogate_optimizer.step()
             
             running_loss += loss.item() * y.size(0)
