@@ -20,8 +20,8 @@ from torchmetrics.functional.image.ssim import ssim
 from cldm.model import create_model, load_state_dict
 from src.util.metrics import OLDER
 
-NUM_TRAIN_SAMPLES = 40000
-NUM_VAL_SAMPLES = 10000
+NUM_TRAIN_SAMPLES = 2000
+NUM_VAL_SAMPLES = 500
 OUT_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/mos2-cafm-controlnet-synthetic-dataset"
 FT_CHECKPOINT_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__controlnet_runs__/2025-02-15_14-56-31_controlnet-unconditional/controlnet-unconditional_last.ckpt"
 

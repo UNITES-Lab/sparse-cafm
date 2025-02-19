@@ -8,7 +8,7 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
-from src.models.our_method.older_surrogate import  MultiHeadOLDERSurrogate
+from src.models.our_method.doge import DoGE
 from src.datasets.mos2_sef import Formulation as F
 from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogateDataset, SyntheticMOS2SefOLDERSurrogateDataset
 from src.util.logger import ExperimentLogger

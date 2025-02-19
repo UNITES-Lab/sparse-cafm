@@ -22,7 +22,7 @@ from src.util.config import (
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.metrics import OLDER
 
-TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/train_older_surrogate_standalone.yaml")
+EVAL_CONFIG_FP = os.path.abspath("/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/train-configs/eval_older_surrogate_standalone.yaml")
 
 
 def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
@@ -53,7 +53,7 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     img_size = int(config.image_size)
-    dataset = SyntheticMOS2SefOLDERSurrogateDataset(
+    dataset = MOS2SefOLDERSurrogateDataset(
         split=split,
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
@@ -88,11 +88,11 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
-    train_dataset: SyntheticMOS2SefOLDERSurrogateDataset = train_dataloader.dataset
-    val_dataset: SyntheticMOS2SefOLDERSurrogateDataset = val_dataloader.dataset
+    train_dataset: MOS2SefOLDERSurrogateDataset = train_dataloader.dataset
+    val_dataset: MOS2SefOLDERSurrogateDataset = val_dataloader.dataset
 
-    # NOTE: use the same mean/std vals to normalize both dataloaders to ~std normal
-    val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
+    # NOTE: use the same mean/std vals normalize both dataloaders to ~std normal
+    # val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
     val_dataset.normalization_dict = train_dataset.normalization_dict
 
     # define loss function and optimizer
@@ -112,158 +112,64 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     
     older_surrogate_model.cuda(device)
     older_surrogate_model.float()
-    
-    # ---- optional: freeze backbone ----
-    # for param in older_surrogate_model.backbone.parameters():
-    #     param.requires_grad = False
-    
-    # NOTE: always init your optimizers LAST lads...
-    surrogate_optimizer: torch.optim.Optimizer = torch.optim.AdamW(
-        params=older_surrogate_model.parameters(),
-        lr=1e-5,
-        weight_decay=1e-3,
-    )
-    
-    # ---------- training loop ----------
-    for epoch in range(num_epochs):
-        
-        older_surrogate_model.train()
-        
-        running_loss = 0.0
-        for i, batch in enumerate(
-            tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
-        ):
 
-            # [H, W] | input: y
+    # ---------- test loop ----------
+
+    # validation
+    older_surrogate_model.eval()
+
+    with torch.no_grad():
+        for i, batch in enumerate(
+            tqdm(val_dataloader, desc=f"Evaluating..:")
+        ):
+            # input: y
             y: torch.Tensor = batch["y"].cuda(device)
-            
-            # gt-OLDER characterization of y
+
+            # char
             y_char: dict = batch['y_char']
             
-            # [9] | gt-OLDER characterization of y
+            # targets
             target: torch.Tensor = batch['target'].cuda(device)
 
-            surrogate_optimizer.zero_grad()
-
             # ---- forward: [H, W] ----
-            pred: torch.Tensor = older_surrogate_model(y)
+            pred = older_surrogate_model(y)
 
             # HACK: calculate errors by feature category; assume BS=1
-            errors = (target - pred).clone().detach().cpu().numpy().tolist()[0]
+            errors = (target - pred).detach().cpu().numpy().tolist()[0]
             
-            # TODO: L1 vs MSE?
-            loss: torch.Tensor = train_loss(pred, target)
-
-            # ---- TODO: individual loss for each head ----
-            # total_loss = 0.0
-            # for idx in range(pred.shape[-1]):
-            #     breakpoint()
-            #     head_loss = train_loss(pred[..., idx], target[..., idx])
-            #     total_loss += head_loss
-
-            loss.backward()
-            surrogate_optimizer.step()
+            OLDER_l1_loss: torch.Tensor = torch.nn.functional.l1_loss(pred, target)
             
-            running_loss += loss.item() * y.size(0)
+            running_loss += OLDER_l1_loss.item() * y.size(0)
             
             logger.log(
                 **{
-                    "global_train_step": len(train_dataloader) * (epoch) + i,
-                    "global_val_step": None,
-                    "epoch": epoch,
-                    "train_loss": loss.item(),
-                    "train_y_char": y_char,
-                    "train_errors": errors,
-                    "val_loss": None,
-                    "val_y_char": None,
-                    "val_errors": None,
+                    "step": i,
+                    "OLDER_l1_loss": OLDER_l1_loss,
+                    "features_loss": None,
+                    "y_char": y_char,
+                    "errors": errors,
                 }
             )
-            
+        
             # log a triplet (original, masked, predicted) every 100 steps
             if i % 100 != 0: continue
-            triplet_name = f"train_epoch_{epoch}_step_{i}.png"
+            triplet_name = f"eval_step_{i}.png"
             logger.log_colorized_tensors(
                 (y, "Input (y)"),
                 file_name=triplet_name
             )
 
-        # validation
-        older_surrogate_model.eval()
-        val_running_loss = 0.0        
-        avg_val_loss = 0.0
-        num_val_steps = 0
-
-        with torch.no_grad():
-            for i, batch in enumerate(
-                tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
-            ):
-                # input: y
-                y: torch.Tensor = batch["y"].cuda(device)
-                
-                # char
-                y_char: dict = batch['y_char']
-                
-                # targets
-                target: torch.Tensor = batch['target'].cuda(device)
-
-                # ---- forward: [H, W] ----
-                pred = older_surrogate_model(y)
-
-                # HACK: calculate errors by feature category; assume BS=1
-                errors = (target - pred).detach().cpu().numpy().tolist()[0]
-                
-                loss: torch.Tensor = train_loss(pred, target)
-                
-                running_loss += loss.item() * y.size(0)
-                
-                logger.log(
-                    **{
-                        "global_train_step": None,
-                        "global_val_step": len(val_dataloader) * (epoch) + i,
-                        "epoch": epoch,
-                        "train_loss": None,
-                        "train_y_char": y_char,
-                        "train_errors": None,
-                        "val_loss": loss.item(),
-                        "val_y_char": None,
-                        "val_errors": errors,
-                    }
-                )
-            
-                # log a triplet (original, masked, predicted) every 100 steps
-                if i % 100 != 0: continue
-                triplet_name = f"train_epoch_{epoch}_step_{i}.png"
-                logger.log_colorized_tensors(
-                    (y, "Input (y)"),
-                    file_name=triplet_name
-                )
-    
-            # optionally log best/epoch model weights
-            if num_val_steps > 0:
-                avg_val_loss = val_running_loss / num_val_steps
-            
-            if not bool(config.save_weights): continue
-            if bool(config.save_only_best_weights):
-                if avg_val_loss < best_loss:
-                    best_loss = avg_val_loss
-                    logger.save_weights(older_surrogate_model, "best_older_surrogate")
-                else:
-                    logger.save_weights(older_surrogate_model, "latest_older_surrogate")
-            else:
-                logger.save_weights(older_surrogate_model, f"epoch_{epoch}_surrogate")
-
 
 def main(args: argparse.Namespace) -> None:
     
     # load training config
-    config = TrainConfig(TRAIN_CONFIG_FP)
+    config = TrainConfig(EVAL_CONFIG_FP)
     model_config: Optional[ModelConfig] = None
     
     # optional: parse model config
     if config.model_config_file != None:
         model_config_abs_path = os.path.join(
-            Path(TRAIN_CONFIG_FP).parent.__str__(), config.model_config_file
+            Path(EVAL_CONFIG_FP).parent.__str__(), config.model_config_file
         )
         assert os.path.isfile(
             model_config_abs_path

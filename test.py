@@ -144,7 +144,11 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
         # [-1, 1] -> original dist
         # x' = mu + (sigma * z)
         data = mean + (std * z)
-        y_char = celano_lab_characterization(data, val_dataset.img_size_um)
+
+        try:
+            y_char = celano_lab_characterization(data, val_dataset.img_size_um)
+        except:
+            y_char = None
 
         # 5b. characterize(y_sparse)
         # z: [0, 1] -> [-1, 1] (i.e., standard normal)
@@ -152,7 +156,13 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
         # [-1, 1] -> original dist
         # x' = mu + (sigma * z)
         data = mean + (std * z)
-        y_hat_char = celano_lab_characterization(data, val_dataset.img_size_um)
+
+        # HACK: very rarely we run into an index OOB error b/c there are not peaks in an output map
+        # we'll try to ignore these for now
+        try:
+            y_hat_char = celano_lab_characterization(data, val_dataset.img_size_um)
+        except:
+            y_hat_char = None
 
         logger.log(
             **{
@@ -161,7 +171,7 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
                 "mse": mse.item(),
                 "psnr": psnr.item(),
                 "ssim": ssim_val.item(),
-                "older": OLDER(y_char, y_hat_char),
+                "older": OLDER(y_char, y_hat_char) if y_char != None and y_hat_char != None else None,
                 "celano_script_y": y_char,
                 "celano_script_y_sparse": y_hat_char,
             }

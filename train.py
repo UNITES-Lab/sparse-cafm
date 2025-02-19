@@ -73,7 +73,7 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
         steps_per_epoch=(
-            config.steps_per_epoch if split == "train" else config.val_steps_per_epoch
+            int(config.steps_per_epoch * config.train_batch_size) if split == "train" else config.val_steps_per_epoch
         ),
         device=config.device,
         original_image_size=(img_size, img_size),
@@ -91,7 +91,6 @@ def perceptual_loss(outputs: List[torch.Tensor], targets: List[torch.Tensor], lo
     """
     Multi-layered, weighted perceptual loss for a VGG backbone.
     """
-
     total_loss = 0
     for out, tgt in zip(outputs, targets):
         assert isinstance(out, torch.Tensor); assert isinstance(tgt, torch.Tensor)
@@ -231,12 +230,15 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # --- Loss: L1 ---
             # loss: torch.Tensor = pixel_wise_loss
 
+            # --- Loss: OLDER ---
+            # loss = torch.nn.functional.l1_loss(surrogate(y), surrogate(y_hat))
+
             # --- Loss: OLDER-Perceptual ---
-            # loss: torch.Tensor = percep_loss
+            loss: torch.Tensor = percep_loss
             
             #  --- Loss: OLDER-Perceptual + L1 ---
-            weighted_perceptual_loss = percep_loss * args.surrogate_loss_mixin
-            loss: torch.Tensor = weighted_perceptual_loss + pixel_wise_loss
+            # weighted_perceptual_loss = percep_loss * args.surrogate_loss_mixin
+            # loss: torch.Tensor = weighted_perceptual_loss + pixel_wise_loss
             # --------------------------------------------------------
 
             loss.backward()
@@ -357,6 +359,8 @@ def main(args: argparse.Namespace) -> None:
     config.exp_name = args.exp_name
     config.log_root = args.root
     config.surgate_weights = args.surrogate_weights_file_path
+    config.learning_rate = str(args.learning_rate)
+    config.train_batch_size = int(args.batch_size)
     # -------------------- model config args --------------------
     if model_config != None:
         # transformer block depths; e.g., [6, 6, 6, 6, 6, 6]
@@ -387,6 +391,8 @@ if __name__ == "__main__":
     parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
     parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
     # -------------------- ablation args --------------------
+    parser.add_argument("-lr", "--learning_rate", type=float, help="", default=1e-5)
+    parser.add_argument("-bs", "--batch_size", type=int, help="", default=1)
     parser.add_argument("-vgl", "--vgg_feature_layer", type=int, help="", default=0)
     args = parser.parse_args()
     main(args)
