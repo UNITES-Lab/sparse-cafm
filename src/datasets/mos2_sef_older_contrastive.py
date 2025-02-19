@@ -113,12 +113,6 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
             device=device,
             original_image_size=original_image_size,
         )
-        
-        # dictionary of {"mean": float, "std": float} values
-        self.normalization_dict: Dict[str, Dict] = {}
-        
-        # optional: run a short benchmark to determine normalization mean/std
-        if normalize_on_init: self.normalize()
 
     def get_similar_sample(self, y: torch.Tensor) -> torch.Tensor:
         """
@@ -215,60 +209,6 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
 
     def __len__(self) -> int: return len(self.dataset)
 
-    def normalize(self) -> None:
-        """
-        Run a short test proceedure to calculate the mean and std of train/val samples;
-        set global values for mean/std so that all samples are normalized roughly to the std normal.
-        We make the apriori assumption that train/val samples belong to roughly the same distribution.
-        """
-        
-        NUM_BENCHMARK_STEPS = 1000
-        train_dataset = MOS2SEFDataset(
-            split="train",
-            formulation=self.formulation,
-            side_length=self.side_length,
-            masking_ratio=self.masking_ratio,
-            steps_per_epoch=NUM_BENCHMARK_STEPS,
-            device=self.device,
-            original_image_size=self.original_image_size,
-        )
-        val_dataset = MOS2SEFDataset(
-            split="val",
-            formulation=self.formulation,
-            side_length=self.side_length,
-            masking_ratio=self.masking_ratio,
-            steps_per_epoch=NUM_BENCHMARK_STEPS,
-            device=self.device,
-            original_image_size=self.original_image_size,
-        )
-        
-        samples = {}
-        
-        # samples from train/val datasets
-        for idx in tqdm(range(NUM_BENCHMARK_STEPS), total=NUM_BENCHMARK_STEPS, desc="Calculating global mean/stds.."):
-            
-            train_item = train_dataset.__getitem__(idx)
-            val_item = val_dataset.__getitem__(idx)
-            train_y = train_item["y"]; val_y = val_item["y"]
-            
-            # characterize train/val current-maps
-            train_char = process_image(train_y, self.dataset.img_size_um)
-            val_char = process_image(val_y, self.dataset.img_size_um)
-            
-            for k, v in train_char.items():
-                if k not in samples: samples[k] = [v]
-                else: samples[k].append(v)
-            
-            for k, v in val_char.items():
-                if k not in samples: samples[k] = [v]
-                else: samples[k].append(v)
-
-        for k, v in samples.items():
-            self.normalization_dict[k] = {
-                "mean": np.mean(v),
-                "std": np.std(v),
-            }
-
     def __getitem__(self, index: int) -> Dict:
         """
         Provide a current-map y and a "target" Tensor.
@@ -287,8 +227,6 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
         y: torch.Tensor = batch["y"]
         y_sim = self.get_similar_sample(y)
         y_con = self.get_contrastive_sample(y, index)
-
-        breakpoint()
         
         item = {}
         item['y'] = y

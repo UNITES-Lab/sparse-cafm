@@ -10,7 +10,7 @@ from typing import List, Optional
 from torch.utils.data import DataLoader
 from src.models.our_method.doge import DoGE
 from src.datasets.mos2_sef import Formulation as F
-from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogateDataset, SyntheticMOS2SefOLDERSurrogateDataset
+from src.datasets.mos2_sef_older_contrastive import MOS2SefOLDERContrastiveDataset
 from src.util.logger import ExperimentLogger
 from src.util.config import (
     TrainConfig,
@@ -37,23 +37,13 @@ def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig])
     return logger
 
 
-def create_model(config: TrainConfig) -> nn.Module:
-    model_fn = MODELS[config.model_name]["fn"]
-    model_weights = MODELS[config.model_name]["weights"]
-    if model_weights:
-        model = model_fn(weights=model_weights)
-    elif config.model_name == "hiera":
-        model = model_fn
-        model.freeze()
-    else:
-        model = model_fn()
-    assert isinstance(model, nn.Module)
-    return model.cuda(config.device).float()
+def create_model(config: TrainConfig) -> DoGE:
+    return DoGE()
 
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     img_size = int(config.image_size)
-    dataset = SyntheticMOS2SefOLDERSurrogateDataset(
+    dataset = MOS2SefOLDERContrastiveDataset(
         split=split,
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
@@ -84,16 +74,12 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     """
 
     logger = setup_logger(config, model_config)
-    older_surrogate_model: MultiHeadOLDERSurrogate = create_model(config)
+    doge_model = DoGE()
     
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
-    train_dataset: SyntheticMOS2SefOLDERSurrogateDataset = train_dataloader.dataset
-    val_dataset: SyntheticMOS2SefOLDERSurrogateDataset = val_dataloader.dataset
-
-    # NOTE: use the same mean/std vals to normalize both dataloaders to ~std normal
-    val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
-    val_dataset.normalization_dict = train_dataset.normalization_dict
+    train_dataset: MOS2SefOLDERContrastiveDataset = train_dataloader.dataset
+    val_dataset: MOS2SefOLDERContrastiveDataset = val_dataloader.dataset
 
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
@@ -103,15 +89,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     num_epochs = config.epochs
     device = config.device
 
-    # load weights from checkpoint
-    if config.weights != None:
-        # load weights only:
-        # model.load_state_dict(torch.load(config["model"]["weights"]), strict=False)
-        # load enitre model object:
-        older_surrogate_model = torch.load(config.weights).float().cuda()
-    
-    older_surrogate_model.cuda(device)
-    older_surrogate_model.float()
+    doge_model.cuda(device)
+    doge_model.float()
     
     # ---- optional: freeze backbone ----
     # for param in older_surrogate_model.backbone.parameters():
@@ -119,7 +98,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     
     # NOTE: always init your optimizers LAST lads...
     surrogate_optimizer: torch.optim.Optimizer = torch.optim.AdamW(
-        params=older_surrogate_model.parameters(),
+        params=doge_model.parameters(),
         lr=1e-5,
         weight_decay=1e-3,
     )
@@ -127,39 +106,41 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     # ---------- training loop ----------
     for epoch in range(num_epochs):
         
-        older_surrogate_model.train()
-        
+        doge_model.train()
         running_loss = 0.0
+
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
 
             # [H, W] | input: y
             y: torch.Tensor = batch["y"].cuda(device)
-            
-            # gt-OLDER characterization of y
-            y_char: dict = batch['y_char']
-            
-            # [9] | gt-OLDER characterization of y
-            target: torch.Tensor = batch['target'].cuda(device)
+            y_sim: torch.Tensor = batch["y_sim"].cuda(device)
+            y_con: torch.Tensor = batch["y_con"].cuda(device)
 
             surrogate_optimizer.zero_grad()
 
             # ---- forward: [H, W] ----
-            pred: torch.Tensor = older_surrogate_model(y)
+            pred_y: torch.Tensor = doge_model(y)
+            pred_sim: torch.Tensor = doge_model(y_sim)
+            pred_con: torch.Tensor = doge_model(y_con)
 
-            # HACK: calculate errors by feature category; assume BS=1
-            errors = (target - pred).clone().detach().cpu().numpy().tolist()[0]
+            def multi_level_similarity_loss(features_y, features_sim):
+                loss = 0.0
+                for f_y, f_sim in zip(features_y, features_sim):
+                    loss += torch.mean((f_y - f_sim) ** 2)
+                return loss
+
+            loss_sim = multi_level_similarity_loss(pred_y, pred_sim)
             
-            # TODO: L1 vs MSE?
-            loss: torch.Tensor = train_loss(pred, target)
-
-            # ---- TODO: individual loss for each head ----
-            # total_loss = 0.0
-            # for idx in range(pred.shape[-1]):
-            #     breakpoint()
-            #     head_loss = train_loss(pred[..., idx], target[..., idx])
-            #     total_loss += head_loss
+            margin = 1.0
+            loss_con = 0.0
+            for f_y, f_con in zip(pred_y, pred_con):
+                d = torch.norm(f_y - f_con, p=2, dim=1)
+                loss_con += torch.mean(torch.clamp(margin - d, min=0.0) ** 2)
+            
+            loss = loss_sim + loss_con
+            breakpoint
 
             loss.backward()
             surrogate_optimizer.step()
