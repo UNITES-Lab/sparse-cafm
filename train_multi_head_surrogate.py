@@ -23,6 +23,7 @@ from src.util.celano_lab_scripts import process_image as celano_lab_characteriza
 from src.util.metrics import OLDER
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/train_older_surrogate_standalone.yaml")
+PRE_TRAIN_CKPT = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-19_14-26-36_DS=Synthetic-BB-VGG-19-Trainable-Optimal-4-Features/DS=Synthetic-BB-VGG-19-Trainable-Optimal-4-Features_latest_older_surrogate.pth"
 
 
 def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
@@ -53,7 +54,7 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     img_size = int(config.image_size)
-    dataset = SyntheticMOS2SefOLDERSurrogateDataset(
+    dataset = MOS2SefOLDERSurrogateDataset(
         split=split,
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
@@ -88,11 +89,11 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
-    train_dataset: SyntheticMOS2SefOLDERSurrogateDataset = train_dataloader.dataset
-    val_dataset: SyntheticMOS2SefOLDERSurrogateDataset = val_dataloader.dataset
+    train_dataset: MOS2SefOLDERSurrogateDataset = train_dataloader.dataset
+    val_dataset: MOS2SefOLDERSurrogateDataset = val_dataloader.dataset
 
     # NOTE: use the same mean/std vals to normalize both dataloaders to ~std normal
-    val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
+    # val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
     val_dataset.normalization_dict = train_dataset.normalization_dict
 
     # define loss function and optimizer
@@ -110,6 +111,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
         # load enitre model object:
         older_surrogate_model = torch.load(config.weights).float().cuda()
     
+    older_surrogate_model = torch.load(PRE_TRAIN_CKPT).float().cuda()
     older_surrogate_model.cuda(device)
     older_surrogate_model.float()
     
@@ -160,6 +162,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             #     breakpoint()
             #     head_loss = train_loss(pred[..., idx], target[..., idx])
             #     total_loss += head_loss
+
+            breakpoint()
 
             loss.backward()
             surrogate_optimizer.step()
@@ -215,7 +219,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 
                 loss: torch.Tensor = train_loss(pred, target)
                 
-                running_loss += loss.item() * y.size(0)
+                val_running_loss += loss.item() * y.size(0)
                 
                 logger.log(
                     **{
@@ -230,6 +234,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                         "val_errors": errors,
                     }
                 )
+
+                num_val_steps += 1
             
                 # log a triplet (original, masked, predicted) every 100 steps
                 if i % 100 != 0: continue
@@ -240,8 +246,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 )
     
             # optionally log best/epoch model weights
-            if num_val_steps > 0:
-                avg_val_loss = val_running_loss / num_val_steps
+            avg_val_loss = val_running_loss / num_val_steps
             
             if not bool(config.save_weights): continue
             if bool(config.save_only_best_weights):

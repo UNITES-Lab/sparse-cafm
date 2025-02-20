@@ -9,7 +9,7 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
-from src.models.our_method.older_surrogate import MultiHeadOLDERSurrogate
+from src.models.our_method.older_surrogate import MultiHeadOLDERSurrogate, OLDERPerceptualLoss
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
 from src.util.logger import ExperimentLogger
@@ -109,7 +109,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     val_dataloader = create_dataloader(config, "val")
 
     # define loss function and optimizer
-    train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
+    train_loss = OLDERPerceptualLoss(surrogate)
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
 
     # use to save model checkpoints
@@ -169,17 +169,17 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # ---- NOTE: perceptual loss with surrogate backbone ----
             
-            # save activations of vit-encoder layers for y_hat
-            y_activations = {}
+            # # save activations of vit-encoder layers for y_hat
+            # y_activations = {}
             
-            def hook_fn(module, input, output) -> None:
-                y_activations[module] = output
+            # def hook_fn(module, input, output) -> None:
+            #     y_activations[module] = output
                   
-            LAYERS = [4, 11, 24, 37, 50]
+            # LAYERS = [4, 11, 24, 37, 50]
 
-            #  ------- VGG -------
-            feat_layer_idx = int(args.vgg_feature_layer)
-            surrogate.backbone.features[feat_layer_idx].register_forward_hook(hook_fn)
+            # #  ------- VGG -------
+            # feat_layer_idx = int(args.vgg_feature_layer)
+            # surrogate.backbone.features[feat_layer_idx].register_forward_hook(hook_fn)
             # --------------------
 
             # [B, H, W]
@@ -190,23 +190,23 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # [B, 1, H, W] -> [B, 3, H, W]
             y_feature_map = y_feature_map.repeat(1, 3, 1, 1)
             # [B, 3, H, W] -> [B, D]
-            y_feature_map = surrogate.backbone(y_feature_map)
+            # y_feature_map = surrogate.backbone(y_feature_map)
             
-            # [B, 12 * D]
-            y_activations_stack = []
-            for i, (k, v) in enumerate(y_activations.items()):
-                y_activations_stack.append(v)
+            # # [B, 12 * D]
+            # y_activations_stack = []
+            # for i, (k, v) in enumerate(y_activations.items()):
+            #     y_activations_stack.append(v)
             
             # save activations of vit-encoder layers for y_hat
-            y_hat_activations = {}
+            # y_hat_activations = {}
             
-            def hook_fn(module, input, output):
-                y_hat_activations[module] = output
+            # def hook_fn(module, input, output):
+            #     y_hat_activations[module] = output
             
-            #  ------- VGG -------
-            feat_layer_idx = int(args.vgg_feature_layer)
-            surrogate.backbone.features[feat_layer_idx].register_forward_hook(hook_fn)
-            # --------------------
+            # #  ------- VGG -------
+            # feat_layer_idx = int(args.vgg_feature_layer)
+            # surrogate.backbone.features[feat_layer_idx].register_forward_hook(hook_fn)
+            # # --------------------
             
             # [B, H, W]
             y_hat_feature_map = outputs.clone()
@@ -216,16 +216,16 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # [B, 1, 224, 224] -> [B, 3, 224, 224]
             y_hat_feature_map = y_hat_feature_map.repeat(1, 3, 1, 1)
             # [B, 3, 224, 224] -> [B, 768]
-            y_hat_feature_map = surrogate.backbone(y_hat_feature_map)
+            # y_hat_feature_map = surrogate.backbone(y_hat_feature_map)
             
-            # [B, 12 * D]
-            y_hat_activations_stack = []
-            for i, (k, v) in enumerate(y_hat_activations.items()):
-                y_hat_activations_stack.append(v)
+            # # [B, 12 * D]
+            # y_hat_activations_stack = []
+            # for i, (k, v) in enumerate(y_hat_activations.items()):
+            #     y_hat_activations_stack.append(v)
             
             # ----- calculate loss -----
-            pixel_wise_loss = torch.nn.functional.l1_loss(y, outputs)
-            percep_loss = perceptual_loss(y_activations_stack, y_hat_activations_stack)
+            # pixel_wise_loss = torch.nn.functional.l1_loss(y, outputs)
+            # percep_loss = perceptual_loss(y_activations_stack, y_hat_activations_stack)
             
             # --- Loss: L1 ---
             # loss: torch.Tensor = pixel_wise_loss
@@ -234,19 +234,22 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # loss = torch.nn.functional.l1_loss(surrogate(y), surrogate(y_hat))
 
             # --- Loss: OLDER-Perceptual ---
-            loss: torch.Tensor = percep_loss
+            # loss: torch.Tensor = percep_loss
             
-            #  --- Loss: OLDER-Perceptual + L1 ---
+            # # --- Loss: OLDER-Perceptual + L1 ---
             # weighted_perceptual_loss = percep_loss * args.surrogate_loss_mixin
             # loss: torch.Tensor = weighted_perceptual_loss + pixel_wise_loss
             # --------------------------------------------------------
+
+            # ---- OLDER-Perceptual Loss ----
+            loss: torch.Tensor = train_loss(y_hat_feature_map, y_feature_map)
 
             loss.backward()
             optimizer.step()
             
             logger.log(
                 **{
-                    "global_train_step": len(train_dataloader) * (epoch) + i,
+                    "global_train_step": len(train_dataloader) * (epoch) + step,
                     "global_val_step": None,
                     "epoch": epoch,
                     "train_loss": loss.item(),
@@ -257,7 +260,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             if step % 100 != 0:
                 continue
             
-            triplet_name = f"train_epoch_{epoch}_step_{i}.png"
+            triplet_name = f"train_epoch_{epoch}_step_{step}.png"
             logger.log_colorized_tensors(
                 (y, "Target (y)"),
                 (y_sparse, "Model Input (y_sparse)"),

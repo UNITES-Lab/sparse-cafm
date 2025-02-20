@@ -12,51 +12,43 @@
 
 # ---- train standalone-OLDER surrogate model ----
 
-# ## 1. Predict OLDER using a synthetic dataset ##
+# 1. Predict OLDER using a synthetic dataset #
 # LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-# EXP_NAME="DS=Synthetic-BB-VGG-19-Trainable-Optimal-4-Features"
-# CUDA_VISIBLE_DEVICES=5 python train_multi_head_surrogate.py \
+# EXP_NAME="DS=Real-BB-VGG-19-Trainable-Optimal-4-Features"
+# CUDA_VISIBLE_DEVICES=6 python train_multi_head_surrogate.py \
 #     --exp_name "$EXP_NAME" \
 #     > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
  
-# ---- train DoGE model ----
-
-LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_NAME="BB-VGG-19-Trainable-DoGE-MASKED"
-CUDA_VISIBLE_DEVICES=1 python train_doge.py \
-    --exp_name "$EXP_NAME" \
-    > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
- 
 # ---- train in-filling model ----
 
-# DEPTH=6
-# NUM_HEADS=6
-# NUM_BLOCKS=6
-# WINDOW_SIZE=8
-# DPR=0.1
-# NORM_LAYER=torch.nn.LayerNorm
+DEPTH=6
+NUM_HEADS=6
+NUM_BLOCKS=6
+WINDOW_SIZE=8
+DPR=0.1
+NORM_LAYER=torch.nn.LayerNorm
 
-# LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-# EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs"
-# SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-17_16-10-44_BB-VGG-19-Trainable-Optimal-4-Features/BB-VGG-19-Trainable-Optimal-4-Features_best_older_surrogate.pth"
+LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
+EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs"
+SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-17/2025-02-17_16-10-44_BB-VGG-19-Trainable-Optimal-4-Features/BB-VGG-19-Trainable-Optimal-4-Features_latest_older_surrogate.pth"
 
 # ##### baseline #####
 
-# CUDA_VISIBLE_DEVICES=1
-# EXP_NAME="SwinIR-loss=L1(raw-out, y)"
+CUDA_VISIBLE_DEVICES=7
+EXP_NAME="SwinIR-loss=OLDER-Perceptual-VGG-19-NEW(raw-out, y)"
 
-# python train.py \
-#         --exp_name "$EXP_NAME" \
-#         --root "$EXP_ROOT_DIR" \
-#         --surrogate_weights_file_path "$SURROGATE_CKPT" \
-#         --vgg_feature_layer 50 \
-#         --depths $DEPTH \
-#         --num_heads $NUM_HEADS \
-#         --num_blocks $NUM_BLOCKS \
-#         --window_size $WINDOW_SIZE \
-#         --drop_path_rate $DPR \
-#         --norm_layer $NORM_LAYER \
-#         > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
+python train.py \
+        --exp_name "$EXP_NAME" \
+        --root "$EXP_ROOT_DIR" \
+        --surrogate_weights_file_path "$SURROGATE_CKPT" \
+        --vgg_feature_layer 4 \
+        --depths $DEPTH \
+        --num_heads $NUM_HEADS \
+        --num_blocks $NUM_BLOCKS \
+        --window_size $WINDOW_SIZE \
+        --drop_path_rate $DPR \
+        --norm_layer $NORM_LAYER \
+        > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
 
 ##### mixin ablation #####
 
@@ -70,7 +62,7 @@ CUDA_VISIBLE_DEVICES=1 python train_doge.py \
 #         --root "$EXP_ROOT_DIR" \
 #         --surrogate_weights_file_path "$SURROGATE_CKPT" \
 #         --surrogate_loss_mixin $LAMBDA \
-#         --vgg_feature_layer 50 \
+#         --vgg_feature_layer 4 \
 #         --depths $DEPTH \
 #         --num_heads $NUM_HEADS \
 #         --num_blocks $NUM_BLOCKS \
@@ -79,8 +71,6 @@ CUDA_VISIBLE_DEVICES=1 python train_doge.py \
 #         --norm_layer $NORM_LAYER \
 #         > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
 # done
-
-##########################
 
 ##### optimal feature layers ablation #####
 

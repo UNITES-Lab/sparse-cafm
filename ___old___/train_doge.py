@@ -123,9 +123,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # [B, H, W] | input: y
             y: torch.Tensor = batch["y"].cuda(device)
             y_sim: torch.Tensor = batch["y_sim"].cuda(device)
-            # HACK: mask y_sim
-            y_sim[:, ::2, :] = 0
             y_con: torch.Tensor = batch["y_con"].cuda(device)
+            
             # HACK: mask y_con
             y_con[:, ::2, :] = 0
 
@@ -137,7 +136,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             pred_con: torch.Tensor = doge_model(y_con)
 
             loss_sim = multi_level_similarity_loss(pred_y, pred_sim)
-            
+             
             margin = 1.0
             loss_con = 0.0
             for f_y, f_con in zip(pred_y, pred_con):
@@ -201,7 +200,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                     loss_con += torch.mean(torch.clamp(margin - d, min=0.0) ** 2)
                 
                 loss = loss_sim + loss_con
-                running_loss += loss.item() * y.size(0)
+                val_running_loss += loss.item() * y.size(0)
             
                 logger.log(
                     **{
@@ -213,29 +212,31 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                     }
                 )
             
+                num_val_steps += 1
+                
                 # log a triplet (original, masked, predicted) every 100 steps
                 if i % 100 != 0: continue
-                triplet_name = f"train_epoch_{epoch}_step_{i}.png"
+                triplet_name = f"val_epoch_{epoch}_step_{i}.png"
                 logger.log_colorized_tensors(
                     (y, "Input (y)"),
                     (y_con, "Contrastive"),
                     (y_sim, "Similar"),
                     file_name=triplet_name
                 )
+
     
             # optionally log best/epoch model weights
-            if num_val_steps > 0:
-                avg_val_loss = val_running_loss / num_val_steps
+            avg_val_loss = val_running_loss / (num_val_steps)
             
             if not bool(config.save_weights): continue
             if bool(config.save_only_best_weights):
                 if avg_val_loss < best_loss:
                     best_loss = avg_val_loss
-                    logger.save_weights(older_surrogate_model, "best_older_surrogate")
+                    logger.save_weights(doge_model, "best_older_doge")
                 else:
-                    logger.save_weights(older_surrogate_model, "latest_older_surrogate")
+                    logger.save_weights(doge_model, "latest_doge")
             else:
-                logger.save_weights(older_surrogate_model, f"epoch_{epoch}_surrogate")
+                logger.save_weights(doge_model, f"epoch_{epoch}_surrogate")
 
 
 def main(args: argparse.Namespace) -> None:

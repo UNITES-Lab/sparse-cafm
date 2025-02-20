@@ -53,11 +53,16 @@ def augment(y: torch.Tensor) -> torch.Tensor:
     Returns the dictionary from process_image.
     """
 
-    # random flips/crops/spatial distortions greatly change SSIM/PSNR/etc
-
     y_aug = y.clone()
 
-    # add a tiny bit of noise
+    # random flips/crops/spatial distortions + add a tiny bit of noise
+    y_aug = y.clone()
+    if random.random() < 0.5:
+        y_aug = torch.flip(y_aug, dims=[1])
+    if random.random() < 0.5:
+        y_aug = torch.flip(y_aug, dims=[0])
+    if y.shape[0] == y.shape[1] and random.random() < 0.5:
+        y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
     if random.random() < 0.99:
         factor = random.uniform(0.95, 1.05)
         y_aug = y_aug * factor
@@ -112,56 +117,54 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
             original_image_size=original_image_size,
         )
 
+    @torch.no_grad()
     def get_similar_sample(self, y: torch.Tensor) -> torch.Tensor:
         """
         Where y ~ std_norm.
         """ 
 
         # -> original distribution
-        y_unnorm = (y - self.dataset.current_maps_mean) / self.dataset.current_maps_std
+        # y_unnorm = (y - self.dataset.current_maps_mean) / self.dataset.current_maps_std
         
-        y_img_like = y.clone()
-        # (H, W) -> (1, H, W)
-        y_img_like = y_img_like.unsqueeze(0)
-        # (H, W) -> (3, H, W)
-        y_img_like = y_img_like.repeat(3, 1, 1)
-        # (3, H, W) -> (1, 3, H, W)
-        y_img_like = y_img_like.unsqueeze(0).cuda()
-        y_aug = None
+        # y_img_like = y.clone()
+        # # (H, W) -> (1, H, W)
+        # y_img_like = y_img_like.unsqueeze(0)
+        # # (H, W) -> (3, H, W)
+        # y_img_like = y_img_like.repeat(3, 1, 1)
+        # # (3, H, W) -> (1, 3, H, W)
+        # y_img_like = y_img_like.unsqueeze(0).cuda()
 
-        while True:
+        # randomly sample an augmented y
+        y_aug = augment(y)
 
-            # randomly sample an augmented y
-            y_aug = augment(y)
+        # # -> original distribution
+        # y_aug_unnorm = (y_aug - self.dataset.current_maps_mean) / self.dataset.current_maps_std
 
-            # -> original distribution
-            y_aug_unnorm = (y_aug - self.dataset.current_maps_mean) / self.dataset.current_maps_std
+        # y_aug_img_like = y_aug.clone()
+        # # (H, W) -> (1, H, W)
+        # y_aug_img_like = y_aug_img_like.unsqueeze(0)
+        # # (1, H, W) -> (3, H, W)
+        # y_aug_img_like = y_aug_img_like.repeat(3, 1, 1)
+        # # (3, H, W) -> (1, 3, H, W)
+        # y_aug_img_like = y_aug_img_like.unsqueeze(0).cuda()
 
-            y_aug_img_like = y_aug.clone()
-            # (H, W) -> (1, H, W)
-            y_aug_img_like = y_aug_img_like.unsqueeze(0)
-            # (1, H, W) -> (3, H, W)
-            y_aug_img_like = y_aug_img_like.repeat(3, 1, 1)
-            # (3, H, W) -> (1, 3, H, W)
-            y_aug_img_like = y_aug_img_like.unsqueeze(0).cuda()
+        # # -> [-1, 1]
+        # y_img_like = 2 * (y_img_like - y_img_like.min()) / (y_img_like.max() - y_img_like.min()) - 1
+        # y_aug_img_like = 2 * (y_aug_img_like - y_aug_img_like.min()) / (y_aug_img_like.max() - y_aug_img_like.min()) - 1
 
-            # -> [-1, 1]
-            y_img_like = 2 * (y_img_like - y_img_like.min()) / (y_img_like.max() - y_img_like.min()) - 1
-            y_aug_img_like = 2 * (y_aug_img_like - y_aug_img_like.min()) / (y_aug_img_like.max() - y_aug_img_like.min()) - 1
+        # ssim = SSIM(y_img_like, y_aug_img_like)
+        
+        # # HACK: hard-coded iamge size
+        # older = OLDER(process_image(y_unnorm, 2.0), process_image(y_aug_unnorm, 2.0))
 
-            ssim = SSIM(y_img_like, y_aug_img_like)
-            
-            # HACK: hard-coded iamge size
-            older = OLDER(process_image(y_unnorm, 2.0), process_image(y_aug_unnorm, 2.0))
+        # l1 = torch.nn.functional.l1_loss(y, y_aug)
 
-            l1 = torch.nn.functional.l1_loss(y, y_aug)
-
-            if ssim > self.S_SIM_SSIM and older < self.S_SIM_OLDER and l1 > 0.0:
-                break
+        # if ssim > self.S_SIM_SSIM and older < self.S_SIM_OLDER and l1 > 0.0:
+        #     break
 
         return y_aug
 
-
+    @torch.no_grad()
     def get_contrastive_sample(self, y: torch.Tensor, index: int) -> torch.Tensor: 
         """
         Where y ~ std_norm.
@@ -203,14 +206,15 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
             y_aug_img_like = 2 * (y_aug_img_like - y_aug_img_like.min()) / (y_aug_img_like.max() - y_aug_img_like.min()) - 1
 
             ssim = SSIM(y_img_like, y_aug_img_like)
+
+            # if ssim < self.S_DIFF_SSIM:
+            #     break
             
-            # HACK: hard-coded iamge size
-            older = OLDER(process_image(y_unnorm, 2.0), process_image(y_aug_unnorm, 2.0))
+            # # HACK: hard-coded iamge size
+            # older = OLDER(process_image(y_unnorm, 2.0), process_image(y_aug_unnorm, 2.0))
 
-            l1 = torch.nn.functional.l1_loss(y, y_aug)
-
-            if ssim < self.S_DIFF_SSIM and older > self.S_DIFF_OLDER:
-                break
+            # if ssim < self.S_DIFF_SSIM and older > self.S_DIFF_OLDER:
+            #     break
 
             i += 1
 
@@ -235,16 +239,22 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
         # [H, W]
         y: torch.Tensor = batch["y"]
         
+        # TODO: this is a horribly slow process
         y_sim = self.get_similar_sample(y)
         y_con = self.get_contrastive_sample(y, index)
         
         item = {}
         item['y'] = y
+
+        # HACK: add a partially mask to `y_sim`
         item['y_sim'] = y_sim
+        item['y_sim'][::2, :] = 0
+
         item['y_con'] = y_con
 
         return item
     
+
 if __name__ == "__main__":
     dataset = MOS2SefOLDERContrastiveDataset()
     item = dataset[0]
