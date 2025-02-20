@@ -25,6 +25,13 @@ from src.util.metrics import OLDER
 TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/train_older_surrogate_standalone.yaml")
 
 
+def multi_level_similarity_loss(features_y, features_sim):
+    loss = 0.0
+    for f_y, f_sim in zip(features_y, features_sim):
+        loss += torch.mean((f_y - f_sim) ** 2)
+    return loss
+
+
 def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
     logger = ExperimentLogger(
         train_config_dict=train_config.to_dict(),
@@ -113,10 +120,14 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
 
-            # [H, W] | input: y
+            # [B, H, W] | input: y
             y: torch.Tensor = batch["y"].cuda(device)
             y_sim: torch.Tensor = batch["y_sim"].cuda(device)
+            # HACK: mask y_sim
+            y_sim[:, ::2, :] = 0
             y_con: torch.Tensor = batch["y_con"].cuda(device)
+            # HACK: mask y_con
+            y_con[:, ::2, :] = 0
 
             surrogate_optimizer.zero_grad()
 
@@ -124,12 +135,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             pred_y: torch.Tensor = doge_model(y)
             pred_sim: torch.Tensor = doge_model(y_sim)
             pred_con: torch.Tensor = doge_model(y_con)
-
-            def multi_level_similarity_loss(features_y, features_sim):
-                loss = 0.0
-                for f_y, f_sim in zip(features_y, features_sim):
-                    loss += torch.mean((f_y - f_sim) ** 2)
-                return loss
 
             loss_sim = multi_level_similarity_loss(pred_y, pred_sim)
             
@@ -140,7 +145,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 loss_con += torch.mean(torch.clamp(margin - d, min=0.0) ** 2)
             
             loss = loss_sim + loss_con
-            breakpoint
 
             loss.backward()
             surrogate_optimizer.step()
@@ -153,11 +157,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                     "global_val_step": None,
                     "epoch": epoch,
                     "train_loss": loss.item(),
-                    "train_y_char": y_char,
-                    "train_errors": errors,
                     "val_loss": None,
-                    "val_y_char": None,
-                    "val_errors": None,
                 }
             )
             
@@ -166,11 +166,13 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             triplet_name = f"train_epoch_{epoch}_step_{i}.png"
             logger.log_colorized_tensors(
                 (y, "Input (y)"),
+                (y_con, "Contrastive"),
+                (y_sim, "Similar"),
                 file_name=triplet_name
             )
 
         # validation
-        older_surrogate_model.eval()
+        doge_model.eval()
         val_running_loss = 0.0        
         avg_val_loss = 0.0
         num_val_steps = 0
@@ -179,36 +181,35 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             for i, batch in enumerate(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
-                # input: y
+                
+                # [H, W] | input: y
                 y: torch.Tensor = batch["y"].cuda(device)
-                
-                # char
-                y_char: dict = batch['y_char']
-                
-                # targets
-                target: torch.Tensor = batch['target'].cuda(device)
+                y_sim: torch.Tensor = batch["y_sim"].cuda(device)
+                y_con: torch.Tensor = batch["y_con"].cuda(device)
 
                 # ---- forward: [H, W] ----
-                pred = older_surrogate_model(y)
+                pred_y: torch.Tensor = doge_model(y)
+                pred_sim: torch.Tensor = doge_model(y_sim)
+                pred_con: torch.Tensor = doge_model(y_con)
 
-                # HACK: calculate errors by feature category; assume BS=1
-                errors = (target - pred).detach().cpu().numpy().tolist()[0]
+                loss_sim = multi_level_similarity_loss(pred_y, pred_sim)
                 
-                loss: torch.Tensor = train_loss(pred, target)
+                margin = 1.0
+                loss_con = 0.0
+                for f_y, f_con in zip(pred_y, pred_con):
+                    d = torch.norm(f_y - f_con, p=2, dim=1)
+                    loss_con += torch.mean(torch.clamp(margin - d, min=0.0) ** 2)
                 
+                loss = loss_sim + loss_con
                 running_loss += loss.item() * y.size(0)
-                
+            
                 logger.log(
                     **{
                         "global_train_step": None,
                         "global_val_step": len(val_dataloader) * (epoch) + i,
                         "epoch": epoch,
                         "train_loss": None,
-                        "train_y_char": y_char,
-                        "train_errors": None,
                         "val_loss": loss.item(),
-                        "val_y_char": None,
-                        "val_errors": errors,
                     }
                 )
             
@@ -217,6 +218,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 triplet_name = f"train_epoch_{epoch}_step_{i}.png"
                 logger.log_colorized_tensors(
                     (y, "Input (y)"),
+                    (y_con, "Contrastive"),
+                    (y_sim, "Similar"),
                     file_name=triplet_name
                 )
     

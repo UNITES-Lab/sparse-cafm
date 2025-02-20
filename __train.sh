@@ -12,10 +12,18 @@
 
 # ---- train standalone-OLDER surrogate model ----
 
-## 1. Predict OLDER using a synthetic dataset ##
+# ## 1. Predict OLDER using a synthetic dataset ##
+# LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
+# EXP_NAME="DS=Synthetic-BB-VGG-19-Trainable-Optimal-4-Features"
+# CUDA_VISIBLE_DEVICES=5 python train_multi_head_surrogate.py \
+#     --exp_name "$EXP_NAME" \
+#     > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
+ 
+# ---- train DoGE model ----
+
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_NAME="DS=Synthetic-BB-VGG-19-Trainable-Optimal-4-Features"
-CUDA_VISIBLE_DEVICES=5 python train_multi_head_surrogate.py \
+EXP_NAME="BB-VGG-19-Trainable-DoGE-MASKED"
+CUDA_VISIBLE_DEVICES=1 python train_doge.py \
     --exp_name "$EXP_NAME" \
     > "$LOGS_DIR/$EXP_NAME.out" 2>&1 &
  

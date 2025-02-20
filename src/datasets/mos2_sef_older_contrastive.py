@@ -52,19 +52,17 @@ def augment(y: torch.Tensor) -> torch.Tensor:
     Performs a series of random augmentations on the image tensor `y` and processes it.
     Returns the dictionary from process_image.
     """
-    
+
+    # random flips/crops/spatial distortions greatly change SSIM/PSNR/etc
+
     y_aug = y.clone()
-    if random.random() < 0.5:
-        y_aug = torch.flip(y_aug, dims=[1])
-    if random.random() < 0.5:
-        y_aug = torch.flip(y_aug, dims=[0])
-    if y.shape[0] == y.shape[1] and random.random() < 0.5:
-        y_aug = torch.rot90(y_aug, k=1, dims=(0, 1))
-    if random.random() < 0.5:
-        factor = random.uniform(0.99, 1.01)
+
+    # add a tiny bit of noise
+    if random.random() < 0.99:
+        factor = random.uniform(0.95, 1.05)
         y_aug = y_aug * factor
-    if random.random() < 0.5:
-        noise_std = 0.05 * (y_aug.max() - y_aug.min())
+    if random.random() < 0.99:
+        noise_std = 0.03 * (y_aug.max() - y_aug.min())
         noise = torch.randn_like(y_aug) * noise_std
         y_aug = y_aug + noise
     if random.random() < 0.5:
@@ -79,11 +77,11 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
     Dataset class used to train a DoGE module.
     """
     
-    S_SIM_SSIM = 0.95
-    S_SIM_OLDER = 0.20
+    S_SIM_SSIM = 0.90
+    S_SIM_OLDER = 0.25
 
-    S_DIFF_SSIM = 0.30
-    S_DIFF_OLDER = 0.70
+    S_DIFF_SSIM = 0.50
+    S_DIFF_OLDER = 0.60
 
     def __init__(
         self,
@@ -128,8 +126,7 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
         # (H, W) -> (3, H, W)
         y_img_like = y_img_like.repeat(3, 1, 1)
         # (3, H, W) -> (1, 3, H, W)
-        y_img_like = y_img_like.unsqueeze(0)
-
+        y_img_like = y_img_like.unsqueeze(0).cuda()
         y_aug = None
 
         while True:
@@ -146,7 +143,11 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
             # (1, H, W) -> (3, H, W)
             y_aug_img_like = y_aug_img_like.repeat(3, 1, 1)
             # (3, H, W) -> (1, 3, H, W)
-            y_aug_img_like = y_aug_img_like.unsqueeze(0)
+            y_aug_img_like = y_aug_img_like.unsqueeze(0).cuda()
+
+            # -> [-1, 1]
+            y_img_like = 2 * (y_img_like - y_img_like.min()) / (y_img_like.max() - y_img_like.min()) - 1
+            y_aug_img_like = 2 * (y_aug_img_like - y_aug_img_like.min()) / (y_aug_img_like.max() - y_aug_img_like.min()) - 1
 
             ssim = SSIM(y_img_like, y_aug_img_like)
             
@@ -164,7 +165,9 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
     def get_contrastive_sample(self, y: torch.Tensor, index: int) -> torch.Tensor: 
         """
         Where y ~ std_norm.
-        """ 
+        """
+
+        i = index
 
         # -> original distribution
         y_unnorm = (y - self.dataset.current_maps_mean) / self.dataset.current_maps_std
@@ -175,14 +178,14 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
         # (H, W) -> (3, H, W)
         y_img_like = y_img_like.repeat(3, 1, 1)
         # (3, H, W) -> (1, 3, H, W)
-        y_img_like = y_img_like.unsqueeze(0)
+        y_img_like = y_img_like.unsqueeze(0).cuda()
 
         y_aug = None
 
         while True:
 
             # randomly sample an augmented y
-            y_aug = self.dataset[index + 1]["y"]
+            y_aug = self.dataset[i + 1]["y"]
 
             # -> original distribution
             y_aug_unnorm = (y_aug - self.dataset.current_maps_mean) / self.dataset.current_maps_std
@@ -193,7 +196,11 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
             # (1, H, W) -> (3, H, W)
             y_aug_img_like = y_aug_img_like.repeat(3, 1, 1)
             # (3, H, W) -> (1, 3, H, W)
-            y_aug_img_like = y_aug_img_like.unsqueeze(0)
+            y_aug_img_like = y_aug_img_like.unsqueeze(0).cuda()
+
+            # -> [-1, 1]
+            y_img_like = 2 * (y_img_like - y_img_like.min()) / (y_img_like.max() - y_img_like.min()) - 1
+            y_aug_img_like = 2 * (y_aug_img_like - y_aug_img_like.min()) / (y_aug_img_like.max() - y_aug_img_like.min()) - 1
 
             ssim = SSIM(y_img_like, y_aug_img_like)
             
@@ -204,6 +211,8 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
 
             if ssim < self.S_DIFF_SSIM and older > self.S_DIFF_OLDER:
                 break
+
+            i += 1
 
         return y_aug
 
@@ -225,6 +234,7 @@ class MOS2SefOLDERContrastiveDataset(Dataset):
         
         # [H, W]
         y: torch.Tensor = batch["y"]
+        
         y_sim = self.get_similar_sample(y)
         y_con = self.get_contrastive_sample(y, index)
         
