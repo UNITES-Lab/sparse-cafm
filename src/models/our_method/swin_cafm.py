@@ -102,7 +102,7 @@ class WindowAttention(nn.Module):
     ):
 
         super().__init__()
-        
+
         self.dim = dim
 
         # Wh, Ww: (e.g., [8, 8])
@@ -129,15 +129,11 @@ class WindowAttention(nn.Module):
         coords_flatten = torch.flatten(coords, 1)
 
         # [2, Wh*Ww, Wh*Ww]
-        relative_coords = (
-            coords_flatten[:, :, None] - coords_flatten[:, None, :]
-        )
+        relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]
 
         # [Wh*Ww, Wh*Ww, 2]
-        relative_coords = relative_coords.permute(
-            1, 2, 0
-        ).contiguous()
-        
+        relative_coords = relative_coords.permute(1, 2, 0).contiguous()
+
         # pre-compute the relative positions for any pair of points
         relative_coords[:, :, 0] += self.window_size[0] - 1  # shift to start from 0
         relative_coords[:, :, 1] += self.window_size[1] - 1
@@ -302,7 +298,7 @@ class SwinTransformerBlock(nn.Module):
         self.register_buffer("attn_mask", attn_mask)
 
     def calculate_mask(self, x_size):
-        
+
         # calculate attention mask for SW-MSA
         H, W = x_size
         img_mask = torch.zeros((1, H, W, 1))  # 1 H W 1
@@ -601,9 +597,9 @@ class RSTB(nn.Module):
         resi_connection="1conv",
     ):
         super(RSTB, self).__init__()
-        
+
         self.dim = dim
-        
+
         # [H, W]
         self.input_resolution = input_resolution
 
@@ -881,7 +877,7 @@ class SwinCAFM(nn.Module):
 
         # [0, 1]; do we use this?
         self.img_range = img_range
-        
+
         # TODO: delete
         if in_chans == 3:
             # image-net normalization
@@ -891,7 +887,7 @@ class SwinCAFM(nn.Module):
             # normalize each dim with mean=0
             # hmm... shouldn't be an issue, but the actual mean of our ds is not 0
             self.mean = torch.zeros(1, 3, 1, 1)
-        
+
         # HACK: mean all zeros
         self.mean = torch.zeros(1, 3, 1, 1)
 
@@ -1057,7 +1053,7 @@ class SwinCAFM(nn.Module):
         # init weights
         self.out_unet = SwinIRUNetHead.get()
         self.apply(self._init_weights)
-        
+
         # NOTE: attempts to use a UNet as a final output for a frozen backbone... didn't really work
         # self.blend_conv = nn.Conv2d(1, 1, kernel_size=1, stride=1, padding=0, bias=True)
         # # set 0s of zero conv
@@ -1118,18 +1114,20 @@ class SwinCAFM(nn.Module):
 
         return x
 
-    def two_item_forward(self, x_sparse: torch.Tensor, y_sparse: torch.Tensor) -> torch.Tensor: 
+    def two_item_forward(
+        self, x_sparse: torch.Tensor, y_sparse: torch.Tensor
+    ) -> torch.Tensor:
         """
         For p(y | x_sparse, y_sparse) formulation.
         """
-        
+
         # [B, H, W] -> [B, 2, H, W]
         y_sparse = y_sparse.unsqueeze(1).repeat(1, 2, 1, 1)
         # [B, H, W] ->  # [B, 1, H, W]
         x_sparse = x_sparse.unsqueeze(1)
         # [B, 3, H, W]
         x = torch.cat([y_sparse, x_sparse], dim=1)
-        
+
         H, W = x.shape[2:]
 
         # NOTE: not just "checking" image size – might pad also...
@@ -1191,10 +1189,10 @@ class SwinCAFM(nn.Module):
         # NOTE: just choose on channel dim;
         # it is CRITICAL that this is not removed
         x = x[:, 1, :, :]
-        
+
         # HACK: final image with a unet
         # out = self.blend_conv(self.out_unet())
-        
+
         # NOTE:
         # --------------------------------------------------------------------
         # we want to adapt the pre-trained transformer backbone to our setting
@@ -1202,19 +1200,18 @@ class SwinCAFM(nn.Module):
         # x = x + self.blend_conv(unet_pred)
         # return self.out_unet(x_original)
         # ---------------------------------------------------------------------
-        
+
         # clamp outputs to -> [0, 1]
         x = torch.nn.functional.sigmoid(x)
         return x
-    
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         x_original = x.clone()
-        
+
         # (B, H, W) -> (B, 1, H, W)
         x = x.unsqueeze(1)
-        
+
         # (B, 1, H, W) -> (B, 3, H, W)
         x = x.repeat(1, 3, 1, 1)
 
@@ -1264,14 +1261,14 @@ class SwinCAFM(nn.Module):
             # TODO: ablate-is this the best way to perform the initial upsampling?
             # probably not too terrible, we are upsampling so idt we lose any signal technically...
             # this just seems likely a slightly naive way to do the shallow feature extraction
-            
+
             # feature extraction
             # [B, 3, H, W] -> [B, D, H, W]
             x_first = self.conv_first(x)
 
             # [B, D, H, W]
             res = self.conv_after_body(self.forward_features(x_first)) + x_first
-            
+
             x = x + self.conv_last(res)
 
         # x = x / self.img_range + self.mean
@@ -1282,10 +1279,10 @@ class SwinCAFM(nn.Module):
         # NOTE: just choose on channel dim;
         # it is CRITICAL that this is not removed
         x = x[:, 1, :, :]
-        
+
         # HACK: final image with a unet
         # out = self.blend_conv(self.out_unet())
-        
+
         # NOTE:
         # --------------------------------------------------------------------
         # we want to adapt the pre-trained transformer backbone to our setting
@@ -1293,11 +1290,10 @@ class SwinCAFM(nn.Module):
         # x = x + self.blend_conv(unet_pred)
         # return self.out_unet(x_original)
         # ---------------------------------------------------------------------
-        
+
         # clamp outputs to -> [0, 1]
         x = torch.nn.functional.sigmoid(x)
         return x
-        
 
     def flops(self):
         flops = 0
@@ -1314,20 +1310,39 @@ class SwinCAFM(nn.Module):
     def get(weights=None) -> torch.nn.Module:
         """
         Return a SwinIR model for image size (128, 128).
+        model definitions: https://github.com/JingyunLiang/SwinIR/blob/main/main_test_swinir.py
         """
-        WEIGHTS_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/_SwinIR/__weights__/005_colorDN_DFWB_s128w8_SwinIR-M_noise25.pth"
-        window_size = 8
-        height = 128; width = 128
+
+        # ---- 1x image restoration ----
+        # WEIGHTS_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/_SwinIR/__weights__/005_colorDN_DFWB_s128w8_SwinIR-M_noise25.pth"
+        # window_size = 8
+        # height = 128; width = 128
+        # model = SwinCAFM(
+        #     upscale=8,
+        #     img_size=(height, width),
+        #     window_size=window_size,
+        #     img_range=1.0,
+        #     depths=[6, 6, 6, 6, 6, 6],
+        #     embed_dim=180,
+        #     num_heads=[6, 6, 6, 6, 6, 6],
+        #     mlp_ratio=2,
+        #     upsampler="no_upscale",
+        #     resi_connection="1conv",
+        # )
+
+        # ---- 2x image-SR ----
+        WEIGHTS_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/_SwinIR/__weights__/001_classicalSR_DF2K_s64w8_SwinIR-M_x2.pth"
         model = SwinCAFM(
-            upscale=8,
-            img_size=(height, width),
-            window_size=window_size,
+            upscale=2,
+            in_chans=3,
+            img_size=64,
+            window_size=8,
             img_range=1.0,
             depths=[6, 6, 6, 6, 6, 6],
             embed_dim=180,
             num_heads=[6, 6, 6, 6, 6, 6],
             mlp_ratio=2,
-            upsampler="no_upscale",
+            upsampler="pixelshuffle",
             resi_connection="1conv",
         )
         weights_dict = torch.load(WEIGHTS_FP, weights_only=False)
@@ -1339,25 +1354,31 @@ class SwinCAFM(nn.Module):
         """
         Initialize a SwinIR model using parameters from a given configuration dictionary.
         """
-        
+
         layer_norm_str = config.get("hyperparams", {}).get("norm_layer", None)
-        layer_norm = torch.nn.LayerNorm if layer_norm_str == "torch.nn.LayerNorm" else None
-        
+        layer_norm = (
+            torch.nn.LayerNorm if layer_norm_str == "torch.nn.LayerNorm" else None
+        )
+
         model = SwinCAFM(
             upscale=config.get("hyperparams", {}).get("upscale", 8),
-            img_size=tuple(config.get("hyperparams", {}).get("img_size", [128, 128])),
+            img_size=int(config.get("hyperparams", {}).get("img_size", 128)),
             window_size=config.get("hyperparams", {}).get("window_size", 8),
             img_range=config.get("hyperparams", {}).get("img_range", 1.0),
             depths=config.get("hyperparams", {}).get("depths", [6, 6, 6, 6, 6, 6]),
             embed_dim=config.get("hyperparams", {}).get("embed_dim", 180),
-            num_heads=config.get("hyperparams", {}).get("num_heads", [6, 6, 6, 6, 6, 6]),
+            num_heads=config.get("hyperparams", {}).get(
+                "num_heads", [6, 6, 6, 6, 6, 6]
+            ),
             drop_path_rate=config.get("hyperparams", {}).get("drop_path_rate", 0.1),
             norm_layer=layer_norm,
             mlp_ratio=config.get("hyperparams", {}).get("mlp_ratio", 2),
             upsampler=config.get("hyperparams", {}).get("upsampler", "no_upscale"),
-            resi_connection=config.get("hyperparams", {}).get("resi_connection", "1conv"),
+            resi_connection=config.get("hyperparams", {}).get(
+                "resi_connection", "1conv"
+            ),
         )
-        
+
         # load checkpoint
         weights_fp = config.get("weights_fp")
         checkpoint = torch.load(weights_fp)
@@ -1375,11 +1396,11 @@ class SwinCAFM(nn.Module):
         # load valid weights
         model_dict.update(filtered_dict)
         model.load_state_dict(model_dict)
-        
+
         WEIGHTS_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/_SwinIR/__weights__/005_colorDN_DFWB_s128w8_SwinIR-M_noise25.pth"
         weights_dict = torch.load(WEIGHTS_FP, weights_only=False)
         model.load_state_dict(weights_dict["params"], strict=False)
-        
+
         return model
 
 

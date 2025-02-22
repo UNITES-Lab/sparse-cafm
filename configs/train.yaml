@@ -7,7 +7,7 @@ model:
   name: ours
   pretrained: True
   weights:
-  config: model-configs/swinir.yaml
+  config: model-configs/001_classic_img_sr.yaml
 
 training:
   batch_size: 1
@@ -31,7 +31,7 @@ dataset:
 
 logging:
   root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | X_sparse, y_sparse)"
-  exp_name: swinir-baseline
+  exp_name: swinir-2x-sr
   result_columns: []
   save_weights: true
   save_only_best_weights: true
