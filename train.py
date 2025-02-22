@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+from torchmetrics import LPIPS, PSNR, SSIM
 import torchvision
 import torch
 import torch.nn as nn
@@ -9,7 +10,10 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
-from src.models.our_method.older_surrogate import MultiHeadOLDERSurrogate, OLDERPerceptualLoss
+from src.models.our_method.older_surrogate import (
+    MultiHeadOLDERSurrogate,
+    OLDERPerceptualLoss,
+)
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
 from src.util.logger import ExperimentLogger
@@ -73,7 +77,9 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
         steps_per_epoch=(
-            int(config.steps_per_epoch * config.train_batch_size) if split == "train" else config.val_steps_per_epoch
+            int(config.steps_per_epoch * config.train_batch_size)
+            if split == "train"
+            else config.val_steps_per_epoch
         ),
         device=config.device,
         original_image_size=(img_size, img_size),
@@ -85,21 +91,30 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
         shuffle=False,
         num_workers=config.num_workers,
     )
-    
 
-def perceptual_loss(outputs: List[torch.Tensor], targets: List[torch.Tensor], loss_fn=torch.nn.L1Loss(reduction='sum')) -> torch.Tensor:
+
+def perceptual_loss(
+    outputs: List[torch.Tensor],
+    targets: List[torch.Tensor],
+    loss_fn=torch.nn.L1Loss(reduction="sum"),
+) -> torch.Tensor:
     """
     Multi-layered, weighted perceptual loss for a VGG backbone.
     """
     total_loss = 0
     for out, tgt in zip(outputs, targets):
-        assert isinstance(out, torch.Tensor); assert isinstance(tgt, torch.Tensor)
+        assert isinstance(out, torch.Tensor)
+        assert isinstance(tgt, torch.Tensor)
         layer_loss = loss_fn(out, tgt) / out.numel()
         total_loss += layer_loss
     return total_loss
 
 
-def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
+def train(
+    args: argparse.Namespace,
+    config: TrainConfig,
+    model_config: Optional[ModelConfig] = None,
+) -> None:
 
     logger = setup_logger(config, model_config)
     model = create_model(config)
@@ -114,7 +129,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
 
     # use to save model checkpoints
     best_val_loss = sys.maxsize
-    
+
     num_epochs = config.epochs
     device = config.device
 
@@ -166,15 +181,15 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             y_hat = ImageInpaintingL1Loss.get_final_prediction(
                 predicted_image=outputs, target_image=y, mask=mask
             )
-            
+
             # ---- NOTE: perceptual loss with surrogate backbone ----
-            
+
             # # save activations of vit-encoder layers for y_hat
             # y_activations = {}
-            
+
             # def hook_fn(module, input, output) -> None:
             #     y_activations[module] = output
-                  
+
             # LAYERS = [4, 11, 24, 37, 50]
 
             # #  ------- VGG -------
@@ -184,49 +199,49 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
 
             # [B, H, W]
             y_feature_map = y.clone()
-            
+
             # [B, H, W] -> [B, 1, H, W]
             y_feature_map = y_feature_map.unsqueeze(1)
             # [B, 1, H, W] -> [B, 3, H, W]
             y_feature_map = y_feature_map.repeat(1, 3, 1, 1)
             # [B, 3, H, W] -> [B, D]
             # y_feature_map = surrogate.backbone(y_feature_map)
-            
+
             # # [B, 12 * D]
             # y_activations_stack = []
             # for i, (k, v) in enumerate(y_activations.items()):
             #     y_activations_stack.append(v)
-            
+
             # save activations of vit-encoder layers for y_hat
             # y_hat_activations = {}
-            
+
             # def hook_fn(module, input, output):
             #     y_hat_activations[module] = output
-            
+
             # #  ------- VGG -------
             # feat_layer_idx = int(args.vgg_feature_layer)
             # surrogate.backbone.features[feat_layer_idx].register_forward_hook(hook_fn)
             # # --------------------
-            
+
             # [B, H, W]
             y_hat_feature_map = outputs.clone()
-            
+
             # [B, 224, 224]] -> [B, 1, 224, 224]
             y_hat_feature_map = y_hat_feature_map.unsqueeze(1)
             # [B, 1, 224, 224] -> [B, 3, 224, 224]
             y_hat_feature_map = y_hat_feature_map.repeat(1, 3, 1, 1)
             # [B, 3, 224, 224] -> [B, 768]
             # y_hat_feature_map = surrogate.backbone(y_hat_feature_map)
-            
+
             # # [B, 12 * D]
             # y_hat_activations_stack = []
             # for i, (k, v) in enumerate(y_hat_activations.items()):
             #     y_hat_activations_stack.append(v)
-            
+
             # ----- calculate loss -----
             # pixel_wise_loss = torch.nn.functional.l1_loss(y, outputs)
-            # percep_loss = perceptual_loss(y_activations_stack, y_hat_activations_stack)
-            
+            # percep_loss = train_loss(y_hat_feature_map, y_feature_map)
+
             # --- Loss: L1 ---
             # loss: torch.Tensor = pixel_wise_loss
 
@@ -235,18 +250,44 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
 
             # --- Loss: OLDER-Perceptual ---
             # loss: torch.Tensor = percep_loss
-            
-            # # --- Loss: OLDER-Perceptual + L1 ---
+
+            # --- Loss: OLDER-Perceptual + L1 ---
             # weighted_perceptual_loss = percep_loss * args.surrogate_loss_mixin
             # loss: torch.Tensor = weighted_perceptual_loss + pixel_wise_loss
-            # --------------------------------------------------------
 
-            # ---- OLDER-Perceptual Loss ----
-            loss: torch.Tensor = train_loss(y_hat_feature_map, y_feature_map)
+            # --- SSIM ---
+            # _y = y.clone().unsqueeze(1)
+            # _y = _y.repeat(1, 3, 1, 1)
+            # _outputs = outputs.clone().unsqueeze(1)
+            # _outputs = _outputs.repeat(1, 3, 1, 1)
+            # ssim_loss = SSIM()(_y, _outputs)
+            # loss = ssim_loss
+
+            # --- LPIPS ----
+
+            # normalize y and outputs to within [0, 1]
+            _y = y.clone().unsqueeze(1)
+            _y = _y.repeat(1, 3, 1, 1)
+            _y = (_y - _y.min()) / (_y.max() - _y.min()).cuda()
+
+            _outputs = outputs.clone().unsqueeze(1)
+            _outputs = _outputs.repeat(1, 3, 1, 1)
+            _outputs = (_outputs - _outputs.min()) / (
+                _outputs.max() - _outputs.min()
+            ).cuda()
+
+            # normalize y and outputs to within [-1, 1]
+            lpips_loss = LPIPS().cuda()
+            loss = lpips_loss(_y, _outputs)
+
+            # --- MSE ----
+            loss = torch.nn.functional.mse_loss(outputs, y)
+
+            # --------------------------------------------------------
 
             loss.backward()
             optimizer.step()
-            
+
             logger.log(
                 **{
                     "global_train_step": len(train_dataloader) * (epoch) + step,
@@ -259,7 +300,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
 
             if step % 100 != 0:
                 continue
-            
+
             triplet_name = f"train_epoch_{epoch}_step_{step}.png"
             logger.log_colorized_tensors(
                 (y, "Target (y)"),
@@ -295,12 +336,12 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 y_hat = ImageInpaintingL1Loss.get_final_prediction(
                     predicted_image=outputs, target_image=y, mask=mask
                 )
-                
+
                 # Loss: L1
                 loss: torch.Tensor = torch.nn.functional.l1_loss(y, outputs)
 
                 val_running_loss += loss.item() * y_sparse.size(0)
-                
+
                 logger.log(
                     **{
                         "global_train_step": None,
@@ -382,17 +423,55 @@ def main(args: argparse.Namespace) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # -------------------- training config args --------------------
-    parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name.", default="my-experiment")
-    parser.add_argument("-r", "--root", type=str, help="Root directory to save experiment in.", default="__exps__/")
-    parser.add_argument("-sfp", "--surrogate_weights_file_path", type=str, help="Initialize surrogate from checkpoint.", default="")
-    parser.add_argument("-eps", "--surrogate_loss_mixin", type=float, default=1.0, help="")
+    parser.add_argument(
+        "-e",
+        "--exp_name",
+        type=str,
+        help="Experiment directory name.",
+        default="my-experiment",
+    )
+    parser.add_argument(
+        "-r",
+        "--root",
+        type=str,
+        help="Root directory to save experiment in.",
+        default="__exps__/",
+    )
+    parser.add_argument(
+        "-sfp",
+        "--surrogate_weights_file_path",
+        type=str,
+        help="Initialize surrogate from checkpoint.",
+        default="",
+    )
+    parser.add_argument(
+        "-eps", "--surrogate_loss_mixin", type=float, default=1.0, help=""
+    )
     # -------------------- model config args --------------------
-    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
-    parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
-    parser.add_argument("-nhs", "--num_heads", type=int, help="Number of heads per RSTB block", default=6)
-    parser.add_argument("-wsz", "--window_size", type=int, help="Size of shifted attention window", default=8)
+    parser.add_argument(
+        "-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6
+    )
+    parser.add_argument(
+        "-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6
+    )
+    parser.add_argument(
+        "-nhs",
+        "--num_heads",
+        type=int,
+        help="Number of heads per RSTB block",
+        default=6,
+    )
+    parser.add_argument(
+        "-wsz",
+        "--window_size",
+        type=int,
+        help="Size of shifted attention window",
+        default=8,
+    )
     parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
-    parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
+    parser.add_argument(
+        "-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm"
+    )
     # -------------------- ablation args --------------------
     parser.add_argument("-lr", "--learning_rate", type=float, help="", default=1e-5)
     parser.add_argument("-bs", "--batch_size", type=int, help="", default=1)

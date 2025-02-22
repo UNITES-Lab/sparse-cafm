@@ -29,6 +29,7 @@ class Formulation(Enum):
     P_Y_BAR_Y_SPARSE = 5
     P_Y_BAR_Y_SPARSE_BENCHMARK_CN = 6
     P_OLDER_BAR_Y_Y_AUG = 7
+    TWOX_SR = 8
 
     @staticmethod
     def get_formulation_from_str(formulation_str: str) -> Enum:
@@ -49,6 +50,8 @@ class Formulation(Enum):
             return Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN
         elif formulation_str == "p(older|y,y_aug)":
             return Formulation.P_OLDER_BAR_Y_Y_AUG
+        elif formulation_str == "2x-sr":
+            return Formulation.TWOX_SR
         else:
             raise KeyError
 
@@ -113,6 +116,7 @@ class MOS2SEFDataset(Dataset):
         # NOTE: hard-coded global constants
         # original sample size is 2um
         self.img_size_um = IMG_SIZE_UM
+
         # all data (current + topo maps) normalized to -> [0, 1]
         self.normalized_data_range: Tuple[float, float] = NORMALIZED_DATA_RANGE
 
@@ -266,7 +270,6 @@ class MOS2SEFDataset(Dataset):
         y_sparse_img_like = y_sparse_img_like.repeat(1, 1, 3)
         # [0, 1] -> [-1, 1]
         y_img_like = (y_img_like * 2) - 1
-
         return dict(jpg=y_img_like, txt="", hint=y_sparse_img_like)
 
     def get_item_p_y_bar_y_sparse(self, index: int) -> Dict:
@@ -291,7 +294,7 @@ class MOS2SEFDataset(Dataset):
             sample_idx = len(self.current_maps) - 1
         else:
             raise Exception(f"Invalid split: {self.split}")
-        
+
         # [H, W]; un-normalized topography map
         X: np.ndarray = self.topo_maps[sample_idx]
 
@@ -312,9 +315,11 @@ class MOS2SEFDataset(Dataset):
         # [H', W']
         X: np.ndarray = augmented["image"]
         X = torch.tensor(X).float()
+
         # [H', W']
         y: np.ndarray = augmented["y"]
         y = torch.tensor(y).float()
+
         # [H', W']
         mask: torch.Tensor = torch.Tensor(augmented["sparse_mask"]).bool()
 
@@ -325,9 +330,13 @@ class MOS2SEFDataset(Dataset):
         y = (y - self.current_maps_min) / (
             self.current_maps_max - self.current_maps_min
         )
-        
-        assert X.max() <= 1.0 and X.min() >= 0.0, f"Error normalizing X sample: {X.shape}"
-        assert y.max() <= 1.0 and y.min() >= 0.0, f"Error normalizing y sample: {y.shape}"
+
+        assert (
+            X.max() <= 1.0 and X.min() >= 0.0
+        ), f"Error normalizing X sample: {X.shape}"
+        assert (
+            y.max() <= 1.0 and y.min() >= 0.0
+        ), f"Error normalizing y sample: {y.shape}"
 
         return {
             "X": X,
@@ -391,8 +400,8 @@ class MOS2SEFDataset(Dataset):
         y_img_like = (y_img_like * 2) - 1
 
         return dict(jpg=y_img_like, txt="", hint=y_sparse_img_like)
-    
-    def get_item_p_older_bar_y_y_aug(self, index: int) -> dict: 
+
+    def get_item_p_older_bar_y_y_aug(self, index: int) -> dict:
         """
         Item getter method for p(y|y_sparse) formulation.
         Partially mask the original current map y; currently row-wise masking.
@@ -443,18 +452,79 @@ class MOS2SEFDataset(Dataset):
         y_aug = torch.tensor(y_aug).float()
         y: np.ndarray = augmented["y"]
         y = torch.tensor(y).float()
-        
+
         # normalize y -> [0, 1]
-        y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
-        y_aug = (y_aug - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
-        y_aug = (y_aug - y_aug.flatten().min()) / (y_aug.flatten().max() - y_aug.flatten().min())
-        
-        assert y.max() <= 1.0 and y.min() >= 0.0, f"Error normalizing y sample: {y.shape}"
-        assert y_aug.max() <= 1.0 and y_aug.min() >= 0.0, f"Error normalizing y sample: {y_aug.shape}"
+        y = (y - self.current_maps_min) / (
+            self.current_maps_max - self.current_maps_min
+        )
+        y_aug = (y_aug - self.current_maps_min) / (
+            self.current_maps_max - self.current_maps_min
+        )
+        y_aug = (y_aug - y_aug.flatten().min()) / (
+            y_aug.flatten().max() - y_aug.flatten().min()
+        )
+
+        assert (
+            y.max() <= 1.0 and y.min() >= 0.0
+        ), f"Error normalizing y sample: {y.shape}"
+        assert (
+            y_aug.max() <= 1.0 and y_aug.min() >= 0.0
+        ), f"Error normalizing y sample: {y_aug.shape}"
 
         return {
             "y": y,
             "y_aug": y_aug,
+        }
+
+    def get_item_2x_sr(self, index: int) -> dict:
+        """
+        Return a dictionary containing:
+        - y       : [H, W]
+        - y_sparse: [H/2, W/2]
+        """
+
+        # NOTE: we only consider samples: [0, 1, 2, 3];
+        # HACK: hard-coded train/val splits
+        # choose a random sample idx
+        if self.split == TRAIN_SPLIT:
+            # randint is inclusive: [a, b]
+            # select a random sample from self.data[:-1]
+            sample_idx = random.randint(0, len(self.current_maps) - 2)
+        elif self.split == VAL_SPLIT:
+            # select the final data sample: self.data[-1]
+            sample_idx = len(self.current_maps) - 1
+        else:
+            raise Exception(f"Invalid split: {self.split}")
+
+        # [512, 512]; un-normalized, full-sized current map
+        y: np.ndarray = self.current_maps[sample_idx]
+
+        # ---- select a [128, 128] subset from full-sample----
+        augmented = self.augmentation_pipeline(image=y, y=y)
+
+        # [128, 128]
+        y: np.ndarray = augmented["y"]
+        y: torch.Tensor = torch.Tensor(y).float()
+
+        # [128, 128]
+        y_unnorm = y.clone()
+
+        # -> [0, 1]
+        y = (y - self.current_maps_min) / (
+            self.current_maps_max - self.current_maps_min
+        )
+
+        # [64, 64]
+        y_sparse = y[::2, ::2]
+
+        assert (
+            y.max() <= 1.0 and y.min() >= 0.0
+        ), f"Error normalizing y sample: {y.shape}"
+
+        return {
+            "y": y,
+            "y_sparse": y_sparse,
+            "y_unnorm": y_unnorm,
         }
 
     def __getitem__(self, index: int) -> Dict:
@@ -478,6 +548,7 @@ class MOS2SEFDataset(Dataset):
             Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK: self.get_item_p_y_bar_y_sparse_deterministic,
             Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN: self.get_item_p_y_bar_y_sparse_deterministic_cn,
             Formulation.P_OLDER_BAR_Y_Y_AUG: self.get_item_p_older_bar_y_y_aug,
+            Formulation.TWOX_SR: self.get_item_2x_sr,
         }
         if self.formulation not in fn_map:
             raise Exception(

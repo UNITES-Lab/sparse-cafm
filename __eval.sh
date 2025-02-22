@@ -16,7 +16,7 @@ LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps
 
 ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs"
 device=0
-for SRC_DIR in "$ROOT_DIR"/*02-20*; do
+for SRC_DIR in "$ROOT_DIR"/*02-18*; do
     if [ -d "$SRC_DIR" ]; then
         BEST_FILE=$(find "$SRC_DIR" -maxdepth 1 -type f -name "*_best.pth" | head -n 1)
         if [ -z "$BEST_FILE" ]; then

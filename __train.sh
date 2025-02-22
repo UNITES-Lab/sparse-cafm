@@ -30,13 +30,12 @@ NORM_LAYER=torch.nn.LayerNorm
 
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
 EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs"
-SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-17/2025-02-17_16-10-44_BB-VGG-19-Trainable-Optimal-4-Features/BB-VGG-19-Trainable-Optimal-4-Features_latest_older_surrogate.pth"
+SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-17/2025-02-17_16-10-44_BB-VGG-19-Trainable-Optimal-4-Features/BB-VGG-19-Trainable-Optimal-4-Features_best_older_surrogate.pth"
 
-# ##### baseline #####
+##### baseline #####
 
-CUDA_VISIBLE_DEVICES=7
-EXP_NAME="SwinIR-loss=OLDER-Perceptual-VGG-19-NEW(raw-out, y)"
-
+CUDA_VISIBLE_DEVICES=3
+EXP_NAME="SwinIR-loss=LPIPS(raw-out, y)"
 python train.py \
         --exp_name "$EXP_NAME" \
         --root "$EXP_ROOT_DIR" \
@@ -55,7 +54,7 @@ python train.py \
 # for i in {0..8}; do
 #     LAMBDA="1e-${i}"
 #     device=$(( (i) % 8 ))
-#     EXP_NAME="SwinIR-loss=OLDER-Perceptual-VGG-Multi-Layer+L1(raw-out, y)-lambda=${LAMBDA}"
+#     EXP_NAME="SwinIR-loss=OLDER-Perc-NEW-VGG+L1(raw-out, y)-lambda=${LAMBDA}"
 #     echo "Launching job for lambda ${LAMBDA} on CUDA device ${device}"
 #     CUDA_VISIBLE_DEVICES=${device} python train.py \
 #         --exp_name "$EXP_NAME" \

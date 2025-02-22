@@ -82,8 +82,11 @@ def OLDER(y_char: dict, y_sparse_char: dict) -> float:
     :val float: mean-abs %-diff in range [0, inf)
     """
 
+    # KEYS = ["average_surface_current", "coverage_percentage", "num_extended_shapes", "total_area_extended_shapes"]
     diffs = []
+    
     for k1, k2 in zip(y_char.keys(), y_sparse_char.keys()):
+        # if k1 not in KEYS or k2 not in KEYS: continue
         val1, val2 = y_char[k1], y_sparse_char[k2]
         if val1 == 0 and val2 == 0:
             diffs.append(0.0)
@@ -92,6 +95,7 @@ def OLDER(y_char: dict, y_sparse_char: dict) -> float:
             # || %diff || = || 2 * || val1 - val2 || / (val1 + val2) ||
             pdiff = abs(val1 - val2) / avg_val
             diffs.append(abs(pdiff))
+
     return np.mean(diffs)
 
 
