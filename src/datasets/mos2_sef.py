@@ -216,15 +216,29 @@ class MOS2SEFDataset(Dataset):
         self.topo_maps_min = np.amin(np.array(self.topo_maps))
 
     def _create_augmentation_pipeline(self, resize_to_og_height=True):
+        # return A.Compose(
+        #     [
+        #         A.HorizontalFlip(p=0.5),
+        #         A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
+        #         A.Resize(
+        #             width=self.side_length,
+        #             height=self.side_length,
+        #             interpolation=cv2.INTER_AREA,
+        #         ),
+        #     ],
+        #     additional_targets={
+        #         "y": "mask",
+        #         "sparse_mask": "mask",
+        #     },
+        # )
         return A.Compose(
             [
                 A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.5),
+                A.RandomRotate90(p=0.5),
+                A.Rotate(limit=15, p=0.5),
+                A.ElasticTransform(),
                 A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
-                A.Resize(
-                    width=self.side_length,
-                    height=self.side_length,
-                    interpolation=cv2.INTER_AREA,
-                ),
             ],
             additional_targets={
                 "y": "mask",
@@ -500,10 +514,16 @@ class MOS2SEFDataset(Dataset):
         y: np.ndarray = self.current_maps[sample_idx]
 
         # ---- select a [128, 128] subset from full-sample----
-        augmented = self.augmentation_pipeline(image=y, y=y)
+        augmented: np.ndarray = self.augmentation_pipeline(image=y, y=y)
 
-        # [128, 128]
-        y: np.ndarray = augmented["y"]
+        # [512, 512] -> [128, 128] + apply augs
+        if self.split == "train":
+            y: np.ndarray = augmented["image"]
+        elif self.split == "val":
+            y: np.ndarray = augmented["y"]
+        else:
+            raise Exception("Something has gone very wrong")
+        
         y: torch.Tensor = torch.Tensor(y).float()
 
         # [128, 128]

@@ -241,7 +241,7 @@ def main(args: argparse.Namespace) -> None:
     config.exp_name = args.exp_name
     config.log_root = args.root
     config.surgate_weights = args.surrogate_weights_file_path
-    config.learning_rate = str(args.learning_rate)
+    # config.learning_rate = str(args.learning_rate)
     # config.train_batch_size = int(args.batch_size)
     # -------------------- model config args --------------------
     if model_config != None:

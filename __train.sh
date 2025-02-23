@@ -32,8 +32,8 @@ EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__
 
 ##### baseline #####
 
-export CUDA_VISIBLE_DEVICES=6
-EXP_NAME="SwinIR-2x-sr-bs-adamw-20"
+export CUDA_VISIBLE_DEVICES=5
+EXP_NAME="SwinIR-2x-sr-bs-20-adamw-lr=1e-6-more-augs"
 python train.py \
         --exp_name "$EXP_NAME" \
         --root "$EXP_ROOT_DIR" \

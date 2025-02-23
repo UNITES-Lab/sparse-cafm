@@ -14,7 +14,7 @@ training:
   steps_per_epoch: 1024
   epochs: 50
   loss: L1
-  lr: 1e-5
+  lr: 1e-6
   optimizer: AdamW
 
 validation:
@@ -26,7 +26,7 @@ dataset:
   name: MOS2SEFDataset
   image_size: 512
   crop_size: 128
-  num_workers: 2
+  num_workers: 8
   masking_ratio: 1
 
 logging:
