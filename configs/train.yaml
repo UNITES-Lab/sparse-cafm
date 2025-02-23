@@ -10,12 +10,12 @@ model:
   config: model-configs/001_classic_img_sr.yaml
 
 training:
-  batch_size: 1
+  batch_size: 20
   steps_per_epoch: 1024
   epochs: 50
   loss: L1
   lr: 1e-5
-  optimizer: Adam
+  optimizer: AdamW
 
 validation:
   batch_size: 1
@@ -26,11 +26,11 @@ dataset:
   name: MOS2SEFDataset
   image_size: 512
   crop_size: 128
-  num_workers: 0
+  num_workers: 2
   masking_ratio: 1
 
 logging:
-  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | X_sparse, y_sparse)"
+  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/2x-sr"
   exp_name: swinir-2x-sr
   result_columns: []
   save_weights: true

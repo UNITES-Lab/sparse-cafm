@@ -27,27 +27,23 @@ NUM_BLOCKS=6
 WINDOW_SIZE=8
 DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
-
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/a. train-runs"
-SURROGATE_CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-17/2025-02-17_16-10-44_BB-VGG-19-Trainable-Optimal-4-Features/BB-VGG-19-Trainable-Optimal-4-Features_best_older_surrogate.pth"
+EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/2x-sr"
 
 ##### baseline #####
 
-CUDA_VISIBLE_DEVICES=3
-EXP_NAME="SwinIR-loss=LPIPS(raw-out, y)"
+export CUDA_VISIBLE_DEVICES=6
+EXP_NAME="SwinIR-2x-sr-bs-adamw-20"
 python train.py \
         --exp_name "$EXP_NAME" \
         --root "$EXP_ROOT_DIR" \
-        --surrogate_weights_file_path "$SURROGATE_CKPT" \
-        --vgg_feature_layer 4 \
-        --depths $DEPTH \
         --num_heads $NUM_HEADS \
         --num_blocks $NUM_BLOCKS \
         --window_size $WINDOW_SIZE \
         --drop_path_rate $DPR \
         --norm_layer $NORM_LAYER \
         > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
+
 
 ##### mixin ablation #####
 

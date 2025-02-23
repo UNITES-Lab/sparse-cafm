@@ -1,22 +1,18 @@
 import os
 import sys
 import argparse
-from torchmetrics import LPIPS, PSNR, SSIM
+import warnings
 import torch
 import torch.nn as nn
+from torchmetrics import LPIPS, PSNR, SSIM
 
 from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
-from src.models.our_method.older_surrogate import (
-    MultiHeadOLDERSurrogate,
-    OLDERPerceptualLoss,
-)
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
 from src.util.logger import ExperimentLogger
-from src.util.loss import ImageInpaintingL1Loss
 from src.util.config import (
     TrainConfig,
     ModelConfig,
@@ -53,7 +49,7 @@ def create_model(config: TrainConfig) -> nn.Module:
     else:
         model = model_fn()
     assert isinstance(model, nn.Module)
-    return model.cuda(config.device).float()
+    return model
 
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
@@ -73,7 +69,9 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     )
     return DataLoader(
         dataset,
-        batch_size=config.train_batch_size,
+        batch_size=(
+            config.train_batch_size if split == "train" else config.val_batch_size
+        ),
         shuffle=False,
         num_workers=config.num_workers,
     )
@@ -91,7 +89,7 @@ def train(
     val_dataloader = create_dataloader(config, "val")
 
     # define loss function and optimizer
-    train_loss = torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
+    train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
 
     # use to save model checkpoints
@@ -102,17 +100,12 @@ def train(
 
     # create model using model config obj
     # NOTE: only supported for SwinCAFM atm
-    if config.model_config_file != None:
-        assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
-        model = SwinCAFM.init_from_config(model_config.to_dict())
-
-    # load weights from checkpoint
-    if config.weights != None:
-        # load enitre model object:
-        model = torch.load(config.weights).float().cuda()
+    # if config.model_config_file != None:
+    #     assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
+    #     model = SwinCAFM.init_from_config(model_config.to_dict())
 
     optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
-        model.parameters(), lr=float(config.learning_rate)
+        model.parameters(), lr=float(config.learning_rate), weight_decay=1e-3,
     )
 
     model.cuda(device)
@@ -126,6 +119,7 @@ def train(
         for step, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
+
             # current-map: y; [128, 128]
             y: torch.Tensor = batch["y"].cuda(device)
 
@@ -139,7 +133,7 @@ def train(
             y_hat: torch.Tensor = model(y_sparse)
 
             # --- L1 ----
-            loss = train_loss(y_hat, y)
+            loss: torch.Tensor = train_loss(y_hat, y)
 
             loss.backward()
             optimizer.step()
@@ -248,7 +242,7 @@ def main(args: argparse.Namespace) -> None:
     config.log_root = args.root
     config.surgate_weights = args.surrogate_weights_file_path
     config.learning_rate = str(args.learning_rate)
-    config.train_batch_size = int(args.batch_size)
+    # config.train_batch_size = int(args.batch_size)
     # -------------------- model config args --------------------
     if model_config != None:
         # transformer block depths; e.g., [6, 6, 6, 6, 6, 6]

@@ -509,8 +509,8 @@ class BasicLayer(nn.Module):
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
-                    drop=drop,
                     attn_drop=attn_drop,
+                    drop=drop,
                     drop_path=(
                         drop_path[i] if isinstance(drop_path, list) else drop_path
                     ),
@@ -1051,7 +1051,7 @@ class SwinCAFM(nn.Module):
             self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
 
         # init weights
-        self.out_unet = SwinIRUNetHead.get()
+        # self.out_unet = SwinIRUNetHead.get()
         self.apply(self._init_weights)
 
         # NOTE: attempts to use a UNet as a final output for a frozen backbone... didn't really work
@@ -1335,7 +1335,7 @@ class SwinCAFM(nn.Module):
         model = SwinCAFM(
             upscale=2,
             in_chans=3,
-            img_size=64,
+            img_size=(64, 64),
             window_size=8,
             img_range=1.0,
             depths=[6, 6, 6, 6, 6, 6],
@@ -1345,8 +1345,7 @@ class SwinCAFM(nn.Module):
             upsampler="pixelshuffle",
             resi_connection="1conv",
         )
-        weights_dict = torch.load(WEIGHTS_FP, weights_only=False)
-        model.load_state_dict(weights_dict["params"], strict=False)
+        model.load_state_dict(torch.load(WEIGHTS_FP, weights_only=True)['params'], strict=False)
         return model
 
     @staticmethod
@@ -1396,10 +1395,6 @@ class SwinCAFM(nn.Module):
         # load valid weights
         model_dict.update(filtered_dict)
         model.load_state_dict(model_dict)
-
-        WEIGHTS_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/_SwinIR/__weights__/005_colorDN_DFWB_s128w8_SwinIR-M_noise25.pth"
-        weights_dict = torch.load(WEIGHTS_FP, weights_only=False)
-        model.load_state_dict(weights_dict["params"], strict=False)
 
         return model
 
