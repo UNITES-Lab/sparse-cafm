@@ -100,9 +100,9 @@ def train(
 
     # create model using model config obj
     # NOTE: only supported for SwinCAFM atm
-    # if config.model_config_file != None:
-    #     assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
-    #     model = SwinCAFM.init_from_config(model_config.to_dict())
+    if config.model_config_file != None:
+        assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
+        model = SwinCAFM.init_from_config(model_config.to_dict())
 
     optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
         model.parameters(), lr=float(config.learning_rate), weight_decay=1e-3,

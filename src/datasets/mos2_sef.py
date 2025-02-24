@@ -30,6 +30,8 @@ class Formulation(Enum):
     P_Y_BAR_Y_SPARSE_BENCHMARK_CN = 6
     P_OLDER_BAR_Y_Y_AUG = 7
     TWOX_SR = 8
+    FOURX_SR = 9
+    EIGHTX_SR = 10
 
     @staticmethod
     def get_formulation_from_str(formulation_str: str) -> Enum:
@@ -52,6 +54,10 @@ class Formulation(Enum):
             return Formulation.P_OLDER_BAR_Y_Y_AUG
         elif formulation_str == "2x-sr":
             return Formulation.TWOX_SR
+        elif formulation_str == "4x-sr":
+            return Formulation.FOURX_SR
+        elif formulation_str == "8x-sr":
+            return Formulation.EIGHTX_SR
         else:
             raise KeyError
 
@@ -319,6 +325,7 @@ class MOS2SEFDataset(Dataset):
 
         # [H, W]; get un-normed current map
         y: np.ndarray = self.current_maps[sample_idx]
+        y_og = y.copy()
 
         # ---- augment samples ----
         augmented = p_y_bar_x_augmentation_pipeline(
@@ -341,9 +348,9 @@ class MOS2SEFDataset(Dataset):
         X = (X - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
 
         y_unnorm = y.clone()
-        y = (y - self.current_maps_min) / (
-            self.current_maps_max - self.current_maps_min
-        )
+
+        y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
+        y_og = (y_og - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
 
         assert (
             X.max() <= 1.0 and X.min() >= 0.0
@@ -356,6 +363,7 @@ class MOS2SEFDataset(Dataset):
             "X": X,
             "y": y,
             "y_unnorm": y_unnorm,
+            "y_og": y_og,
             "mask": mask,
         }
 
@@ -496,7 +504,6 @@ class MOS2SEFDataset(Dataset):
         - y       : [H, W]
         - y_sparse: [H/2, W/2]
         """
-
         # NOTE: we only consider samples: [0, 1, 2, 3];
         # HACK: hard-coded train/val splits
         # choose a random sample idx
@@ -509,13 +516,59 @@ class MOS2SEFDataset(Dataset):
             sample_idx = len(self.current_maps) - 1
         else:
             raise Exception(f"Invalid split: {self.split}")
-
         # [512, 512]; un-normalized, full-sized current map
         y: np.ndarray = self.current_maps[sample_idx]
-
         # ---- select a [128, 128] subset from full-sample----
         augmented: np.ndarray = self.augmentation_pipeline(image=y, y=y)
-
+        # [512, 512] -> [128, 128] + apply augs
+        if self.split == "train":
+            y: np.ndarray = augmented["image"]
+        elif self.split == "val":
+            y: np.ndarray = augmented["y"]
+        else:
+            raise Exception("Something has gone very wrong")
+        y: torch.Tensor = torch.Tensor(y).float()
+        # [128, 128]
+        y_unnorm = y.clone()
+        # -> [0, 1]
+        y = (y - self.current_maps_min) / (
+            self.current_maps_max - self.current_maps_min
+        )
+        # [64, 64]
+        y_sparse = y[::2, ::2]
+        assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
+        return {
+            "y": y,
+            "y_sparse": y_sparse,
+            "y_unnorm": y_unnorm,
+        }
+    
+    def get_item_4x_sr(self, index:int) -> dict:
+        """
+        Return a dictionary containing:
+        - y       : [H, W]
+        - y_sparse: [H/4, W/4]
+        """
+        assert self.side_length == 256, f"Error: current only support for 64 -> 256 4x SR"
+        # NOTE: we only consider samples: [0, 1, 2, 3];
+        # HACK: hard-coded train/val splits
+        # choose a random sample idx
+        if self.split == TRAIN_SPLIT:
+            # randint is inclusive: [a, b]
+            # select a random sample from self.data[:-1]
+            sample_idx = random.randint(0, len(self.current_maps) - 2)
+        elif self.split == VAL_SPLIT:
+            # select the final data sample: self.data[-1]
+            sample_idx = len(self.current_maps) - 1
+        else:
+            raise Exception(f"Invalid split: {self.split}")
+        
+        # [512, 512]; un-normalized, full-sized current map
+        y: np.ndarray = self.current_maps[sample_idx]
+        
+        # ---- select a [128, 128] subset from full-sample----
+        augmented: np.ndarray = self.augmentation_pipeline(image=y, y=y)
+        
         # [512, 512] -> [128, 128] + apply augs
         if self.split == "train":
             y: np.ndarray = augmented["image"]
@@ -525,22 +578,67 @@ class MOS2SEFDataset(Dataset):
             raise Exception("Something has gone very wrong")
         
         y: torch.Tensor = torch.Tensor(y).float()
-
+        
         # [128, 128]
         y_unnorm = y.clone()
-
+        
         # -> [0, 1]
-        y = (y - self.current_maps_min) / (
-            self.current_maps_max - self.current_maps_min
-        )
-
-        # [64, 64]
-        y_sparse = y[::2, ::2]
-
-        assert (
-            y.max() <= 1.0 and y.min() >= 0.0
-        ), f"Error normalizing y sample: {y.shape}"
-
+        y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
+        
+        # [32, 32]
+        y_sparse = y[::4, ::4]
+        assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
+        
+        return {
+            "y": y,
+            "y_sparse": y_sparse,
+            "y_unnorm": y_unnorm,
+        }
+    
+    def get_item_8x_sr(self, index:int) -> dict:
+        """
+        Return a dictionary containing:
+        - y       : [H, W]
+        - y_sparse: [H/8, W/8]
+        """
+        assert self.side_length == 384, f"Error: current only support for 48 -> 384 8x SR" 
+        # NOTE: we only consider samples: [0, 1, 2, 3];
+        # HACK: hard-coded train/val splits
+        # choose a random sample idx
+        if self.split == TRAIN_SPLIT:
+            # randint is inclusive: [a, b]
+            # select a random sample from self.data[:-1]
+            sample_idx = random.randint(0, len(self.current_maps) - 2)
+        elif self.split == VAL_SPLIT:
+            # select the final data sample: self.data[-1]
+            sample_idx = len(self.current_maps) - 1
+        else:
+            raise Exception(f"Invalid split: {self.split}")
+        
+        # [512, 512]; un-normalized, full-sized current map
+        y: np.ndarray = self.current_maps[sample_idx]
+        
+        # ---- select a [256, 256] subset from full-sample----
+        augmented: np.ndarray = self.augmentation_pipeline(image=y, y=y)
+        
+        # [512, 512] -> [256, 256] + apply augs
+        if self.split == "train":
+            y: np.ndarray = augmented["image"]
+        elif self.split == "val":
+            y: np.ndarray = augmented["y"]
+        else:
+            raise Exception("Something has gone very wrong")
+        y: torch.Tensor = torch.Tensor(y).float()
+        
+        # [256, 256]
+        y_unnorm = y.clone()
+        
+        # -> [0, 1]
+        y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
+        
+        # [32, 32]
+        y_sparse = y[::8, ::8]
+        assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
         return {
             "y": y,
             "y_sparse": y_sparse,
@@ -569,6 +667,8 @@ class MOS2SEFDataset(Dataset):
             Formulation.P_Y_BAR_Y_SPARSE_BENCHMARK_CN: self.get_item_p_y_bar_y_sparse_deterministic_cn,
             Formulation.P_OLDER_BAR_Y_Y_AUG: self.get_item_p_older_bar_y_y_aug,
             Formulation.TWOX_SR: self.get_item_2x_sr,
+            Formulation.FOURX_SR: self.get_item_4x_sr,
+            Formulation.EIGHTX_SR: self.get_item_8x_sr,
         }
         if self.formulation not in fn_map:
             raise Exception(

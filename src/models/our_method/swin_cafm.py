@@ -1395,7 +1395,6 @@ class SwinCAFM(nn.Module):
         # load valid weights
         model_dict.update(filtered_dict)
         model.load_state_dict(model_dict)
-
         return model
 
 

@@ -28,12 +28,12 @@ WINDOW_SIZE=8
 DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/2x-sr"
+EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/8x-sr"
 
 ##### baseline #####
 
-export CUDA_VISIBLE_DEVICES=5
-EXP_NAME="SwinIR-2x-sr-bs-20-adamw-lr=1e-6-more-augs"
+export CUDA_VISIBLE_DEVICES=3
+EXP_NAME="SwinIR-8x-sr-s48-bs-8-adamw-lr=1e-6-more-augs"
 python train.py \
         --exp_name "$EXP_NAME" \
         --root "$EXP_ROOT_DIR" \

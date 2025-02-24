@@ -1,16 +1,16 @@
 global:
   device: 0
   mode: train  # ['train', 'eval']
-  formulation: 2x-sr
+  formulation: 8x-sr
 
 model:
   name: ours
   pretrained: True
   weights:
-  config: model-configs/001_classic_img_sr.yaml
+  config: model-configs/001_classic_img_sr-8x-s48.yaml
 
 training:
-  batch_size: 20
+  batch_size: 8
   steps_per_epoch: 1024
   epochs: 50
   loss: L1
@@ -25,13 +25,13 @@ validation:
 dataset:
   name: MOS2SEFDataset
   image_size: 512
-  crop_size: 128
+  crop_size: 384
   num_workers: 8
   masking_ratio: 1
 
 logging:
-  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/2x-sr"
-  exp_name: swinir-2x-sr
+  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/4x-sr"
+  exp_name: swinir-4x-sr
   result_columns: []
   save_weights: true
   save_only_best_weights: true
