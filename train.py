@@ -1,7 +1,6 @@
 import os
 import sys
 import argparse
-import warnings
 import torch
 import torch.nn as nn
 from torchmetrics import LPIPS, PSNR, SSIM
@@ -74,8 +73,6 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
 
 
 def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,) -> None:
-
-    breakpoint()
     
     logger = setup_logger(config, model_config)
     model = create_model(config)
@@ -244,6 +241,8 @@ def main(args: argparse.Namespace) -> None:
         model_config.window_size = args.window_size
         model_config.drop_path_rate = args.drop_path_rate
         model_config.norm_layer = args.norm_layer
+
+    args.upsampling_factor = int(args.upsampling_factor)
 
     # train
     train(args, config, model_config)

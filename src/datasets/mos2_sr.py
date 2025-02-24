@@ -98,12 +98,12 @@ class MOS2SRDataset(Dataset):
         self.normalized_data_range: Tuple[float, float] = NORMALIZED_DATA_RANGE
 
         # load all data from src files
-        if self.split == MOS2_SEF_SRC_DIR:
+        if self.src_dir == MOS2_SEF_SRC_DIR:
             self._load_imgs_mos2_sef()
-        elif self.split == MOS2_SILICON_DIR or self.split == MOS2_SAPPHIRE_DIR:
+        elif src_dir == MOS2_SILICON_DIR or src_dir == MOS2_SAPPHIRE_DIR:
             self._load_imgs_sil_saf()
         else:
-            raise Exception(f"Error: unsupported dataset: {self.split}")
+            raise Exception(f"Error: unsupported dataset: {src_dir}")
 
         # TODO: experiment with this
         # remove L -> R gradients; remove back contact bias
