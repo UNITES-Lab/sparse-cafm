@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
 from src.models.our_method.swin_cafm import SwinCAFM
-from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
+from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR
 from src.util.logger import ExperimentLogger
 from src.util.config import (
     TrainConfig,
@@ -52,20 +52,16 @@ def create_model(config: TrainConfig) -> nn.Module:
     return model
 
 
-def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
-    img_size = int(config.image_size)
-    dataset = MOS2SEFDataset(
+def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
+    dataset = MOS2SRDataset(
+        src_dir=MOS2_SEF_SRC_DIR,
         split=split,
-        side_length=int(config.crop_size),
-        formulation=F.get_formulation_from_str(config.formulation),
         steps_per_epoch=(
             int(config.steps_per_epoch * config.train_batch_size)
             if split == "train"
             else config.val_steps_per_epoch
         ),
-        device=config.device,
-        original_image_size=(img_size, img_size),
-        masking_ratio=int(config.masking_ratio),
+        upsample_factor=int(args.upsample_factor)
     )
     return DataLoader(
         dataset,
@@ -77,16 +73,15 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     )
 
 
-def train(
-    config: TrainConfig,
-    model_config: Optional[ModelConfig] = None,
-) -> None:
+def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,) -> None:
 
+    breakpoint()
+    
     logger = setup_logger(config, model_config)
     model = create_model(config)
 
-    train_dataloader = create_dataloader(config, "train")
-    val_dataloader = create_dataloader(config, "val")
+    train_dataloader = create_dataloader(args, config, "train")
+    val_dataloader = create_dataloader(args, config, "val")
 
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
@@ -234,13 +229,9 @@ def main(args: argparse.Namespace) -> None:
         ), f"Bad path to model config: {model_config_abs_path}"
         model_config = ModelConfig(model_config_abs_path)
 
-    # just in case... (:
-    args.surrogate_loss_mixin = float(args.surrogate_loss_mixin)
-
     # -------------------- training config args --------------------
     config.exp_name = args.exp_name
     config.log_root = args.root
-    config.surgate_weights = args.surrogate_weights_file_path
     # config.learning_rate = str(args.learning_rate)
     # config.train_batch_size = int(args.batch_size)
     # -------------------- model config args --------------------
@@ -255,64 +246,24 @@ def main(args: argparse.Namespace) -> None:
         model_config.norm_layer = args.norm_layer
 
     # train
-    train(config, model_config)
+    train(args, config, model_config)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # -------------------- training config args --------------------
-    parser.add_argument(
-        "-e",
-        "--exp_name",
-        type=str,
-        help="Experiment directory name.",
-        default="my-experiment",
-    )
-    parser.add_argument(
-        "-r",
-        "--root",
-        type=str,
-        help="Root directory to save experiment in.",
-        default="__exps__/",
-    )
-    parser.add_argument(
-        "-sfp",
-        "--surrogate_weights_file_path",
-        type=str,
-        help="Initialize surrogate from checkpoint.",
-        default="",
-    )
-    parser.add_argument(
-        "-eps", "--surrogate_loss_mixin", type=float, default=1.0, help=""
-    )
+    parser.add_argument("-e","--exp_name",type=str,help="Experiment directory name.",default="my-experiment",)
+    parser.add_argument("-r","--root",type=str,help="Root directory to save experiment in.",default="__exps__/",)
     # -------------------- model config args --------------------
-    parser.add_argument(
-        "-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6
-    )
-    parser.add_argument(
-        "-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6
-    )
-    parser.add_argument(
-        "-nhs",
-        "--num_heads",
-        type=int,
-        help="Number of heads per RSTB block",
-        default=6,
-    )
-    parser.add_argument(
-        "-wsz",
-        "--window_size",
-        type=int,
-        help="Size of shifted attention window",
-        default=8,
-    )
+    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
+    parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
+    parser.add_argument("-nhs","--num_heads",type=int,help="Number of heads per RSTB block",default=6,)
+    parser.add_argument("-wsz","--window_size",type=int,help="Size of shifted attention window",default=8,)
     parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
-    parser.add_argument(
-        "-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm"
-    )
+    parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
     # -------------------- ablation args --------------------
     parser.add_argument("-lr", "--learning_rate", type=float, help="", default=1e-5)
     parser.add_argument("-bs", "--batch_size", type=int, help="", default=1)
-    parser.add_argument("-vgl", "--vgg_feature_layer", type=int, help="", default=0)
+    parser.add_argument("-sr", "--upsample_factor", type=int, help="", default=2)
     args = parser.parse_args()
     main(args)
