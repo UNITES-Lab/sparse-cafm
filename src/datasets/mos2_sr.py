@@ -25,7 +25,8 @@ NORMALIZED_DATA_RANGE = (0.0, 1.0)
 
 
 class MOS2SRDataset(Dataset):
-    """# --- L1 ----
+    """
+    # --- L1 ----
     Dataset class for sparse-sampling of MoS2 samples collected on various substrates.
 
     :Definitions:
@@ -458,6 +459,61 @@ class MOS2SRDataset(Dataset):
             )
         f = fn_map[self.upsample_factor]
         return f(index)
+    
+
+class UnifiedMOS2SRDataset(Dataset):
+    """
+    A horrible abomination that contains all datasets in one.
+    """
+
+    def  __init__(
+        self,
+        split: str = "train",
+        upsample_factor: int = 2,
+        steps_per_epoch: int = 100,
+        original_image_size: Tuple[int, int] = ORIGINAL_IMAGE_SIZE,
+    ):
+        """
+        :param split: "train" or "val"
+        :param steps_per_epoch: data is sampled using random augmentations, therefore the # sample per epoch is arbitrary
+        :param upsample_factor: 1, 2, 4 or 8x
+        :param original_image_size: size of the original images in the dataset: e.g., (512, 512)
+        """
+
+        super(UnifiedMOS2SRDataset, self).__init__()
+        self.mos2_sef_dataset = MOS2SRDataset(
+            src_dir=MOS2_SEF_SRC_DIR,
+            split=split,
+            upsample_factor=upsample_factor,
+            steps_per_epoch=steps_per_epoch,
+            original_image_size=original_image_size,
+        )
+        self.sapphire_dataset = MOS2SRDataset(
+            src_dir=MOS2_SEF_SRC_DIR,
+            split=split,
+            upsample_factor=upsample_factor,
+            steps_per_epoch=steps_per_epoch,
+            original_image_size=original_image_size,
+        )
+        self.silicon_datset = MOS2SRDataset(
+            src_dir=MOS2_SEF_SRC_DIR,
+            split=split,
+            upsample_factor=upsample_factor,
+            steps_per_epoch=steps_per_epoch,
+            original_image_size=original_image_size,
+        )
+
+
+    def __getitem__(self, index: int) -> dict:
+        """
+        Return a random item from one of three datasets.
+        """
+
+        choice = random.choice([1, 2, 3])
+        if choice == 1: return self.mos2_sef_dataset.__getitem__(index)
+        elif choice == 2: return self.sapphire_dataset.__getitem__(index)
+        elif choice == 3: return self.silicon_dataset.__getitem__(index)
+        else: raise Exception()
 
 
 if __name__ == "__main__":
