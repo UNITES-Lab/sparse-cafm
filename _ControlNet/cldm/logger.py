@@ -240,14 +240,17 @@ class ImageLogger(Callback):
             data_range=1.0,
         )
 
-        # 5a. characterize(y)
-        mean, std = self.dataset.current_maps_mean, self.dataset.current_maps_std
-        data = (y - mean) / std
-        y_char = celano_lab_characterization(data, self.dataset.img_size_um)
+        # # 5a. characterize(y)
+        # mean, std = self.dataset.current_maps_mean, self.dataset.current_maps_std
+        # data = (y - mean) / std
+        # y_char = celano_lab_characterization(data, self.dataset.img_size_um)
 
-        # 5b. characterize(y_sparse)
-        data = (y_hat - mean) / std
-        y_sparse_char = celano_lab_characterization(data, self.dataset.img_size_um)
+        # # 5b. characterize(y_sparse)
+        # data = (y_hat - mean) / std
+        # y_sparse_char = celano_lab_characterization(data, self.dataset.img_size_um)
+        
+        # 5a. characterize(y)
+        y_char = None; y_sparse_char = None
 
         # log metrics
         self.logger.log(

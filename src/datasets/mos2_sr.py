@@ -230,6 +230,7 @@ class MOS2SRDataset(Dataset):
         Calculate the mean and std of topo/curr maps.
         Saves results as internal vars.
         """
+
         self.current_maps_mean = np.mean(np.array(self.current_maps))
         self.current_maps_std = np.std(np.array(self.current_maps))
         self.current_maps_max = np.amax(np.array(self.current_maps))
@@ -250,7 +251,9 @@ class MOS2SRDataset(Dataset):
                 A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
             ],
             additional_targets={
-                "y": "mask",
+                "X":      "image",
+                "X_mask": "mask",
+                "y":      "mask",
             },
         )
 
@@ -260,181 +263,6 @@ class MOS2SRDataset(Dataset):
         """
         return self.steps_per_epoch
 
-    def get_item_2x_sr(self, index: int) -> dict:
-        """
-        Return a dictionary containing:
-        - y       : [H, W]
-        - y_sparse: [H/2, W/2]
-        """
-        # NOTE: we only consider samples: [0, 1, 2, 3];
-        # HACK: hard-coded train/val splits
-        # choose a random sample idx
-        if self.split == TRAIN_SPLIT:
-            # randint is inclusive: [a, b]
-            # select a random sample from self.data[:-1]
-            sample_idx = random.randint(0, len(self.current_maps) - 2)
-        elif self.split == VAL_SPLIT:
-            # select the final data sample: self.data[-1]
-            sample_idx = len(self.current_maps) - 1
-        else:
-            raise Exception(f"Invalid split: {self.split}")
-        # [512, 512]; un-normalized, full-sized current map
-        y: np.ndarray = self.current_maps[sample_idx]
-        # ---- select a [128, 128] subset from full-sample ----
-        augmented: np.ndarray = self.augmentation_pipeline(image=y, y=y)
-        # [512, 512] -> [128, 128] + apply augs
-        if self.split == "train":
-            y: np.ndarray = augmented["image"]
-        elif self.split == "val":
-            y: np.ndarray = augmented["y"]
-        else:
-            raise Exception("Something has gone very wrong")
-        y: torch.Tensor = torch.Tensor(y).float()
-        # [128, 128]
-        y_unnorm = y.clone()
-        # -> [0, 1]
-        y = (y - self.current_maps_min) / (
-            self.current_maps_max - self.current_maps_min
-        )
-        
-        # [64, 64]
-        # ---- naive downsampling ----
-        # y_sparse = y[::2, ::2]
-
-        # ---- bicubic downsampling ----
-        # -> [1, 1, 128, 128]
-        y_unsqueezed = y.unsqueeze(0).unsqueeze(0)
-        y_sparse = F.interpolate(y_unsqueezed, scale_factor=0.5, mode='bicubic', align_corners=False)
-        # -> [64, 64]
-        y_sparse = y_sparse.squeeze(0).squeeze(0)
-        
-        assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
-        return {
-            "y": y,
-            "y_sparse": y_sparse,
-            "y_unnorm": y_unnorm,
-        }
-    
-    def get_item_4x_sr(self, index:int) -> dict:
-        """
-        Return a dictionary containing:
-        - y       : [H, W]
-        - y_sparse: [H/4, W/4]
-        """
-        assert self.side_length == 256, f"Error: current only support for 64 -> 256 4x SR"
-        # NOTE: we only consider samples: [0, 1, 2, 3];
-        # HACK: hard-coded train/val splits
-        # choose a random sample idx
-        if self.split == TRAIN_SPLIT:
-            # randint is inclusive: [a, b]
-            # select a random sample from self.data[:-1]
-            sample_idx = random.randint(0, len(self.current_maps) - 2)
-        elif self.split == VAL_SPLIT:
-            # select the final data sample: self.data[-1]
-            sample_idx = len(self.current_maps) - 1
-        else:
-            raise Exception(f"Invalid split: {self.split}")
-        
-        # [512, 512]; un-normalized, full-sized current map
-        y: np.ndarray = self.current_maps[sample_idx]
-        
-        # ---- select a [128, 128] subset from full-sample----
-        augmented: np.ndarray = self.augmentation_pipeline(image=y, y=y)
-        
-        # [512, 512] -> [128, 128] + apply augs
-        if self.split == "train":
-            y: np.ndarray = augmented["image"]
-        elif self.split == "val":
-            y: np.ndarray = augmented["y"]
-        else:
-            raise Exception("Something has gone very wrong")
-        
-        y: torch.Tensor = torch.Tensor(y).float()
-        
-        # [128, 128]
-        y_unnorm = y.clone()
-        
-        # -> [0, 1]
-        y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
-        
-        # [32, 32]
-        # ---- naive downsampling ----
-        # y_sparse = y[::4, ::4]
-
-        # ---- bicubic downsampling ----
-        # -> [1, 1, 128, 128]
-        y_unsqueezed = y.unsqueeze(0).unsqueeze(0)
-        y_sparse = F.interpolate(y_unsqueezed, scale_factor=0.25, mode='bicubic', align_corners=False)
-        # -> [32, 32]
-        y_sparse = y_sparse.squeeze(0).squeeze(0)
-        
-        assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
-        
-        return {
-            "y": y,
-            "y_sparse": y_sparse,
-            "y_unnorm": y_unnorm,
-        }
-    
-    def get_item_8x_sr(self, index:int) -> dict:
-        """
-        Return a dictionary containing:
-        - y       : [H, W]
-        - y_sparse: [H/8, W/8]
-        """
-        assert self.side_length == 384, f"Error: current only support for 48 -> 384 8x SR" 
-        # NOTE: we only consider samples: [0, 1, 2, 3];
-        # HACK: hard-coded train/val splits
-        # choose a random sample idx
-        if self.split == TRAIN_SPLIT:
-            # randint is inclusive: [a, b]
-            # select a random sample from self.data[:-1]
-            sample_idx = random.randint(0, len(self.current_maps) - 2)
-        elif self.split == VAL_SPLIT:
-            # select the final data sample: self.data[-1]
-            sample_idx = len(self.current_maps) - 1
-        else:
-            raise Exception(f"Invalid split: {self.split}")
-        
-        # [512, 512]; un-normalized, full-sized current map
-        y: np.ndarray = self.current_maps[sample_idx]
-        
-        # ---- select a [256, 256] subset from full-sample----
-        augmented: np.ndarray = self.augmentation_pipeline(image=y, y=y)
-        
-        # [512, 512] -> [256, 256] + apply augs
-        if self.split == "train":
-            y: np.ndarray = augmented["image"]
-        elif self.split == "val":
-            y: np.ndarray = augmented["y"]
-        else:
-            raise Exception("Something has gone very wrong")
-        y: torch.Tensor = torch.Tensor(y).float()
-        
-        # [256, 256]
-        y_unnorm = y.clone()
-        
-        # -> [0, 1]
-        y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
-        
-        # [32, 32]
-        # ---- naive downsampling ----
-        # y_sparse = y[::8, ::8]
-
-        # ---- bicubic downsampling ----
-        # -> [1, 1, 128, 128]
-        y_unsqueezed = y.unsqueeze(0).unsqueeze(0)
-        y_sparse = F.interpolate(y_unsqueezed, scale_factor=0.125, mode='bicubic', align_corners=False)
-        # -> [32, 32]
-        y_sparse = y_sparse.squeeze(0).squeeze(0)
-
-        assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
-        return {
-            "y": y,
-            "y_sparse": y_sparse,
-            "y_unnorm": y_unnorm,
-        }
-
     def __getitem__(self, index: int) -> Dict:
         """
         Get the next randomly sampled item from the dataset.
@@ -443,22 +271,99 @@ class MOS2SRDataset(Dataset):
         :returns:
             ```
                 {
+                    'X'       : torch.Tensor, topo-map w/ shape    [H, W]
+                    'X_sparse': torch.Tensor, topo-map w/ shape    [H / upsample_factor, W / upsample_factor]
+                    'X_unnorm': torch.Tensor, topo-map w/ shape    [H / upsample_factor, W / upsample_factor]
                     'y'       : torch.Tensor, current-map w/ shape [H, W]
                     'y_sparse': torch.Tensor, current-map w/ shape [H / upsample_factor, W / upsample_factor]
                     'y_unnorm': torch.Tensor, current-map w/ shape [H / upsample_factor, W / upsample_factor]
                 }
         """
-        fn_map = {
-            2: self.get_item_2x_sr,
-            4: self.get_item_4x_sr,
-            8: self.get_item_8x_sr, 
-        }
-        if self.upsample_factor not in fn_map:
-            raise Exception(
-                f"Error: invalid problem problem formulation: {self.formulation}"
+        
+        # NOTE: we only consider samples: [0, 1, 2, 3];
+        # HACK: hard-coded train/val splits
+        # choose a random sample idx
+        if self.split == TRAIN_SPLIT:
+            # randint is inclusive: [a, b]
+            # select a random sample from self.data[:-1]
+            sample_idx = random.randint(0, len(self.current_maps) - 2)
+        elif self.split == VAL_SPLIT:
+            # select the final data sample: self.data[-1]
+            sample_idx = len(self.current_maps) - 1
+        else:
+            raise Exception(f"Invalid split: {self.split}")
+        
+        # [512, 512]; un-normalized, full-sized topography map
+        X: np.ndarray = self.topo_maps[sample_idx]
+        
+        # [512, 512]; un-normalized, full-sized current map
+        y: np.ndarray = self.current_maps[sample_idx]
+
+        # ---- select a [128, 128] subset from full-sample ----
+        augmented: np.ndarray = self.augmentation_pipeline(image=y, X=X, y=y)
+
+        # [512, 512] -> [128, 128] + apply augs
+        if self.split == "train":
+            X: np.ndarray = augmented["X"]
+            y: np.ndarray = augmented["image"]
+        elif self.split == "val":
+            X: np.ndarray = augmented["X_mask"]
+            y: np.ndarray = augmented["y"]
+        else:
+            raise Exception("Something has gone very wrong")
+        
+        X: torch.Tensor = torch.Tensor(X).float()
+        y: torch.Tensor = torch.Tensor(y).float()
+        
+        # [128, 128]
+        X_unnorm = X.clone()
+        y_unnorm = y.clone()
+
+        # -> [0, 1]
+        X = (X - self.topo_maps_min) / (
+            self.topo_maps_max - self.topo_maps_min
+        )
+
+        # -> [0, 1]
+        y = (y - self.current_maps_min) / (
+            self.current_maps_max - self.current_maps_min
+        )
+
+        # ---- bicubic downsampling ----
+
+        # -> [1, 1, 128, 128]
+        X_unsqueezed = X.unsqueeze(0).unsqueeze(0)
+        # -> [H', W']
+        X_sparse = F.interpolate(
+            X_unsqueezed, 
+            scale_factor=1/self.upsample_factor, 
+            mode='bicubic', 
+            align_corners=False
             )
-        f = fn_map[self.upsample_factor]
-        return f(index)
+        X_sparse = X_sparse.squeeze(0).squeeze(0)
+        
+        # -> [1, 1, 128, 128]
+        y_unsqueezed = y.unsqueeze(0).unsqueeze(0)
+        # -> [H', W']
+        y_sparse = F.interpolate(
+            y_unsqueezed, 
+            scale_factor=1/self.upsample_factor, 
+            mode='bicubic', 
+            align_corners=False
+            )
+        y_sparse = y_sparse.squeeze(0).squeeze(0)
+        
+        assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
+        assert (X.max() <= 1.0 and X.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
+
+        return {
+            "X": X,
+            "X_sparse": X_sparse,
+            "X_unnorm": X_unnorm,
+            "y": y,
+            "y_sparse": y_sparse,
+            "y_unnorm": y_unnorm,
+        }
     
 
 class UnifiedMOS2SRDataset(Dataset):
@@ -489,32 +394,66 @@ class UnifiedMOS2SRDataset(Dataset):
             original_image_size=original_image_size,
         )
         self.sapphire_dataset = MOS2SRDataset(
-            src_dir=MOS2_SEF_SRC_DIR,
+            src_dir=MOS2_SAPPHIRE_DIR,
             split=split,
             upsample_factor=upsample_factor,
             steps_per_epoch=steps_per_epoch,
             original_image_size=original_image_size,
         )
         self.silicon_datset = MOS2SRDataset(
-            src_dir=MOS2_SEF_SRC_DIR,
+            src_dir=MOS2_SILICON_DIR,
             split=split,
             upsample_factor=upsample_factor,
             steps_per_epoch=steps_per_epoch,
             original_image_size=original_image_size,
         )
 
+    def __len__(self): return len(self.mos2_sef_dataset)
 
     def __getitem__(self, index: int) -> dict:
         """
+        [HACK]: currently returning items for unconditional ControlNet training.
         Return a random item from one of three datasets.
         """
 
-        choice = random.choice([1, 2, 3])
-        if choice == 1: return self.mos2_sef_dataset.__getitem__(index)
-        elif choice == 2: return self.sapphire_dataset.__getitem__(index)
-        elif choice == 3: return self.silicon_dataset.__getitem__(index)
-        else: raise Exception()
+        item = {}
+        choice = random.random()
+
+        if choice   < .33: item = self.mos2_sef_dataset.__getitem__(index)
+        elif choice < .66: item = self.sapphire_dataset.__getitem__(index)
+        else:              item =   self.silicon_datset.__getitem__(index)
+
+        y: torch.Tensor = item["y"]
+
+        # [-1, 1] -> [0, 1]
+        # y_sig = (y - y.min()) / (y.max() - y.min())
+        # -> [0, 1]; y is already normalized
+        y_sig = y.clone()
+
+        # HACK: unconditional training
+        # we feed the ControlNet adapter module a completely blank input
+        y_sparse = (y.clone()) * 0
+
+        # -> [H, W, C]
+        # [H, W] -> [H, W, 1]
+        y_img_like = y_sig.clone()
+        y_img_like = y_img_like.unsqueeze(-1)
+        # [H, W, 1] -> [H, W, 3]
+        y_img_like = y_img_like.repeat(1, 1, 3)
+        # [H, W] -> [H, W, 1]
+        y_sparse_img_like = y_sparse.clone()
+        y_sparse_img_like = y_sparse_img_like.unsqueeze(-1)
+        # [H, W, 1] -> [H, W, 3]
+        y_sparse_img_like = y_sparse_img_like.repeat(1, 1, 3)
+        # [0, 1] -> [-1, 1]
+        y_img_like = (y_img_like * 2) - 1
+
+        return dict(jpg=y_img_like, txt="", hint=y_sparse_img_like)
 
 
 if __name__ == "__main__":
-    pass
+
+    dataset = UnifiedMOS2SRDataset(
+        split="train", 
+        upsample_factor=2, 
+    )

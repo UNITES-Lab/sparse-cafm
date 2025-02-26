@@ -5,13 +5,13 @@ import pytorch_lightning as pl
 
 from share import *
 from torch.utils.data import DataLoader
-from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
+from src.datasets.mos2_sr import UnifiedMOS2SRDataset
 from src.util.logger import ExperimentLogger
 from cldm.model import create_model, load_state_dict
 from cldm.logger import ImageLogger, ScuffedLogger
 
 TRAIN_CONFIG_FP = ("/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/configs/train-configs/train_controlnet_uncond.yaml")
-RUNS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__controlnet_runs__"
+RUNS_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/foundation-models/4. control-net-surface-conductivity"
 
 
 def parse_config(fp: str) -> dict:
@@ -20,17 +20,13 @@ def parse_config(fp: str) -> dict:
     return config
 
 
-def create_dataset(config: dict, split: str) -> MOS2SEFDataset:
+def create_dataset(config: dict, split: str) -> UnifiedMOS2SRDataset:
     split_str = "training" if split == "train" else "validation"
-    img_size = int(config["dataset"]["image_size"])
-    dataset = MOS2SEFDataset(
+    dataset = UnifiedMOS2SRDataset(
         split=split,
-        side_length=int(config["dataset"]["crop_size"]),
-        formulation=F.get_formulation_from_str(config["global"]["formulation"]),
+        upsample_factor=8,
         steps_per_epoch=config[split_str]["steps_per_epoch"],
-        device=config["global"]["device"],
-        original_image_size=(img_size, img_size),
-        masking_ratio=int(config["dataset"]["masking_ratio"]),
+        original_image_size=(384, 384),
     )
     return dataset
 
