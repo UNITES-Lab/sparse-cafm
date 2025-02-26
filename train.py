@@ -3,12 +3,12 @@ import sys
 import argparse
 import torch
 import torch.nn as nn
-from torchmetrics import LPIPS, PSNR, SSIM
 
 from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
+from piqa import SSIM
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR
 from src.util.logger import ExperimentLogger
@@ -96,9 +96,12 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
         assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
         model = SwinCAFM.init_from_config(model_config.to_dict())
 
-    optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
-        model.parameters(), lr=float(config.learning_rate), weight_decay=1e-3,
-    )
+    # optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
+    #     model.parameters(), lr=float(config.learning_rate), weight_decay=1e-3,
+    # )
+
+    # as per: https://arxiv.org/pdf/2404.00722
+    optimizer = torch.optim.Adam(model.parameters(), lr=float(config.learning_rate))
 
     model.cuda(device)
     model.float()
@@ -124,8 +127,18 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             # ---- forward: p(y | y_sparse) ----
             y_hat: torch.Tensor = model(y_sparse)
 
+            # -> [B, C, H, W]
+            # _y = y.clone().unsqueeze(1).repeat(1, 3, 1, 1)
+            # _y_hat = y_hat.clone().unsqueeze(1).repeat(1, 3, 1, 1)
+
             # --- L1 ----
-            loss: torch.Tensor = train_loss(y_hat, y)
+            loss: torch.Tensor = torch.nn.functional.l1_loss(y_hat, y)
+            
+            # --- MSE ----
+            # loss = torch.nn.functional.mse_loss(y, y_hat)
+            
+            # --- SSIM ---
+            # loss: torch.Tensor = ssim_crit(_y, _y_hat)
 
             loss.backward()
             optimizer.step()
@@ -242,7 +255,7 @@ def main(args: argparse.Namespace) -> None:
         model_config.drop_path_rate = args.drop_path_rate
         model_config.norm_layer = args.norm_layer
 
-    args.upsampling_factor = int(args.upsampling_factor)
+    args.upsample_factor = int(args.upsample_factor)
 
     # train
     train(args, config, model_config)

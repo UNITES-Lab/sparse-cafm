@@ -2,8 +2,9 @@ import torch
 import cv2
 import os
 import random
-import albumentations as A
 import numpy as np
+import albumentations as A
+import torch.nn.functional as F
 
 from enum import Enum
 from torch.utils.data import Dataset
@@ -24,7 +25,7 @@ NORMALIZED_DATA_RANGE = (0.0, 1.0)
 
 
 class MOS2SRDataset(Dataset):
-    """
+    """# --- L1 ----
     Dataset class for sparse-sampling of MoS2 samples collected on various substrates.
 
     :Definitions:
@@ -294,8 +295,18 @@ class MOS2SRDataset(Dataset):
         y = (y - self.current_maps_min) / (
             self.current_maps_max - self.current_maps_min
         )
+        
         # [64, 64]
-        y_sparse = y[::2, ::2]
+        # ---- naive downsampling ----
+        # y_sparse = y[::2, ::2]
+
+        # ---- bicubic downsampling ----
+        # -> [1, 1, 128, 128]
+        y_unsqueezed = y.unsqueeze(0).unsqueeze(0)
+        y_sparse = F.interpolate(y_unsqueezed, scale_factor=0.5, mode='bicubic', align_corners=False)
+        # -> [64, 64]
+        y_sparse = y_sparse.squeeze(0).squeeze(0)
+        
         assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
         return {
             "y": y,
@@ -346,7 +357,16 @@ class MOS2SRDataset(Dataset):
         y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
         
         # [32, 32]
-        y_sparse = y[::4, ::4]
+        # ---- naive downsampling ----
+        # y_sparse = y[::4, ::4]
+
+        # ---- bicubic downsampling ----
+        # -> [1, 1, 128, 128]
+        y_unsqueezed = y.unsqueeze(0).unsqueeze(0)
+        y_sparse = F.interpolate(y_unsqueezed, scale_factor=0.25, mode='bicubic', align_corners=False)
+        # -> [32, 32]
+        y_sparse = y_sparse.squeeze(0).squeeze(0)
+        
         assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
         
         return {
@@ -397,7 +417,16 @@ class MOS2SRDataset(Dataset):
         y = (y - self.current_maps_min) / (self.current_maps_max - self.current_maps_min)
         
         # [32, 32]
-        y_sparse = y[::8, ::8]
+        # ---- naive downsampling ----
+        # y_sparse = y[::8, ::8]
+
+        # ---- bicubic downsampling ----
+        # -> [1, 1, 128, 128]
+        y_unsqueezed = y.unsqueeze(0).unsqueeze(0)
+        y_sparse = F.interpolate(y_unsqueezed, scale_factor=0.125, mode='bicubic', align_corners=False)
+        # -> [32, 32]
+        y_sparse = y_sparse.squeeze(0).squeeze(0)
+
         assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
         return {
             "y": y,

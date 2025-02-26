@@ -7,7 +7,9 @@ model:
   name: ours
   pretrained: True
   weights:
-  config: model-configs/001_classic_img_sr-2x-sr64.yaml
+  config: model-configs/001_classic_img_sr-8x-s48.yaml
+  # config: model-configs/001_classic_img_sr-4x-s64.yaml
+  # config: model-configs/001_classic_img_sr-2x-sr64.yaml
 
 training:
   batch_size: 1
@@ -26,7 +28,7 @@ dataset:
   name: MOS2SRDataset
   image_size: 512
   crop_size: 128
-  num_workers: 0
+  num_workers: 2
   masking_ratio: 1
 
 logging:

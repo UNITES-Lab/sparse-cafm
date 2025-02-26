@@ -256,22 +256,30 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
         "num_curved_lines": len(curved_lines),
     }
 
+def calculate_diff_between_samples(
+        x1:torch.Tensor, 
+        x2:torch.Tensor, 
+        image_size_um:float
+    ) -> dict:
+    
+    eps = 1e-12
+    char_1 = process_image(x1, image_size_um)
+    char_2 = process_image(x2, image_size_um)
+
+    diffs = {}
+    for k in char_1:
+        v1, v2 = char_1[k], char_2[k]
+        if (v1) == 0:
+            # avoid division by zero
+            mapd = abs((v1 - v2) / (v1 + eps) )
+        else:
+            mapd = abs((v1 - v2) / (v1))
+        diffs[k] = mapd
+
+    return diffs
+
 
 if __name__ == "__main__":
-    import pprint
-    from tqdm import tqdm
-    IMG_SIZE_UM=2.0
-    fp = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/1-23-25/img3cbMoS2-Sef-New-Area1-position 4 (2um-good) (hivac)_250102_Current_Backward_013.npy"
-    data = torch.Tensor(np.load(fp)).unsqueeze(0)
-    data_subset = data[:, :128, :128]
-    char_data = process_image(data, IMG_SIZE_UM)
-    
-    # stress test
-    for i in tqdm(range(10000)):
-        
-        data = torch.rand((1, 128, 128))
-        data = data * 3.1677e-08
-        char_data = process_image(data, IMG_SIZE_UM)
-        
-    pprint.pprint(char_data)
-    
+    x1 = torch.rand((1, 128, 128))
+    x2 = torch.rand((1, 128, 128))
+    calculate_diff_between_samples(x1, x2, 2.0)
