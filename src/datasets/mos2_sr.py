@@ -300,7 +300,7 @@ class MOS2SRDataset(Dataset):
         y: np.ndarray = self.current_maps[sample_idx]
 
         # ---- select a [128, 128] subset from full-sample ----
-        augmented: np.ndarray = self.augmentation_pipeline(image=y, X=X, y=y)
+        augmented: np.ndarray = self.augmentation_pipeline(image=y, X=X, X_mask=X, y=y)
 
         # [512, 512] -> [128, 128] + apply augs
         if self.split == "train":
@@ -423,7 +423,7 @@ class UnifiedMOS2SRDataset(Dataset):
         elif choice < .66: item = self.sapphire_dataset.__getitem__(index)
         else:              item =   self.silicon_datset.__getitem__(index)
 
-        y: torch.Tensor = item["y"]
+        y: torch.Tensor = item["X"]
 
         # [-1, 1] -> [0, 1]
         # y_sig = (y - y.min()) / (y.max() - y.min())
