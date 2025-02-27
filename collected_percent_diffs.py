@@ -9,6 +9,7 @@ from rich.pretty import Pretty
 from pprint import pprint
 from glob import glob
 from tqdm import tqdm
+from torch.utils.data import DataLoader
 from src.util.celano_lab_scripts import calculate_diff_between_samples
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SEF_SRC_DIR, MOS2_SAPPHIRE_DIR, MOS2_SILICON_DIR
@@ -16,7 +17,7 @@ from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SEF_SRC_DIR, MOS2_SAPPHIRE_
 warnings.simplefilter("ignore")
 
 SUBSTRATES_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/substrates"
-NUM_TRIALS = 1
+NUM_TRIALS = 256
 
 weights = glob(SUBSTRATES_DIR + "/*/*/*/*_best.pth")
 console = Console()
@@ -47,50 +48,62 @@ def eval(fp: str):
     upsampling_factor = int(fp.split("SR-")[1:][0][0])
 
     # grab the right dataset obj
-    dataset = MOS2SRDataset(
-        src_dir=src_dir, 
-        split="val", 
-        upsample_factor=upsampling_factor
-    )
+    dataset = MOS2SRDataset(src_dir=src_dir, split="val", upsample_factor=upsampling_factor, steps_per_epoch=NUM_TRIALS)
+    data_loader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=8)
 
-    best_r2 = 0
-    best_pred = None
-    best_downsampled = None
-    best_original_sample = None
+    # best_r2 = 0
+    # best_pred = None
+    # best_downsampled = None
+    # best_original_sample = None
 
-    for _ in tqdm(range(NUM_TRIALS), desc=f"Processing SR: {upsampling_factor} | dataset: {dataset_name}"):
+    total_pred_errs = None
+    total_baseline_errs = None
+    num_samples = 0
+
+    for batch in tqdm(data_loader, desc=f"Processing SR: {upsampling_factor} | dataset: {dataset_name}"):
+        y = batch["y"]
+        y_sparse = batch["y_sparse"]
+
+        y = y.cuda().float()
+        y_sparse = y_sparse.cuda().float()
+        y_hat = model(y_sparse)
+
+        # TOOD: scale + shift
+        y = (y - dataset.current_maps_mean) / (dataset.current_maps_std)
+        y_hat = (y_hat - dataset.current_maps_mean) / (dataset.current_maps_std)
+        y_sparse = (y_sparse - dataset.current_maps_mean) / (dataset.current_maps_std)
+
+        for i in range(y_hat.size(0)):
             
-        item = dataset[0]
-        original_data = item["y"]
-        downsampled_data = item["y_sparse"]
+            sample_y = y[i]
+            sample_y_sparse = y_sparse[i]
+            sample_y_hat = y_hat[i]
 
-        model_in = downsampled_data.cuda().float().unsqueeze(0)
-        pred_torch = model(model_in)
+            current_pred_errs = calculate_diff_between_samples(sample_y, sample_y_hat, 2.0)
+            current_baseline_errs = calculate_diff_between_samples(sample_y, sample_y_sparse, 2.0)
 
-        # pred_torch: [1, 512, 512]
-        r2 = compute_r2(pred_torch.cuda(), original_data.cuda())
+            if total_pred_errs is None:
+                total_pred_errs = {key: value for key, value in current_pred_errs.items()}
+                total_baseline_errs = {key: value for key, value in current_baseline_errs.items()}
+            else:
+                for key in current_pred_errs:
+                    total_pred_errs[key] += current_pred_errs[key]
+                for key in current_baseline_errs:
+                    total_baseline_errs[key] += current_baseline_errs[key]
+                    
+            num_samples += 1
 
-        # cherry pick sample w/ best results
-        if r2 > best_r2:
-            best_r2 = r2
-            best_pred = pred_torch
-            best_downsampled = downsampled_data
-            best_original_sample = original_data
+    avg_pred_errs = {key: value / num_samples for key, value in total_pred_errs.items()}
+    avg_baseline_errs = {key: value / num_samples for key, value in total_baseline_errs.items()}
 
-    y: torch.Tensor        = best_original_sample
-    y_sparse: torch.Tensor = best_downsampled
-    y_hat: torch.Tensor    = best_pred
-
-    # model prediction errors
-    pred_errs     = calculate_diff_between_samples(y, y_hat, 2.0)
-    baseline_errs = calculate_diff_between_samples(y, y_sparse, 2.0)
+    breakpoint()
 
     console = Console()
     console.print(Rule(f"[bold blue]Results for SR: {upsampling_factor} | dataset: {dataset_name}"))
-    console.print("[bold magenta]%diffs (y, y_sparse):")
-    console.print(Pretty(baseline_errs, indent_guides=True))
-    console.print("[bold magenta]%diffs (y, y_hat):")
-    console.print(Pretty(pred_errs, indent_guides=True))
+    console.print("[bold magenta]Average %diffs (y, y_sparse):")
+    console.print(Pretty(avg_baseline_errs, indent_guides=True))
+    console.print("[bold magenta]Average %diffs (y, y_hat):")
+    console.print(Pretty(avg_pred_errs, indent_guides=True))
     console.print(Rule(style="bold blue"))
 
 # --------------------------------------------

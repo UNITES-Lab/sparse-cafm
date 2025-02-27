@@ -10,7 +10,7 @@ from pathlib import Path
 from src.datasets.mos2_sef import (
     MOS2SEFDataset,
 )
-from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
+from src.datasets.mos2_sr import UnifiedMOS2SRDataset
 from src.util.torch_helpers import grayscale_to_2d
 from src.util.logger import ExperimentLogger
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
@@ -19,10 +19,11 @@ from torchmetrics.functional.image.ssim import ssim
 from cldm.model import create_model, load_state_dict
 from src.util.metrics import OLDER
 
-NUM_TRAIN_SAMPLES = 2000
+NUM_TRAIN_SAMPLES = 10000
 NUM_VAL_SAMPLES = 500
-OUT_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/mos2-cafm-controlnet-synthetic-dataset"
-FT_CHECKPOINT_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__controlnet_runs__/2025-02-15_14-56-31_controlnet-unconditional/controlnet-unconditional_last.ckpt"
+
+OUT_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/synth-datasets/topology"
+FT_CHECKPOINT_FP = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__controlnet_runs__/2025-02-26_13-08-20_controlnet-unconditional/controlnet-unconditional_last.ckpt"
 
 
 def save_results_to_fp(
@@ -52,49 +53,54 @@ def save_results_to_fp(
     vae_og_recon = vae_og_recon.permute(1, 2, 0)
     control: torch.Tensor = control.permute(1, 2, 0)
 
-    # [H, W, C] -> [H, W]
-    y = grayscale_to_2d(vae_og_recon)
-    y_sparse = grayscale_to_2d(control)
+    # # [H, W, C] -> [H, W]
+    # y = grayscale_to_2d(vae_og_recon)
+    # y_sparse = grayscale_to_2d(control)
     y_hat = grayscale_to_2d(pred)
 
-    # NOTE: this step is only needed for ControlNet outputs
-    # [-1, 1] -> [0, 1]
-    y = (y + 1) / 2
-    y_sparse = (y_sparse + 1) / 2
+    # # NOTE: this step is only needed for ControlNet outputs
+    # # [-1, 1] -> [0, 1]
+    # y = (y + 1) / 2
+    # y_sparse = (y_sparse + 1) / 2
     y_hat = (y_hat + 1) / 2
 
     # [H, W] -> [B, H, W]
-    y = y.unsqueeze(0)
-    y_sparse = y_sparse.unsqueeze(0)
     y_hat = y_hat.unsqueeze(0)
+    
+    # y = y.unsqueeze(0)
+    # y_sparse = y_sparse.unsqueeze(0)
 
-    # (B, H, W) -> (B, 1, H, W)
-    final_pred_img_like = y_hat.clone()
-    final_pred_img_like = final_pred_img_like.unsqueeze(1)
-    # (B, 1, H, W) -> (B, 3, H, W)
-    final_pred_img_like = final_pred_img_like.repeat(1, 3, 1, 1)
+    # # (B, H, W) -> (B, 1, H, W)
+    # final_pred_img_like = y_hat.clone()
+    # final_pred_img_like = final_pred_img_like.unsqueeze(1)
+    # # (B, 1, H, W) -> (B, 3, H, W)
+    # final_pred_img_like = final_pred_img_like.repeat(1, 3, 1, 1)
 
-    # (B, H, W) -> (B, 1, H, W)
-    y_img_like = y.clone()
-    y_img_like = y_img_like.unsqueeze(1)
-    # (B, 1, H, W) -> (B, 3, H, W)
-    y_img_like = y_img_like.repeat(1, 3, 1, 1)
+    # # (B, H, W) -> (B, 1, H, W)
+    # y_img_like = y.clone()
+    # y_img_like = y_img_like.unsqueeze(1)
+    # # (B, 1, H, W) -> (B, 3, H, W)
+    # y_img_like = y_img_like.repeat(1, 3, 1, 1)
 
-    mean, std = dataset.current_maps_mean, dataset.current_maps_std
+    # mean, std = dataset.current_maps_mean, dataset.current_maps_std
 
-    # 5b. characterize(y_hat)
-    # z: [0, 1] -> {std_normal}
-    z = norm.ppf(y_hat)
+    # # 5b. characterize(y_hat)
+    # # z: [0, 1] -> {std_normal}
+    # z = norm.ppf(y_hat)
 
-    # x' = mu + (sigma * z)
-    x_prime = mean + (std * z)
-    x_prime = x_prime.squeeze()
+    # # x' = mu + (sigma * z)
+    # x_prime = mean + (std * z)
+    # x_prime = x_prime.squeeze()
 
     subdir = "train"
     if index > NUM_TRAIN_SAMPLES: subdir = "val"
-    cm_out_fp  = os.path.join(OUT_DIR, subdir, "normalized-current-maps", f"{index:06d}.npy") 
+    cm_out_fp  = os.path.join(OUT_DIR, subdir, "topo-maps", f"{index:06d}.npy") 
     img_out_fp = os.path.join(OUT_DIR, subdir, "images", f"{index:06d}.png")
-    np.save(cm_out_fp, x_prime)
+
+    np.save(cm_out_fp, pred)
+
+    # -> [0, 1]
+    y_hat = (y_hat - y_hat.min()) / (y_hat.max() - y_hat.min())
     plt.imsave(img_out_fp, y_hat.numpy().squeeze(), cmap='viridis')
 
 
@@ -104,6 +110,7 @@ def parse_config(fp: str) -> dict:
     return config
 
 
+@torch.no_grad()
 def main():
     """
     Sample y_hat predictions from Saphire MoS2 dataset.
@@ -124,10 +131,11 @@ def main():
     model.eval()
 
     # perform inference
-    val_dataset = MOS2SEFDataset(
+    val_dataset = UnifiedMOS2SRDataset(
         split="train",
+        upsample_factor=8,
         steps_per_epoch=NUM_TRAIN_SAMPLES + NUM_VAL_SAMPLES,
-        formulation=F.P_Y_BAR_Y_SPARSE_CN,
+        original_image_size=(384, 384),
     )
     val_dataloader = DataLoader(val_dataset, num_workers=0, batch_size=1, shuffle=False)
 
@@ -137,16 +145,20 @@ def main():
         index = i
         subdir = "train"
         if index > NUM_TRAIN_SAMPLES: subdir = "val"
-        cm_out_fp  = os.path.join(OUT_DIR, subdir, "normalized-current-maps", f"{index:06d}.npy") 
+
+        cm_out_fp  = os.path.join(OUT_DIR, subdir, "topo-maps", f"{index:06d}.npy") 
         img_out_fp = os.path.join(OUT_DIR, subdir, "images", f"{index:06d}.png")
+        
         if os.path.isfile(cm_out_fp): continue
         if os.path.isfile(img_out_fp): continue
 
         for k, v in batch.items():
             if isinstance(v, torch.Tensor):
                 v.cuda()
+
         log: dict = model.log_images(batch, sample=True)
-        save_results_to_fp(log, "val", i, logger, val_dataset)
+        
+        save_results_to_fp(log, subdir, i, logger, val_dataset)
 
 if __name__ == "__main__":
     main()
