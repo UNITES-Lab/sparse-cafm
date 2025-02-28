@@ -94,24 +94,18 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
 
     # NOTE: use the same mean/std vals to normalize both dataloaders to ~std normal
     val_dataset.normalization_dict = train_dataset.normalization_dict
-    
     # val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
 
-    # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
 
+    # the best average validation loss for any given epoch
+    # we save model weights anytime a new best val loss is achieved
     best_loss = sys.maxsize
+
     num_epochs = config.epochs
     device = config.device
 
-    # load weights from checkpoint
-    if config.weights != None:
-        # load weights only:
-        # model.load_state_dict(torch.load(config["model"]["weights"]), strict=False)
-        # load enitre model object:
-        older_surrogate_model = torch.load(config.weights).float().cuda()
-    
     older_surrogate_model.cuda(device)
     older_surrogate_model.float()
     
@@ -130,8 +124,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     for epoch in range(num_epochs):
         
         older_surrogate_model.train()
-        
-        running_loss = 0.0
+
         for i, batch in enumerate(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
@@ -139,10 +132,10 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # [H, W] | input: y
             y: torch.Tensor = batch["y"].cuda(device)
             
-            # gt-OLDER characterization of y
+            # gt-expert characterization of y
             y_char: dict = batch['y_char']
             
-            # [9] | gt-OLDER characterization of y
+            # [9] | predicted-expert characterization of y
             target: torch.Tensor = batch['target'].cuda(device)
 
             surrogate_optimizer.zero_grad()
@@ -156,12 +149,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             # TODO: L1 vs MSE?
             loss: torch.Tensor = train_loss(pred, target)
 
-            breakpoint()
-
             loss.backward()
             surrogate_optimizer.step()
-            
-            running_loss += loss.item() * y.size(0)
             
             logger.log(
                 **{
@@ -187,7 +176,8 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
 
         # validation
         older_surrogate_model.eval()
-        val_running_loss = 0.0        
+
+        val_running_loss = 0.0
         avg_val_loss = 0.0
         num_val_steps = 0
 

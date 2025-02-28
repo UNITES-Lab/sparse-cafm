@@ -30,7 +30,7 @@ dataset:
   masking_ratio: 1
 
 logging:
-  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs"
+  root: "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/expert-surrogates"
   exp_name: older-surrogate
   result_columns: [""]
   save_weights: true
