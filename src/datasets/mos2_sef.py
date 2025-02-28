@@ -298,10 +298,8 @@ class MOS2SEFDataset(Dataset):
         Partially mask the original current map y; currently row-wise masking.
         """
 
-        p_y_bar_x_augmentation_pipeline = self._create_augmentation_pipeline(
-            resize_to_og_height=False
-        )
-
+        p_y_bar_x_augmentation_pipeline = self.augmentation_pipeline
+        
         # NOTE: we only consider samples: [0, 1, 2, 3];
         # HACK: hard-coded train/val splits
         # choose a random sample idx

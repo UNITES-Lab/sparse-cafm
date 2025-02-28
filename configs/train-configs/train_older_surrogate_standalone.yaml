@@ -10,8 +10,8 @@ model:
   config:
 
 training:
-  batch_size: 1
-  steps_per_epoch: 1024
+  batch_size: 64
+  steps_per_epoch: 64000
   epochs: 500
   loss: MSE
   lr: 1e-5

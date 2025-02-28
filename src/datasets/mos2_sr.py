@@ -119,12 +119,13 @@ class MOS2SRDataset(Dataset):
         # current_map_regex = f"{self.src_dir}/current/{self.split}/current-maps/*.npy"
         # topo_map_regex = f"{self.src_dir}/topology/{self.split}/topo-maps/*.npy"
 
-        # HACK
+        # HACK: only load in train samples
         current_map_regex = f"{self.src_dir}/current/train/current-maps/*.npy"
         topo_map_regex = f"{self.src_dir}/topology/train/topo-maps/*.npy"
 
-        self._raw_current_fps = sorted(glob(current_map_regex))[:300]
-        self._raw_topo_fps = sorted(glob(topo_map_regex))[:300]
+        NUM_SAMPLES = min(len(glob(current_map_regex)), len(glob(topo_map_regex)))
+        self._raw_current_fps = sorted(glob(current_map_regex))[:NUM_SAMPLES]
+        self._raw_topo_fps = sorted(glob(topo_map_regex))[:NUM_SAMPLES]
 
         assert (len(self._raw_current_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"
         assert (len(self._raw_topo_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"

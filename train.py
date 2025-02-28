@@ -1,14 +1,18 @@
 import os
 import sys
 import argparse
+import warnings
 import torch
 import torch.nn as nn
 
+from rich.console import Console
+from rich.rule import Rule
+from rich.pretty import Pretty
+from torch.utils.checkpoint import checkpoint
 from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
-from piqa import SSIM
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.our_method.older_surrogate import MultiHeadOLDERSurrogate
 from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR, MOS2_SYNTHETIC
@@ -21,7 +25,9 @@ from src.util.config import (
     MODELS,
 )
 
+warnings.simplefilter("always")
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
+CONSOLE = Console()
 
 
 def setup_logger(
@@ -87,6 +93,13 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     logger = setup_logger(config, model_config)
     model = create_model(config)
 
+    # load expert-evaluation surrogate
+    surrogate_model: Optional[MultiHeadOLDERSurrogate] = None
+    if args.surrogate_weights != "":
+        CONSOLE.print(Rule(f"Loading surrogate model from: {args.surrogate_weights}"))
+        surrogate_model: MultiHeadOLDERSurrogate = torch.load(args.surrogate_weights)
+        assert isinstance(surrogate_model, MultiHeadOLDERSurrogate)
+
     train_dataloader = create_dataloader(args, config, "train")
     val_dataloader = create_dataloader(args, config, "val")
 
@@ -100,23 +113,32 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     num_epochs = config.epochs
     device = config.device
 
-    # create model using model config obj
     # NOTE: only supported for SwinCAFM atm
     if config.model_config_file != None:
 
         if args.weights != "": 
             model_config.weights_fp = str(args.weights)
-            print(f"Loading model weights from: {args.weights}")
+            CONSOLE.print(Rule(f"Loading model weights from: {args.weights}"))
 
-        assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
-        # model = SwinCAFM.init_from_config(model_config.to_dict())
-        model = torch.load(args.weights)
+            assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
+            
+            # load weights/full model ckpt
+            item = torch.load(args.weights)
+            if   isinstance(item, dict):            model.load_state_dict(item['params'])
+            elif isinstance(item, torch.nn.Module): model = item
+            else: raise Exception()
 
     # as per: https://arxiv.org/pdf/2404.00722
     optimizer = torch.optim.Adam(model.parameters(), lr=float(config.learning_rate))
 
+    if surrogate_model != None:
+        surrogate_model.cuda(device)
+        surrogate_model.float()
+
     model.cuda(device)
     model.float()
+
+    # TODO: implement grad_accumulation
 
     # ---------- training loop ----------
     for epoch in range(num_epochs):
@@ -141,20 +163,17 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
 
             # ---- forward: p(y | y_sparse) ----
             y_hat: torch.Tensor = model(y_sparse)
-
-            # -> [B, C, H, W]
-            # _y = y.clone().unsqueeze(1).repeat(1, 3, 1, 1)
-            # _y_hat = y_hat.clone().unsqueeze(1).repeat(1, 3, 1, 1)
-
+            
             # --- L1 ----
-            loss: torch.Tensor = torch.nn.functional.l1_loss(y_hat, y)
-            
-            # --- MSE ----
-            # loss = torch.nn.functional.mse_loss(y, y_hat)
-            
-            # --- SSIM ---
-            # loss: torch.Tensor = ssim_crit(_y, _y_hat)
+            # ... 
 
+            # --- Mean Avg Current ----
+            # use surrogate model to estimate: 
+            # surface_current(y) - surface_current(y_hat)
+            loss = torch.nn.functional.l1_loss(
+                surrogate_model(y), surrogate_model(y_hat)
+            )
+            
             loss.backward()
             optimizer.step()
 
@@ -287,9 +306,9 @@ if __name__ == "__main__":
     # -------------------- training config args --------------------
     parser.add_argument("-e","--exp_name",type=str,help="Experiment directory name.",default="my-experiment",)
     parser.add_argument("-r","--root", type=str, help="Root directory to save experiment in.",default="__exps__/",)
-    parser.add_argument("-ds", "--dataset", type=str, help="['synthetic', 'mos2-sef', 'sapphire', 'silicon']", default="")
+    parser.add_argument("-ds", "--dataset", type=str, help="['synthetic', 'mos2-sef', 'sapphire', 'silicon']", default="mos2-sef")
     parser.add_argument("-ws", "--weights", type=str, help="Path to model checkpoints", default="")
-    parser.add_argument("-fm", "--formulation", type=str, help="['X', 'y']", default="")
+    parser.add_argument("-fm", "--formulation", type=str, help="['X', 'y']", default="y")
     # -------------------- model config args --------------------
     parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
@@ -298,6 +317,7 @@ if __name__ == "__main__":
     parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
     parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
     # -------------------- ablation args --------------------
+    parser.add_argument("-sw", "--surrogate_weights", type=str, help="", default="")
     parser.add_argument("-lr", "--learning_rate", type=float, help="", default=1e-5)
     parser.add_argument("-bs", "--batch_size", type=int, help="", default=1)
     parser.add_argument("-sr", "--upsample_factor", type=int, help="", default=2)
