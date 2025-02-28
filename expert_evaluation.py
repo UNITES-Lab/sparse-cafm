@@ -5,12 +5,11 @@ import argparse
 import warnings
 
 
+from tqdm import tqdm
 from rich.console import Console
 from rich.rule import Rule
 from rich.pretty import Pretty
 from pprint import pprint
-from glob import glob
-from tqdm import tqdm
 from torch.utils.data import DataLoader
 from src.util.celano_lab_scripts import calculate_diff_between_samples
 from src.models.our_method.swin_cafm import SwinCAFM
@@ -107,9 +106,10 @@ if __name__ == "__main__":
     parser.add_argument("-sr", "--upsampling_ratio", type=int, default=2)
     args = parser.parse_args()
 
-    assert os.isfile(args.ckpt_fp)
+    assert os.path.isfile(args.ckpt_fp)
     assert args.formulation in ["X", "y"]
     assert args.dataset in ["mos2-sef", "silicon", "sapphire"]
+    args.upsampling_ratio = int(args.upsampling_ratio)
     assert args.upsampling_ratio in [2, 4, 8]
     
     eval(args.ckpt_fp, args.formulation, args.dataset, args.upsampling_ratio)
