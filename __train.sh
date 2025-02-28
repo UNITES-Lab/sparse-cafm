@@ -8,17 +8,17 @@ NORM_LAYER=torch.nn.LayerNorm
 # ---- train super-resolution model ----
 
 # WEIGHTS_FP=_SwinIR/__weights__/001_classicalSR_DF2K_s64w8_SwinIR-M_x2.pth
-WEIGHTS_FP="__exps__/foundation-models/2. surface-conductivity/2x/2025-02-28_13-59-45_dataset=synth-BS=16-optim=Adam-lr=1e-5/dataset=synth-BS=16-optim=Adam-lr=1e-5_best.pth"
+WEIGHTS_FP="__exps__/substrates/mos2-sef/2x/2025-02-28_16-50-36_new-surrogate-optim=avg_surface_current-dataset=mos2-sef-[y]-BS=8-optim=Adam-lr=1e-5/new-surrogate-optim=avg_surface_current-dataset=mos2-sef-[y]-BS=8-optim=Adam-lr=1e-5_best.pth"
 SURROGATE_FP="__exps__/expert-surrogates/2025-02-28_13-03-05_average_surface_current_bb=ViT-Trainable-BS=64/average_surface_current_bb=ViT-Trainable-BS=64_best_older_surrogate.pth"
 EXP_ROOT_DIR="__exps__/substrates/mos2-sef/2x"
 LOGS_DIR=__exps__/__logs__
-EXP_NAME="ckpt=found-expert-eval-optim=avg_surface_current-dataset=mos2-sef-[y]-BS=8-optim=Adam-lr=1e-5"
+EXP_NAME="new-surrogate-optim=avg_surface_current-dataset=mos2-sef-[y]-BS=8-optim=Adam-lr=1e-5"
 
 UPSAMPLE_FACTOR=2
 FORMULATION="y"
 DATASET="mos2-sef"
 
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=6
 python train.py \
   --exp_name "$EXP_NAME" \
   --root "$EXP_ROOT_DIR" \

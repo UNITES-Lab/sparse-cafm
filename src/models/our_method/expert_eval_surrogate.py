@@ -13,7 +13,19 @@ from sklearn.metrics import mean_absolute_error
 NUM_HEADS = 1
 
 
-class MultiHeadOLDERSurrogate(nn.Module):
+class AvgSurfaceCurrentSurrogate(nn.Module):
+
+    def __init__(self):
+        super(AvgSurfaceCurrentSurrogate, self).__init__()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate the average surface current of a sample.
+        """
+        return torch.mean(x) * 1000
+    
+
+class ExpertSurrogate(nn.Module):
     """
     Predict Celano-Lab characterizations of current-map samples.
     
@@ -23,7 +35,7 @@ class MultiHeadOLDERSurrogate(nn.Module):
 
     def __init__(self, num_heads: int = NUM_HEADS):
         
-        super(MultiHeadOLDERSurrogate, self).__init__()
+        super(ExpertSurrogate, self).__init__()
         self.num_heads = num_heads
         
         # ---- VGG-19 Feature Extractor ----
@@ -77,55 +89,8 @@ class MultiHeadOLDERSurrogate(nn.Module):
         return out
     
     @staticmethod
-    def get(weights=None): return MultiHeadOLDERSurrogate()
+    def get(weights=None): return ExpertSurrogate()
 
 
-# https://pytorch-enhance.readthedocs.io/en/latest/_modules/torch_enhance/losses/vgg.html
-class OLDERPerceptualLoss(nn.Module):
-    """VGG/Perceptual Loss
-    
-    Parameters
-    ----------
-    conv_index : str
-        Convolutional layer in VGG model to use as perceptual output
-
-    """
-    def __init__(self, surrogate: MultiHeadOLDERSurrogate, conv_index: str = '22'):
-        super(OLDERPerceptualLoss, self).__init__()
-        self.vgg = surrogate.backbone
-        vgg_features = self.vgg.features
-        modules = [m for m in vgg_features]
-        if conv_index == '22':
-            self.vgg = nn.Sequential(*modules[:8])
-        elif conv_index == '54':
-            self.vgg = nn.Sequential(*modules[:35])
-        self.vgg.requires_grad = False
-
-    def forward(self, sr: torch.Tensor, hr: torch.Tensor) -> torch.Tensor:
-        """Compute VGG/Perceptual loss between Super-Resolved and High-Resolution
-
-        Parameters
-        ----------
-        sr : torch.Tensor
-            Super-Resolved model output tensor
-        hr : torch.Tensor
-            High-Resolution image tensor
-
-        Returns
-        -------
-        loss : torch.Tensor
-            Perceptual VGG loss between sr and hr
-
-        """
-        def _forward(x):
-            #x = self.sub_mean(x)
-            x = self.vgg(x)
-            return x
-            
-        vgg_sr = _forward(sr)
-        with torch.no_grad():
-            vgg_hr = _forward(hr.detach())
-        loss = F.mse_loss(vgg_sr, vgg_hr)
-        return loss
-
-if __name__ == "__main__": pass
+if __name__ == "__main__": 
+    pass

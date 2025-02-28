@@ -13,8 +13,9 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
+
 from src.models.our_method.swin_cafm import SwinCAFM
-from src.models.our_method.older_surrogate import MultiHeadOLDERSurrogate
+from src.models.our_method.older_surrogate import MultiHeadOLDERSurrogate, AvgSurfaceCurrentSurrogate
 from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR, MOS2_SYNTHETIC
 from src.util.logger import ExperimentLogger
 from src.util.config import (
@@ -94,11 +95,14 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     model = create_model(config)
 
     # load expert-evaluation surrogate
-    surrogate_model: Optional[MultiHeadOLDERSurrogate] = None
-    if args.surrogate_weights != "":
-        CONSOLE.print(Rule(f"Loading surrogate model from: {args.surrogate_weights}"))
-        surrogate_model: MultiHeadOLDERSurrogate = torch.load(args.surrogate_weights)
-        assert isinstance(surrogate_model, MultiHeadOLDERSurrogate)
+    # surrogate_model: Optional[MultiHeadOLDERSurrogate] = None
+    # if args.surrogate_weights != "":
+    #     CONSOLE.print(Rule(f"Loading surrogate model from: {args.surrogate_weights}"))
+    #     surrogate_model: MultiHeadOLDERSurrogate = torch.load(args.surrogate_weights)
+    #     assert isinstance(surrogate_model, MultiHeadOLDERSurrogate)
+    # HACK: avg_surface_current surrogate
+    
+    surrogate_model = AvgSurfaceCurrentSurrogate()
 
     train_dataloader = create_dataloader(args, config, "train")
     val_dataloader = create_dataloader(args, config, "val")

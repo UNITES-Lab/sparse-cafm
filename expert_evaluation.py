@@ -58,7 +58,7 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
         y_sparse = y_sparse.cuda().float()
         y_hat = model(y_sparse)
 
-        # NOTE: scale + shift
+        # --- NOTE: scale + shift ---
         # -> original current/topo map mean/std
         y = (y - dataset.current_maps_mean) / (dataset.current_maps_std)
         y_hat = (y_hat - dataset.current_maps_mean) / (dataset.current_maps_std)
@@ -70,8 +70,11 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
             sample_y_sparse = y_sparse[i]
             sample_y_hat = y_hat[i]
 
-            current_pred_errs = calculate_diff_between_samples(sample_y, sample_y_hat, 2.0)
+            # baseline
             current_baseline_errs = calculate_diff_between_samples(sample_y, sample_y_sparse, 2.0)
+            
+            # experiment
+            current_pred_errs = calculate_diff_between_samples(sample_y, sample_y_hat, 2.0)
 
             if total_pred_errs is None:
                 total_pred_errs = {key: value for key, value in current_pred_errs.items()}
