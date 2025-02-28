@@ -23,7 +23,6 @@ from src.util.celano_lab_scripts import process_image as celano_lab_characteriza
 from src.util.metrics import OLDER
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/train_older_surrogate_standalone.yaml")
-PRE_TRAIN_CKPT = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/y-task-formulations/p(y | y_sparse)/e. surrogate standalone train-runs/2025-02-19_14-26-36_DS=Synthetic-BB-VGG-19-Trainable-Optimal-4-Features/DS=Synthetic-BB-VGG-19-Trainable-Optimal-4-Features_latest_older_surrogate.pth"
 
 
 def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
@@ -77,14 +76,15 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
 def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
     """
     Train OLDER surrogate model.
-    
     Given:
-        1. y
+        - Current map
     Predict: 
-        1. OLDER: characterization of y
+        - Expert characterization features (e.g., avg_surface_current)
     """
 
     logger = setup_logger(config, model_config)
+
+    # create model
     older_surrogate_model: MultiHeadOLDERSurrogate = create_model(config)
     
     train_dataloader = create_dataloader(config, "train")
@@ -93,8 +93,9 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     val_dataset: MOS2SefOLDERSurrogateDataset = val_dataloader.dataset
 
     # NOTE: use the same mean/std vals to normalize both dataloaders to ~std normal
-    # val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
     val_dataset.normalization_dict = train_dataset.normalization_dict
+    
+    # val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
 
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
@@ -111,7 +112,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
         # load enitre model object:
         older_surrogate_model = torch.load(config.weights).float().cuda()
     
-    older_surrogate_model = torch.load(PRE_TRAIN_CKPT).float().cuda()
     older_surrogate_model.cuda(device)
     older_surrogate_model.float()
     
@@ -155,13 +155,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
             
             # TODO: L1 vs MSE?
             loss: torch.Tensor = train_loss(pred, target)
-
-            # ---- TODO: individual loss for each head ----
-            # total_loss = 0.0
-            # for idx in range(pred.shape[-1]):
-            #     breakpoint()
-            #     head_loss = train_loss(pred[..., idx], target[..., idx])
-            #     total_loss += head_loss
 
             breakpoint()
 

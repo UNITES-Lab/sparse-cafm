@@ -10,19 +10,15 @@ from torchvision.models import VisionTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
-NUM_HEADS = 4
+NUM_HEADS = 1
 
 
 class MultiHeadOLDERSurrogate(nn.Module):
     """
-    Predict Celano-Lab characterizations of samples.
+    Predict Celano-Lab characterizations of current-map samples.
     
-    - [H, W] -> surrogate -> [9]
-    - [H, W] -> swinir -> surrogate -> [9]
-    
-    TODO:
-    - Perform a rigorous study of feature importance;
-    - Determine which features are most positively correlated with L1, negatively, spuriously
+    - [H, W] -> surrogate -> [NUM_FEATS]
+    - [H, W] -> swinir -> surrogate -> [NUM_FEATS]
     """
 
     def __init__(self, num_heads: int = NUM_HEADS):
@@ -51,52 +47,6 @@ class MultiHeadOLDERSurrogate(nn.Module):
             ) for _ in range(num_heads)
         ])
 
-        # self.heads = nn.ModuleList([
-        #     nn.Sequential(
-        #         nn.Linear(4096, 1024),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(1024),
-        #         ResidualBlock(features=1024, hidden_features=512, dropout=0.3),
-        #         ResidualBlock(features=1024, hidden_features=512, dropout=0.3),
-        #         nn.Linear(1024, 256),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(256),
-        #         ResidualBlock(features=256, hidden_features=128, dropout=0.3),
-        #         ResidualBlock(features=256, hidden_features=128, dropout=0.3),
-        #         nn.Linear(256, 1)
-        #     ) for _ in range(num_heads)
-        # ])
-
-        # self.heads = nn.ModuleList([
-        #     nn.Sequential(
-        #         nn.Linear(4096, 1024),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(1024),
-        #         TransformerBlock(num_tokens=16, embed_dim=64, nhead=8, dropout=0.3),
-        #         ResidualBlock(features=1024, hidden_features=512, dropout=0.3),
-        #         ResidualBlock(features=1024, hidden_features=512, dropout=0.3),
-        #         nn.Linear(1024, 1024),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(1024),
-        #         TransformerBlock(num_tokens=16, embed_dim=64, nhead=8, dropout=0.3),
-        #         ResidualBlock(features=1024, hidden_features=512, dropout=0.3),
-        #         ResidualBlock(features=1024, hidden_features=512, dropout=0.3),
-        #         nn.Linear(1024, 1024),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(1024),
-        #         TransformerBlock(num_tokens=16, embed_dim=64, nhead=8, dropout=0.3),
-        #         ResidualBlock(features=1024, hidden_features=512, dropout=0.3),
-        #         ResidualBlock(features=1024, hidden_features=512, dropout=0.3),
-        #         nn.Linear(1024, 256),
-        #         nn.ReLU(),
-        #         nn.LayerNorm(256),
-        #         ResidualBlock(features=256, hidden_features=128, dropout=0.3),
-        #         ResidualBlock(features=256, hidden_features=128, dropout=0.3),
-        #         nn.Linear(256, 1)
-        #     ) for _ in range(num_heads)
-        # ])
-
-        # # ------------------------------
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -106,7 +56,7 @@ class MultiHeadOLDERSurrogate(nn.Module):
 
         Returns
         ---
-        older_predicted_value: [1]
+        older_predicted_value: [NUM_FEATS]
         """
         
         # [B, H, W] -> [B, 224, 224]

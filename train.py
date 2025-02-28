@@ -10,6 +10,7 @@ from typing import List, Optional
 from torch.utils.data import DataLoader
 from piqa import SSIM
 from src.models.our_method.swin_cafm import SwinCAFM
+from src.models.our_method.older_surrogate import MultiHeadOLDERSurrogate
 from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR, MOS2_SYNTHETIC
 from src.util.logger import ExperimentLogger
 from src.util.config import (

@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 from src.datasets.mos2_sef import MOS2SEFDataset, Formulation
 from src.util.celano_lab_scripts import process_image
 
-NUM_CHAR_FEATURES = 4
+NUM_CHAR_FEATURES = 1
 CROPPED_IMAGE_SIDE_LENGTH = 128
 ORIGINAL_IMAGE_SIZE = (512, 512)
 
@@ -245,10 +245,10 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
 
         # NOTE: use non-bootstraped val
         target_arr[0] = y_char_og["average_surface_current"]
-        target_arr[1] = y_char["coverage_percentage"]
-        target_arr[2] = y_char["num_extended_shapes"]
-        target_arr[3] = y_char["total_area_extended_shapes"]
 
+        # target_arr[1] = y_char["coverage_percentage"]
+        # target_arr[2] = y_char["num_extended_shapes"]
+        # target_arr[3] = y_char["total_area_extended_shapes"]
         # target_arr[0] = y_char['coverage_percentage']
         # target_arr[1] = y_char['total_len_detected_curves']
         # target_arr[2] = y_char['total_area_circular_shapes']
@@ -258,6 +258,7 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         # target_arr[6] = y_char['num_curved_lines']
         # target_arr[7] = y_char['num_extended_shapes']
         # target_arr[8] = y_char['total_area_extended_shapes']
+        
         target = torch.Tensor(target_arr).float()
 
         item = {}
