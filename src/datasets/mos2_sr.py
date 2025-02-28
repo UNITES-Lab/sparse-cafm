@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List, Union
 from glob import glob
 
-
+MOS2_SYNTHETIC = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/synth-datasets"
 MOS2_SAPPHIRE_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/11-19-24/2. MoS2 on Sapphire"
 MOS2_SILICON_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/11-19-24/2. MoS2 on Sapphire"
 MOS2_SEF_SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/1-23-25"
@@ -61,7 +61,7 @@ class MOS2SRDataset(Dataset):
         self.side_length = 128
         if self.upsample_factor == 2:
             # [64, 64] -> [128, 128]
-            self.side_length == 2
+            self.side_length == 64 * 2
         if self.upsample_factor == 4:
             # [64, 64] -> [256, 256]
             self.side_length = 64 * 4
@@ -104,6 +104,8 @@ class MOS2SRDataset(Dataset):
             self._load_imgs_mos2_sef()
         elif src_dir == MOS2_SILICON_DIR or src_dir == MOS2_SAPPHIRE_DIR:
             self._load_imgs_sil_saf()
+        elif src_dir == MOS2_SYNTHETIC:
+            self._load_imgs_mos2_synth()
         else:
             raise Exception(f"Error: unsupported dataset: {src_dir}")
 
@@ -113,6 +115,38 @@ class MOS2SRDataset(Dataset):
 
         # find the mean/std of current and topo maps
         self._calculate_mean_std()
+
+    def _load_imgs_mos2_synth(self) -> None: 
+        
+        # current_map_regex = f"{self.src_dir}/current/{self.split}/current-maps/*.npy"
+        # topo_map_regex = f"{self.src_dir}/topology/{self.split}/topo-maps/*.npy"
+
+        # HACK
+        current_map_regex = f"{self.src_dir}/current/train/current-maps/*.npy"
+        topo_map_regex = f"{self.src_dir}/topology/train/topo-maps/*.npy"
+
+        self._raw_current_fps = sorted(glob(current_map_regex))[:300]
+        self._raw_topo_fps = sorted(glob(topo_map_regex))[:300]
+
+        assert (len(self._raw_current_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"
+        assert (len(self._raw_topo_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"
+
+        # [H, W, C]
+        self.current_maps: List[np.ndarray] = [np.load(fp) for fp in self._raw_current_fps]
+        self.topo_maps: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_fps]
+
+        # validate current, topo map paris are aligned
+        _current_fps_basenames = [os.path.basename(fp) for fp in self._raw_current_fps]
+        _topo_fps_basenames = [os.path.basename(fp) for fp in self._raw_topo_fps]
+        assert (_current_fps_basenames == _topo_fps_basenames), f"Error: misalignment of current maps and topo maps during dataloading"
+
+        # convert maps to type -> float64
+        self.current_maps = [cm.astype(np.float64) for cm in self.current_maps]
+        self.topo_maps = [tm.astype(np.float64) for tm in self.topo_maps]
+        
+        # [H, W, C] -> [H, W] by averaging across the channel dimension
+        self.current_maps = [np.mean(cm, axis=-1) for cm in self.current_maps]
+        self.topo_maps = [np.mean(tm, axis=-1) for tm in self.topo_maps]
 
     def _load_imgs_mos2_sef(self) -> None:
         """
@@ -125,31 +159,22 @@ class MOS2SRDataset(Dataset):
         self._raw_current_fps = sorted(glob(current_map_regex))
         self._raw_topo_fps = sorted(glob(topo_map_regex))
 
-        assert (
-            len(self._raw_current_fps) > 0
-        ), f"Error: could not load images using regex: {current_map_regex}"
-        assert (
-            len(self._raw_topo_fps) > 0
-        ), f"Error: could not load images using regex: {current_map_regex}"
+        assert (len(self._raw_current_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"
+        assert (len(self._raw_topo_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"
 
-        # (H, W)
-        self.current_maps: List[np.ndarray] = [
-            np.load(fp) for fp in self._raw_current_fps
-        ]
+        # [H, W, C]
+        self.current_maps: List[np.ndarray] = [np.load(fp) for fp in self._raw_current_fps]
         self.topo_maps: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_fps]
 
         # validate current, topo map paris are aligned
-        _current_fps_basenames = [
-            os.path.basename(fp)[:4] for fp in self._raw_current_fps
-        ]
+        _current_fps_basenames = [os.path.basename(fp)[:4] for fp in self._raw_current_fps]
         _topo_fps_basenames = [os.path.basename(fp)[:4] for fp in self._raw_topo_fps]
-        assert (
-            _current_fps_basenames == _topo_fps_basenames
-        ), f"Error: misalignment of current maps and topo maps during dataloading"
+        assert (_current_fps_basenames == _topo_fps_basenames), f"Error: misalignment of current maps and topo maps during dataloading"
 
         # convert maps to type -> float64
         self.current_maps = [cm.astype(np.float64) for cm in self.current_maps]
         self.topo_maps = [tm.astype(np.float64) for tm in self.topo_maps]
+
 
     def _load_imgs_sil_saf(self) -> None:
         """
@@ -355,7 +380,7 @@ class MOS2SRDataset(Dataset):
         
         assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
         assert (X.max() <= 1.0 and X.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
-
+        
         return {
             "X": X,
             "X_sparse": X_sparse,
@@ -453,7 +478,8 @@ class UnifiedMOS2SRDataset(Dataset):
 
 if __name__ == "__main__":
 
-    dataset = UnifiedMOS2SRDataset(
+    dataset = MOS2SRDataset(
+        src_dir=MOS2_SYNTHETIC,
         split="train", 
         upsample_factor=2, 
     )

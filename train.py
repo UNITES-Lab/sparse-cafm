@@ -10,7 +10,7 @@ from typing import List, Optional
 from torch.utils.data import DataLoader
 from piqa import SSIM
 from src.models.our_method.swin_cafm import SwinCAFM
-from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR
+from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR, MOS2_SYNTHETIC
 from src.util.logger import ExperimentLogger
 from src.util.config import (
     TrainConfig,
@@ -52,8 +52,17 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 
 def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
+    
+    assert str(args.dataset) in ['synthetic', 'mos2-sef', 'sapphire', 'silicon']
+    src_dir = {
+        "synthetic": MOS2_SYNTHETIC,
+        "mos2-sef": MOS2_SEF_SRC_DIR,
+        "sapphire": MOS2_SAPPHIRE_DIR,
+        "silicon": MOS2_SILICON_DIR
+    }[args.dataset]
+    
     dataset = MOS2SRDataset(
-        src_dir=MOS2_SEF_SRC_DIR,
+        src_dir=src_dir,
         split=split,
         steps_per_epoch=(
             int(config.steps_per_epoch * config.train_batch_size)
@@ -93,12 +102,14 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     # create model using model config obj
     # NOTE: only supported for SwinCAFM atm
     if config.model_config_file != None:
-        assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
-        model = SwinCAFM.init_from_config(model_config.to_dict())
 
-    # optimizer: torch.optim.Optimizer = OPTIMIZERS[config.optimizer](
-    #     model.parameters(), lr=float(config.learning_rate), weight_decay=1e-3,
-    # )
+        if args.weights != "": 
+            model_config.weights_fp = str(args.weights)
+            print(f"Loading model weights from: {args.weights}")
+
+        assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
+        # model = SwinCAFM.init_from_config(model_config.to_dict())
+        model = torch.load(args.weights)
 
     # as per: https://arxiv.org/pdf/2404.00722
     optimizer = torch.optim.Adam(model.parameters(), lr=float(config.learning_rate))
@@ -115,11 +126,14 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
 
+            F = args.formulation
+            assert F in ['X', 'y']
+
             # current-map: y; [128, 128]
-            y: torch.Tensor = batch["y"].cuda(device)
+            y: torch.Tensor = batch[F].cuda(device)
 
             # current-map: y_sparse; [64, 64]
-            y_sparse: torch.Tensor = batch["y_sparse"].cuda(device)
+            y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
             # zero gradients
             optimizer.zero_grad()
@@ -172,11 +186,15 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             for i, batch in enumerate(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
+                
+                F = args.formulation
+                assert F in ['X', 'y']
+
                 # current-map: y; [128, 128]
-                y: torch.Tensor = batch["y"].cuda(device)
+                y: torch.Tensor = batch[F].cuda(device)
 
                 # current-map: y_sparse; [64, 64]
-                y_sparse: torch.Tensor = batch["y_sparse"].cuda(device)
+                y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
                 # ---- forward: p(y | y_sparse) ----
                 y_hat: torch.Tensor = model(y_sparse)
@@ -227,6 +245,8 @@ def main(args: argparse.Namespace) -> None:
 
     # load training config
     config = TrainConfig(TRAIN_CONFIG_FP)
+    config.weights = args.weights
+
     model_config: Optional[ModelConfig] = None
 
     # optional: parse model config
@@ -265,7 +285,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # -------------------- training config args --------------------
     parser.add_argument("-e","--exp_name",type=str,help="Experiment directory name.",default="my-experiment",)
-    parser.add_argument("-r","--root",type=str,help="Root directory to save experiment in.",default="__exps__/",)
+    parser.add_argument("-r","--root", type=str, help="Root directory to save experiment in.",default="__exps__/",)
+    parser.add_argument("-ds", "--dataset", type=str, help="['synthetic', 'mos2-sef', 'sapphire', 'silicon']", default="")
+    parser.add_argument("-ws", "--weights", type=str, help="Path to model checkpoints", default="")
+    parser.add_argument("-fm", "--formulation", type=str, help="['X', 'y']", default="")
     # -------------------- model config args --------------------
     parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
