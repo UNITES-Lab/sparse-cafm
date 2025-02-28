@@ -1,12 +1,10 @@
-import torch
-import cv2
 import os
+import torch
 import random
 import numpy as np
 import albumentations as A
 import torch.nn.functional as F
 
-from enum import Enum
 from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List, Union
 from glob import glob

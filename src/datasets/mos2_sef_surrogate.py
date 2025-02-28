@@ -229,11 +229,12 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
 
         # NOTE: use non-bootstraped val
         target_arr[0] = y_char_og["average_surface_current"]
+        # target_arr[0] = y_char_og["coverage_percentage"]
 
         # target_arr[1] = y_char["coverage_percentage"]
         # target_arr[2] = y_char["num_extended_shapes"]
         # target_arr[3] = y_char["total_area_extended_shapes"]
-        # target_arr[0] = y_char['coverage_percentage']
+        # target_arr[0] = y_char['coverage_perctentage']
         # target_arr[1] = y_char['total_len_detected_curves']
         # target_arr[2] = y_char['total_area_circular_shapes']
         # target_arr[3] = y_char['total_defect_area']

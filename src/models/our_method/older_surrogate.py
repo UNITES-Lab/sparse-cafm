@@ -27,15 +27,17 @@ class MultiHeadOLDERSurrogate(nn.Module):
         self.num_heads = num_heads
         
         # ---- VGG-19 Feature Extractor ----
-        self.backbone = models.vgg19_bn(weights=models.VGG19_BN_Weights.DEFAULT)
+        # self.backbone = models.vgg19_bn(weights=models.VGG19_BN_Weights.DEFAULT)
+        
+        self.backbone = models.vit_b_16()
         
         # remove the final layer
-        self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
+        # self.backbone.classifier = nn.Sequential(*list(self.backbone.classifier.children())[:-1])
 
         # ---- classification heads ----
         self.heads = nn.ModuleList([
             nn.Sequential(
-                nn.Linear(4096, 512),
+                nn.Linear(1000, 512),
                 nn.ReLU(),
                 nn.LayerNorm(512),
                 nn.Dropout(p=0.3),

@@ -69,7 +69,7 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
         dataset,
         batch_size=config.train_batch_size,
         shuffle=False,
-        num_workers=config.num_workers,
+        num_workers= 16 # config.num_workers,
     )
 
 
@@ -89,12 +89,6 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")
-    train_dataset: MOS2SefOLDERSurrogateDataset = train_dataloader.dataset
-    val_dataset: MOS2SefOLDERSurrogateDataset = val_dataloader.dataset
-
-    # NOTE: use the same mean/std vals to normalize both dataloaders to ~std normal
-    val_dataset.normalization_dict = train_dataset.normalization_dict
-    # val_dataset.val_current_map_buffer = train_dataset.val_current_map_buffer
 
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
@@ -200,7 +194,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
                 # HACK: calculate errors by feature category; assume BS=1
                 errors = (target - pred).detach().cpu().numpy().tolist()[0]
                 
-                loss: torch.Tensor = train_loss(pred, target)
+                loss: torch.Tensor = val_loss(pred, target)
                 
                 val_running_loss += loss.item() * y.size(0)
                 

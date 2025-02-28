@@ -34,8 +34,9 @@ NORM_LAYER=torch.nn.LayerNorm
 
 EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/expert-surrogates"
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_NAME="avg_surface_current_surrogate"
+EXP_NAME="average_surface_current_bb=ViT-Trainable"
 
+export CUDA_VISIBLE_DEVICES=5
 python train_multi_head_surrogate.py \
   --exp_name "$EXP_NAME" \
   --num_heads $NUM_HEADS \
