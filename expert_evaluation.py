@@ -20,6 +20,14 @@ warnings.simplefilter("ignore")
 NUM_TRIALS = 256
 console = Console()
 
+@torch.no_grad()
+def normalize(X: torch.Tensor, mu: float, sigma: float) -> torch.Tensor:
+    X_mean = X.mean()
+    X_std = X.std()
+    if X_std == 0:
+        return X * 0 + mu
+    return (X - X_mean) / X_std * sigma + mu
+
 
 @torch.no_grad()
 def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) -> None:
@@ -61,12 +69,6 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
         y_sparse = y_sparse.cuda().float()
         y_hat = model(y_sparse)
 
-        # --- NOTE: scale + shift ---
-        # -> original current/topo map mean/std
-        y = (y - dataset.current_maps_mean) / (dataset.current_maps_std)
-        y_hat = (y_hat - dataset.current_maps_mean) / (dataset.current_maps_std)
-        y_sparse = (y_sparse - dataset.current_maps_mean) / (dataset.current_maps_std)
-
         for i in range(y_hat.size(0)):
             
             sample_y = y[i]
@@ -76,16 +78,24 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
             if formulation=="X":
 
                 # HACK: normalize sf
-                current = compute_surface_roughness(sample_y_hat) 
-                target = compute_surface_roughness(sample_y_sparse)
-                scale = target / current
-                sample_y_hat: torch.Tensor = (sample_y_hat.mean()) + \
-                    scale * (sample_y_hat - sample_y_hat.mean())
+                # current = compute_surface_roughness(sample_y_hat) 
+                # target = compute_surface_roughness(sample_y_sparse)
+                # scale = target / current
+                # sample_y_hat: torch.Tensor = (sample_y_hat.mean()) + \
+                #     scale * (sample_y_hat - sample_y_hat.mean())
   
                 total_baseline_sr.append(pcnt_diff_surface_roughness(sample_y, sample_y_sparse))
                 total_pred_sr.append(pcnt_diff_surface_roughness(sample_y, sample_y_hat))
             
             elif formulation=="y":
+
+                # --- NOTE: scale + shift ---
+                # std normal -> original current/topo map mean/std
+                mu = dataset.current_maps_mean
+                sigma = dataset.current_maps_std
+                y        = normalize(y, mu, sigma)
+                y_hat    = normalize(y_hat, mu, sigma)
+                y_sparse = normalize(y_sparse, mu, sigma)
 
                 # HACK: scale -> y_sparse mean
                 alpha = sample_y_sparse.mean() / sample_y_hat.mean()

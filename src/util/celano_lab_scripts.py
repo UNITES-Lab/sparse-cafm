@@ -295,6 +295,7 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
         "num_curved_lines": len(curved_lines),
     }
 
+
 def calculate_diff_between_samples(
         x1: torch.Tensor, 
         x2: torch.Tensor, 
@@ -315,7 +316,6 @@ def calculate_diff_between_samples(
         diffs[k] = mapd
 
     return diffs
-
 
 
 if __name__ == "__main__":
