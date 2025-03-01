@@ -47,20 +47,18 @@ def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig])
 
 
 def create_model(args) -> nn.Module:
-    model = ExpertSurrogate()
+    model = ExpertSurrogate(features=args.selected_features)
+    return model
 
 
-def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
+def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
     img_size = int(config.image_size)
     dataset = ExpertSurrogateDataset(
         split=split,
-        side_length=int(config.crop_size),
-        formulation=F.get_formulation_from_str(config.formulation),
         steps_per_epoch=(config.steps_per_epoch if split == "train" else config.val_steps_per_epoch),
-        device=config.device,
         original_image_size=(img_size, img_size),
-        masking_ratio=int(config.masking_ratio),
         normalize_on_init=True if split == "train" else False,
+        expert_features=args.selected_features,
     )
     return DataLoader(
         dataset,
@@ -82,10 +80,10 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     logger = setup_logger(config, model_config)
 
     # create model
-    older_surrogate_model: ExpertSurrogate = create_model(config)
-    
-    train_dataloader = create_dataloader(config, "train")
-    val_dataloader = create_dataloader(config, "val")
+    older_surrogate_model: ExpertSurrogate = create_model(args)
+
+    train_dataloader = create_dataloader(args, config, "train")
+    val_dataloader = create_dataloader(args, config, "val")
 
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
@@ -295,5 +293,6 @@ if __name__ == "__main__":
     for feat in EXPERT_FEATURES:
         if getattr(args, feat):
             selected_features.append(feat)
+    args.selected_features = selected_features
 
     main(args)

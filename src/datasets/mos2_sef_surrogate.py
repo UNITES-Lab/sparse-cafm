@@ -232,8 +232,8 @@ class ExpertSurrogateDataset(Dataset):
         target_arr = [None] * len(self.expert_features)
 
         for i, feat in enumerate(self.expert_features):
-            target[i] = y_char[feat]
-
+            target_arr[i] = y_char[feat]
+            
         target = torch.Tensor(target_arr).float()
 
         item = {}

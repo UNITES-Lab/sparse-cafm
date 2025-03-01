@@ -43,9 +43,9 @@ NORM_LAYER=torch.nn.LayerNorm
 
 EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/expert-surrogates"
 LOGS_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/__logs__"
-EXP_NAME="coverage_percent_bb=ViT-Trainable-BS=64"
+EXP_NAME="total_area_extended_shapes=ViT-Trainable-BS=64"
 
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=1
 python train_multi_head_surrogate.py \
   --exp_name "$EXP_NAME" \
   --num_heads $NUM_HEADS \
@@ -53,6 +53,7 @@ python train_multi_head_surrogate.py \
   --window_size $WINDOW_SIZE \
   --drop_path_rate $DPR \
   --norm_layer $NORM_LAYER \
+  --total_area_extended_shapes \
   > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
 
 # ---------------------------------------

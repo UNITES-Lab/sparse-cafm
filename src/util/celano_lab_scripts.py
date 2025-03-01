@@ -4,6 +4,25 @@ import numpy as np
 from scipy.signal import find_peaks
 
 
+def compute_surface_roughness(topology: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the RMS surface roughness of a 2D topology map.
+    
+    Parameters:
+        topology (torch.Tensor): A 2D tensor with shape (H, W) representing the surface heights.
+        
+    Returns:
+        torch.Tensor: A scalar tensor representing the surface roughness.
+    """
+    # mean height
+    mean_val = torch.mean(topology)
+    # RMS roughness
+    squared_deviations = (topology - mean_val) ** 2
+    mean_squared_deviation = torch.mean(squared_deviations)
+    roughness = torch.sqrt(mean_squared_deviation)
+    return roughness
+
+
 def calculate_pixel_size(image: np.ndarray, image_size_um: float) -> float:
     """
     Calculate the pixel size in micrometers based on the image dimensions.
