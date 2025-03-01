@@ -24,7 +24,6 @@ NORMALIZED_DATA_RANGE = (0.0, 1.0)
 
 class MOS2SRDataset(Dataset):
     """
-    # --- L1 ----
     Dataset class for sparse-sampling of MoS2 samples collected on various substrates.
 
     :Definitions:

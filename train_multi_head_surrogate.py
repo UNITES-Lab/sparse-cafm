@@ -10,7 +10,7 @@ from typing import List, Optional
 from torch.utils.data import DataLoader
 from src.models.our_method.expert_eval_surrogate import ExpertSurrogate
 from src.datasets.mos2_sef import Formulation as F
-from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogateDataset, SyntheticMOS2SefOLDERSurrogateDataset
+from src.datasets.mos2_sef_surrogate import ExpertSurrogateDataset
 from src.util.logger import ExperimentLogger
 from src.util.config import (
     TrainConfig,
@@ -35,29 +35,18 @@ def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig])
     return logger
 
 
-def create_model(config: TrainConfig) -> nn.Module:
-    model_fn = MODELS[config.model_name]["fn"]
-    model_weights = MODELS[config.model_name]["weights"]
-    if model_weights:
-        model = model_fn(weights=model_weights)
-    elif config.model_name == "hiera":
-        model = model_fn
-        model.freeze()
-    else:
-        model = model_fn()
-    assert isinstance(model, nn.Module)
+def create_model(args) -> nn.Module:
+    model = ExpertSurrogate()
     return model.cuda(config.device).float()
 
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
     img_size = int(config.image_size)
-    dataset = MOS2SefOLDERSurrogateDataset(
+    dataset = ExpertSurrogateDataset(
         split=split,
         side_length=int(config.crop_size),
         formulation=F.get_formulation_from_str(config.formulation),
-        steps_per_epoch=(
-            config.steps_per_epoch if split == "train" else config.val_steps_per_epoch
-        ),
+        steps_per_epoch=(config.steps_per_epoch if split == "train" else config.val_steps_per_epoch),
         device=config.device,
         original_image_size=(img_size, img_size),
         masking_ratio=int(config.masking_ratio),
@@ -67,13 +56,13 @@ def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
         dataset,
         batch_size=config.train_batch_size,
         shuffle=False,
-        num_workers= 16 # config.num_workers,
+        num_workers= 16
     )
 
 
 def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[ModelConfig] = None) -> None:
     """
-    Train OLDER surrogate model.
+    Train expert-surrogate model.
     Given:
         - Current map
     Predict: 

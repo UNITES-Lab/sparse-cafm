@@ -8,7 +8,19 @@ import torch.nn.functional as F
 
 from torchvision.models import VisionTransformer
 
-NUM_HEADS = 1
+
+EXPERT_FEATURES = [
+    "average_surface_current",
+    "coverage_percentage",
+    "total_area_extended_shapes",
+    "total_len_detected_curves",
+    "total_area_circular_shapes",
+    "total_defect_area",
+    "num_extended_shapes",
+    "num_circular_shapes",
+    "num_curved_lines",
+]
+
 
 
 class AvgSurfaceCurrentSurrogate(nn.Module):
@@ -32,14 +44,13 @@ class ExpertSurrogate(nn.Module):
     - [H, W] -> swinir -> surrogate -> [NUM_FEATS]
     """
 
-    def __init__(self, num_heads: int = NUM_HEADS):
+    def __init__(self, features: list = EXPERT_FEATURES):
         """
         Expert C-AFM current features:
-        1. 
         """
         
         super(ExpertSurrogate, self).__init__()
-        self.num_heads = num_heads
+        self.num_heads = len(features)
         
         # specialized module that predicts `avg_surface_current`
         # self.avg_surface_current_head = AvgSurfaceCurrentSurrogate()
