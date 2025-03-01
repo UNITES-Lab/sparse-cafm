@@ -23,6 +23,23 @@ def compute_surface_roughness(topology: torch.Tensor) -> torch.Tensor:
     return roughness
 
 
+def pcnt_diff_surface_roughness(x1: torch.Tensor, x2: torch.Tensor) -> float:
+    """
+    Return the absolute percentage difference between the surface roughness of two 
+    height maps: X1, X2.
+    """
+
+    eps = 1e-12
+    v1 = compute_surface_roughness(x1)
+    v2 = compute_surface_roughness(x2)
+    denom = abs(v1)
+    if denom < eps:
+        denom = eps
+    pdiff = abs(v1 - v2) / denom
+
+    return pdiff.item()
+
+
 def calculate_pixel_size(image: np.ndarray, image_size_um: float) -> float:
     """
     Calculate the pixel size in micrometers based on the image dimensions.

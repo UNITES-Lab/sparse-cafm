@@ -3,7 +3,7 @@ import rich
 import torch
 import argparse
 import warnings
-
+import numpy as np
 
 from tqdm import tqdm
 from rich.console import Console
@@ -11,7 +11,7 @@ from rich.rule import Rule
 from rich.pretty import Pretty
 from pprint import pprint
 from torch.utils.data import DataLoader
-from src.util.celano_lab_scripts import calculate_diff_between_samples
+from src.util.celano_lab_scripts import calculate_diff_between_samples, pcnt_diff_surface_roughness
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SEF_SRC_DIR, MOS2_SAPPHIRE_DIR, MOS2_SILICON_DIR
 
@@ -44,15 +44,18 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
     )
     data_loader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=8)
 
-    total_pred_errs = None
+    total_pred_sr = []
+    total_baseline_sr = []
+
     total_baseline_errs = None
+    total_pred_errs = None
     num_samples = 0
 
     # evaluate for model for #samples
     for batch in tqdm(data_loader, desc=f"Processing SR: {upsampling_ratio} | dataset: {dataset_name}"):
         
-        y = batch["y"]
-        y_sparse = batch["y_sparse"]
+        y = batch[f"{formulation}"]
+        y_sparse = batch[f"{formulation}_sparse"]
 
         y = y.cuda().float()
         y_sparse = y_sparse.cuda().float()
@@ -74,33 +77,50 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
             alpha = sample_y_sparse.mean() / sample_y_hat.mean()
             sample_y_hat *= alpha
 
-            # baseline
-            current_baseline_errs = calculate_diff_between_samples(sample_y, sample_y_sparse, 2.0)
-            
-            # experiment
-            current_pred_errs = calculate_diff_between_samples(sample_y, sample_y_hat, 2.0)
-
-            if total_pred_errs is None:
-                total_pred_errs = {key: value for key, value in current_pred_errs.items()}
-                total_baseline_errs = {key: value for key, value in current_baseline_errs.items()}
+            if formulation=="X":
+                total_baseline_sr.append(pcnt_diff_surface_roughness(sample_y, sample_y_sparse))
+                total_pred_sr.append(pcnt_diff_surface_roughness(sample_y, sample_y_hat))
+            elif formulation=="y":
+                # baseline
+                current_baseline_errs = calculate_diff_between_samples(sample_y, sample_y_sparse, 2.0)
+                # experiment
+                current_pred_errs = calculate_diff_between_samples(sample_y, sample_y_hat, 2.0)
+                # record results
+                if total_pred_errs is None:
+                    total_pred_errs = {key: value for key, value in current_pred_errs.items()}
+                    total_baseline_errs = {key: value for key, value in current_baseline_errs.items()}
+                else:
+                    for key in current_pred_errs:
+                        total_pred_errs[key] += current_pred_errs[key]
+                    for key in current_baseline_errs:
+                        total_baseline_errs[key] += current_baseline_errs[key]    
             else:
-                for key in current_pred_errs:
-                    total_pred_errs[key] += current_pred_errs[key]
-                for key in current_baseline_errs:
-                    total_baseline_errs[key] += current_baseline_errs[key]
-                    
+                raise Exception()
+
             num_samples += 1
+    
+    if formulation=="X":
+        
+        console = Console()
+        console.print(Rule(f"[bold blue]Results for SR: {upsampling_ratio} | dataset: {dataset_name}"))
+        console.print("[bold magenta]Average %diffs (y, y_sparse):")
+        console.print(Pretty(np.array(total_baseline_sr).mean(), indent_guides=True))
+        console.print("[bold magenta]Average %diffs (y, y_hat):")
+        console.print(Pretty(np.array(total_pred_sr).mean(), indent_guides=True))
+        console.print(Rule(style="bold blue"))
 
-    avg_pred_errs = {key: value / num_samples for key, value in total_pred_errs.items()}
-    avg_baseline_errs = {key: value / num_samples for key, value in total_baseline_errs.items()}
+    elif formulation=="y":
 
-    console = Console()
-    console.print(Rule(f"[bold blue]Results for SR: {upsampling_ratio} | dataset: {dataset_name}"))
-    console.print("[bold magenta]Average %diffs (y, y_sparse):")
-    console.print(Pretty(avg_baseline_errs, indent_guides=True))
-    console.print("[bold magenta]Average %diffs (y, y_hat):")
-    console.print(Pretty(avg_pred_errs, indent_guides=True))
-    console.print(Rule(style="bold blue"))
+        avg_pred_errs = {key: value / num_samples for key, value in total_pred_errs.items()}
+        avg_baseline_errs = {key: value / num_samples for key, value in total_baseline_errs.items()}
+        
+        console = Console()
+        console.print(Rule(f"[bold blue]Results for SR: {upsampling_ratio} | dataset: {dataset_name}"))
+        console.print("[bold magenta]Average %diffs (y, y_sparse):")
+        console.print(Pretty(avg_baseline_errs, indent_guides=True))
+        console.print("[bold magenta]Average %diffs (y, y_hat):")
+        console.print(Pretty(avg_pred_errs, indent_guides=True))
+        console.print(Rule(style="bold blue"))
 
 # --------------------------------------------
 
