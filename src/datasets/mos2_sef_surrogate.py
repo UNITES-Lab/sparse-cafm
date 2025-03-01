@@ -11,13 +11,13 @@ from glob import glob
 from tqdm import tqdm
 from typing import Tuple, Dict
 from torch.utils.data import Dataset
-from src.datasets.mos2_sef import MOS2SEFDataset, Formulation
+from src.datasets.mos2_sr import MOS2SRDataset
 from src.util.celano_lab_scripts import process_image
 
 NUM_CHAR_FEATURES = 1
 CROPPED_IMAGE_SIDE_LENGTH = 128
 ORIGINAL_IMAGE_SIZE = (512, 512)
-SURROGATE_NORMS = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/1-23-25/_surrogate_norms.json"
+SURROGATE_NORMS = "data/raw-data/1-23-25/_surrogate_norms.json"
 
 
 def augment_and_process(y: torch.Tensor, img_size_um: float) -> torch.Tensor:
@@ -55,9 +55,7 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
     def __init__(
         self,
         split: str = "train",
-        formulation: Formulation = Formulation.P_Y_BAR_Y_SPARSE,
-        side_length: int = CROPPED_IMAGE_SIDE_LENGTH,
-        masking_ratio: int = 0,
+        upsample_ratio: int = 2,
         steps_per_epoch: int = 100,
         device: int = 0,
         original_image_size: Tuple[int, int] = ORIGINAL_IMAGE_SIZE,
@@ -65,18 +63,13 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         surrogate_norms_fp: str = SURROGATE_NORMS,
     ):
         self.split = split
-        self.formulation = formulation
-        self.side_length = side_length
-        self.masking_ratio = masking_ratio
+        self.upsample_ratio = upsample_ratio
         self.steps_per_epoch = steps_per_epoch
         self.device = device
         self.original_image_size = original_image_size
 
-        self.dataset = MOS2SEFDataset(
+        self.dataset = MOS2SRDataset(
             split=split,
-            formulation=formulation,
-            side_length=side_length,
-            masking_ratio=masking_ratio,
             steps_per_epoch=steps_per_epoch,
             device=device,
             original_image_size=original_image_size,
@@ -228,8 +221,8 @@ class MOS2SefOLDERSurrogateDataset(Dataset):
         target_arr = [None] * NUM_CHAR_FEATURES
 
         # NOTE: use non-bootstraped val
-        target_arr[0] = y_char_og["average_surface_current"]
-        # target_arr[0] = y_char_og["coverage_percentage"]
+        target_arr[0] = y_char_og["coverage_percentage"]
+        # target_arr[0] = y_char_og["average_surface_current"]
 
         # target_arr[1] = y_char["coverage_percentage"]
         # target_arr[2] = y_char["num_extended_shapes"]

@@ -257,9 +257,9 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
     }
 
 def calculate_diff_between_samples(
-        x1:torch.Tensor, 
-        x2:torch.Tensor, 
-        image_size_um:float
+        x1: torch.Tensor, 
+        x2: torch.Tensor, 
+        image_size_um: float
     ) -> dict:
     
     eps = 1e-12
@@ -269,14 +269,14 @@ def calculate_diff_between_samples(
     diffs = {}
     for k in char_1:
         v1, v2 = char_1[k], char_2[k]
-        if (v1) == 0:
-            # avoid division by zero
-            mapd = abs((v1 - v2) / (v1 + eps) )
-        else:
-            mapd = abs((v1 - v2) / (v1))
+        denom = abs(v1)
+        if denom < eps:
+            denom = eps  # Prevent division by zero for near-zero values
+        mapd = abs(v1 - v2) / denom
         diffs[k] = mapd
 
     return diffs
+
 
 
 if __name__ == "__main__":

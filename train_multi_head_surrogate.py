@@ -8,7 +8,7 @@ from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
-from src.models.our_method.older_surrogate import  MultiHeadOLDERSurrogate
+from src.models.our_method.expert_eval_surrogate import ExpertSurrogate
 from src.datasets.mos2_sef import Formulation as F
 from src.datasets.mos2_sef_surrogate import MOS2SefOLDERSurrogateDataset, SyntheticMOS2SefOLDERSurrogateDataset
 from src.util.logger import ExperimentLogger
@@ -19,8 +19,6 @@ from src.util.config import (
     OPTIMIZERS,
     MODELS,
 )
-from src.util.celano_lab_scripts import process_image as celano_lab_characterization
-from src.util.metrics import OLDER
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/train_older_surrogate_standalone.yaml")
 
@@ -85,7 +83,7 @@ def train(args: argparse.Namespace, config: TrainConfig, model_config: Optional[
     logger = setup_logger(config, model_config)
 
     # create model
-    older_surrogate_model: MultiHeadOLDERSurrogate = create_model(config)
+    older_surrogate_model: ExpertSurrogate = create_model(config)
     
     train_dataloader = create_dataloader(config, "train")
     val_dataloader = create_dataloader(config, "val")

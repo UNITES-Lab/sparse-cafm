@@ -9,10 +9,10 @@ from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List, Union
 from glob import glob
 
-MOS2_SYNTHETIC = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/synth-datasets"
-MOS2_SAPPHIRE_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/11-19-24/2. MoS2 on Sapphire"
-MOS2_SILICON_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/11-19-24/2. MoS2 on Sapphire"
-MOS2_SEF_SRC_DIR = "/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/data/raw-data/1-23-25"
+MOS2_SYNTHETIC    = "data/synth-datasets"
+MOS2_SAPPHIRE_DIR = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
+MOS2_SILICON_DIR  = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
+MOS2_SEF_SRC_DIR  = "data/raw-data/1-23-25"
 
 TRAIN_SPLIT = "train"
 VAL_SPLIT = "val"

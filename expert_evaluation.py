@@ -70,6 +70,10 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
             sample_y_sparse = y_sparse[i]
             sample_y_hat = y_hat[i]
 
+            # HACK: scale -> y_sparse mean
+            alpha = sample_y_sparse.mean() / sample_y_hat.mean()
+            sample_y_hat *= alpha
+
             # baseline
             current_baseline_errs = calculate_diff_between_samples(sample_y, sample_y_sparse, 2.0)
             
