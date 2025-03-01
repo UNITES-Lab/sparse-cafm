@@ -75,7 +75,7 @@ class ExpertSurrogate(nn.Module):
                 nn.LayerNorm(256),
                 nn.Dropout(p=0.3),
                 nn.Linear(256, 1),
-            ) for _ in range(num_heads)]
+            ) for _ in range(self.num_heads)]
         )
 
         # NOTE: use a specialized module for avg_surface_current

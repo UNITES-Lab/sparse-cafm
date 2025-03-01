@@ -21,6 +21,17 @@ from src.util.config import (
 )
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/train_older_surrogate_standalone.yaml")
+EXPERT_FEATURES = [
+    "average_surface_current",
+    "coverage_percentage",
+    "total_area_extended_shapes",
+    "total_len_detected_curves",
+    "total_area_circular_shapes",
+    "total_defect_area",
+    "num_extended_shapes",
+    "num_circular_shapes",
+    "num_curved_lines",
+]
 
 
 def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
@@ -37,7 +48,6 @@ def setup_logger(train_config: TrainConfig, model_config: Optional[ModelConfig])
 
 def create_model(args) -> nn.Module:
     model = ExpertSurrogate()
-    return model.cuda(config.device).float()
 
 
 def create_dataloader(config: TrainConfig, split: str) -> DataLoader:
@@ -257,6 +267,7 @@ def main(args: argparse.Namespace) -> None:
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
     # -------------------- training config args --------------------
     parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
@@ -267,5 +278,22 @@ if __name__ == "__main__":
     parser.add_argument("-wsz", "--window_size", type=int, help="Size of shifted attention window", default=8)
     parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
     parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
+    # -------------------- expert features --------------------
+    parser.add_argument("-asc", "--average_surface_current",    action="store_true", help="Enable average surface current", default=False)
+    parser.add_argument("-cpt", "--coverage_percentage",        action="store_true", help="Enable coverage percentage", default=False)
+    parser.add_argument("-tes", "--total_area_extended_shapes", action="store_true", help="Enable total area extended shapes", default=False)
+    parser.add_argument("-tdc", "--total_len_detected_curves",  action="store_true", help="Enable total len detected curves", default=False)
+    parser.add_argument("-tda", "--total_defect_area",          action="store_true", help="Enable total defect area", default=False)
+    parser.add_argument("-tac", "--total_area_circular_shapes", action="store_true", help="Enable total area circular shapes", default=False)
+    parser.add_argument("-nes", "--num_extended_shapes",        action="store_true", help="Enable number of extended shapes", default=False)
+    parser.add_argument("-ncs", "--num_circular_shapes",        action="store_true", help="Enable number of circular shapes", default=False)
+    parser.add_argument("-ncl", "--num_curved_lines",           action="store_true", help="Enable number of curved lines", default=False)
     args = parser.parse_args()
+
+    # select expert features
+    selected_features = []
+    for feat in EXPERT_FEATURES:
+        if getattr(args, feat):
+            selected_features.append(feat)
+
     main(args)
