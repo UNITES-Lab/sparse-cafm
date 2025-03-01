@@ -14,12 +14,15 @@ def compute_surface_roughness(topology: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: A scalar tensor representing the surface roughness.
     """
+
     # mean height
     mean_val = torch.mean(topology)
+    
     # RMS roughness
     squared_deviations = (topology - mean_val) ** 2
     mean_squared_deviation = torch.mean(squared_deviations)
     roughness = torch.sqrt(mean_squared_deviation)
+    
     return roughness
 
 

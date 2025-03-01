@@ -11,7 +11,7 @@ from rich.rule import Rule
 from rich.pretty import Pretty
 from pprint import pprint
 from torch.utils.data import DataLoader
-from src.util.celano_lab_scripts import calculate_diff_between_samples, pcnt_diff_surface_roughness
+from src.util.celano_lab_scripts import calculate_diff_between_samples, pcnt_diff_surface_roughness, compute_surface_roughness
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SEF_SRC_DIR, MOS2_SAPPHIRE_DIR, MOS2_SILICON_DIR
 
@@ -73,14 +73,24 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
             sample_y_sparse = y_sparse[i]
             sample_y_hat = y_hat[i]
 
-            # HACK: scale -> y_sparse mean
-            alpha = sample_y_sparse.mean() / sample_y_hat.mean()
-            sample_y_hat *= alpha
-
             if formulation=="X":
+
+                # HACK: normalize sf
+                current = compute_surface_roughness(sample_y_hat) 
+                target = compute_surface_roughness(sample_y_sparse)
+                scale = target / current
+                sample_y_hat: torch.Tensor = (sample_y_hat.mean()) + \
+                    scale * (sample_y_hat - sample_y_hat.mean())
+  
                 total_baseline_sr.append(pcnt_diff_surface_roughness(sample_y, sample_y_sparse))
                 total_pred_sr.append(pcnt_diff_surface_roughness(sample_y, sample_y_hat))
+            
             elif formulation=="y":
+
+                # HACK: scale -> y_sparse mean
+                alpha = sample_y_sparse.mean() / sample_y_hat.mean()
+                sample_y_hat *= alpha
+
                 # baseline
                 current_baseline_errs = calculate_diff_between_samples(sample_y, sample_y_sparse, 2.0)
                 # experiment
