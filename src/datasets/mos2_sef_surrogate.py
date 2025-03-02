@@ -1,4 +1,8 @@
 import json
+import os
+import sys
+import time
+import timeit
 import torch
 import random
 import concurrent
@@ -139,31 +143,19 @@ class ExpertSurrogateDataset(Dataset):
 
         NUM_BENCHMARK_STEPS = 1000
 
-        # Initialize datasets using direct indexing
-        train_dataset = MOS2SEFDataset(
+        train_dataset = MOS2SRDataset(
             split="train",
-            formulation=self.formulation,
-            side_length=self.side_length,
-            masking_ratio=self.masking_ratio,
             steps_per_epoch=NUM_BENCHMARK_STEPS,
-            device=self.device,
             original_image_size=self.original_image_size,
         )
         train_dataloader = DataLoader(train_dataset, batch_size=1, num_workers=8)
 
-        # Use defaultdict to avoid membership checks
         samples = defaultdict(list)
-
         for train_item in tqdm(train_dataloader, total=NUM_BENCHMARK_STEPS, desc="Calculating global mean/stds..."):
-            
-            # Process images
             train_char = process_image(train_item["y_unnorm"], self.dataset.img_size_um)
-            
-            # Accumulate values for each key
             for k, v in train_char.items():
                 samples[k].append(v)
 
-        # Compute normalization statistics using numpy vectorized operations
         self.normalization_dict = {
             k: {"mean": np.mean(values), "std": np.std(values)}
             for k, values in samples.items()
@@ -196,7 +188,8 @@ class ExpertSurrogateDataset(Dataset):
 
         # NOTE: we reduce variance by sampling multiple times from the expert charcterization script
         # using slight augmentations of the original input image
-        NUM_BOOTSTRAPS = 20
+        NUM_BOOTSTRAPS = 1
+
         results = []
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = [

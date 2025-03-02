@@ -31,6 +31,7 @@ class AvgSurfaceCurrentSurrogate(nn.Module):
         """
         Calculate the average surface current of a sample.
         """
+
         return (torch.mean(x, dim=(1,2,3))).unsqueeze(1)
     
 
@@ -79,8 +80,8 @@ class ExpertSurrogate(nn.Module):
         )
 
         # NOTE: use a specialized module for avg_surface_current
-        if "average_surface_current" in features:
-            self.heads[0] = self.avg_surface_current_head
+        # if "average_surface_current" in features:
+        #     self.heads[0] = self.avg_surface_current_head
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

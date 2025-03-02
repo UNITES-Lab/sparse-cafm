@@ -18,9 +18,8 @@ from src.util.config import (
     OPTIMIZERS,
     MODELS,
 )
-torch.multiprocessing.set_sharing_strategy('file_system')
 
-TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/train_older_surrogate_standalone.yaml")
+TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/expert_surrogate.yaml")
 EXPERT_FEATURES = [
     "average_surface_current",
     "coverage_percentage",
@@ -64,7 +63,7 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
         dataset,
         batch_size=config.train_batch_size,
         shuffle=False,
-        num_workers= 16
+        num_workers=0
     )
 
 

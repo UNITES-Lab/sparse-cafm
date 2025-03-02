@@ -300,6 +300,14 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
     }
 
 
+def process_batch(x: np.ndarray, image_size_um: float) -> list:
+    results = []
+    for current_map in x:
+        result = process_image(current_map, image_size_um)
+        results.append(result)
+    return results
+
+
 def calculate_diff_between_samples(
         x1: torch.Tensor, 
         x2: torch.Tensor, 

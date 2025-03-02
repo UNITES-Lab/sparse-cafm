@@ -66,6 +66,7 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
     assert str(args.dataset) in ['all', 'synthetic', 'mos2-sef', 'sapphire', 'silicon']
     
     src_dir = {
+        "all": None,
         "synthetic": MOS2_SYNTHETIC,
         "mos2-sef": MOS2_SEF_SRC_DIR,
         "sapphire": MOS2_SAPPHIRE_DIR,

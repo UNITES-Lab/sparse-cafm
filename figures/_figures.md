@@ -1,4 +1,5 @@
 # **Qualitative**
+---
 
 1. [Spider Chart]
     - 1a. cherry pick the best dataset: [MoS2-Sef, Silicon, Sapphire]
@@ -6,13 +7,18 @@
 2. [Image Grid] Main Results (electrical characterization)
     - Show cherry picked model outputs @[2x, 4x, 8x] levels of sparsity for **electrical maps**
 3. [Diagram] Method
-    - Show a high-level overview of how our models works (SwinIR + surrogate)
+    - Show a high-level overview of how our method works
+    - Include a diagram showing the sparse sampling patterns used to obtain downsampled maps
+        - e.g., Fig.1 [G. Han, B. Lin /Ultramicroscopy 189 (2018) 85–94]
 4. [Image Grid] Main Results (surface morphology)
     - Show cherry picked model outputs @[2x, 4x, 8x] levels of sparsity for **topological maps**
 5. [Bar Chart] Performance of Surrogate Model (or before/after surrogate model loss?)
     - Show that the surrogate model **helps**; maybe report before/after scores on electircal characterization metrics with L1 vs surrogate
+6. [Diagram] Model Architecture
+    - Side by side digram showing designs of 1.) SwinIR/super-resolution model, 2.) eletrical-characterization surrogate
 
 # **Quantitative**
+---
 
 1. [Table] Main Results (electrical characterization)
     - Large table showing performance of our model on **electrical characterization metrics** on different datasets/levels of sparisty
