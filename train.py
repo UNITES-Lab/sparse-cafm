@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import argparse
 import warnings
@@ -16,7 +17,7 @@ from torch.utils.data import DataLoader
 
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.our_method.expert_eval_surrogate import ExpertSurrogate, AvgSurfaceCurrentSurrogate
-from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR, MOS2_SYNTHETIC
+from src.datasets.mos2_sr import UnifiedMOS2SRDataset, MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR, MOS2_SYNTHETIC
 from src.util.logger import ExperimentLogger
 from src.util.config import (
     TrainConfig,
@@ -62,7 +63,8 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
     
-    assert str(args.dataset) in ['synthetic', 'mos2-sef', 'sapphire', 'silicon']
+    assert str(args.dataset) in ['all', 'synthetic', 'mos2-sef', 'sapphire', 'silicon']
+    
     src_dir = {
         "synthetic": MOS2_SYNTHETIC,
         "mos2-sef": MOS2_SEF_SRC_DIR,
@@ -70,16 +72,28 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
         "silicon": MOS2_SILICON_DIR
     }[args.dataset]
     
-    dataset = MOS2SRDataset(
-        src_dir=src_dir,
-        split=split,
-        steps_per_epoch=(
-            int(config.steps_per_epoch * config.train_batch_size)
-            if split == "train"
-            else config.val_steps_per_epoch
-        ),
-        upsample_factor=int(args.upsample_factor)
-    )
+    dataset = None
+    if str(args.dataset) == 'all':
+        dataset = UnifiedMOS2SRDataset(
+            split=split,
+            steps_per_epoch=(
+                int(config.steps_per_epoch * config.train_batch_size)
+                if split == "train"
+                else config.val_steps_per_epoch
+            ),
+            upsample_factor=int(args.upsample_factor)
+        )
+    else:
+        dataset = MOS2SRDataset(
+            src_dir=src_dir,
+            split=split,
+            steps_per_epoch=(
+                int(config.steps_per_epoch * config.train_batch_size)
+                if split == "train"
+                else config.val_steps_per_epoch
+            ),
+            upsample_factor=int(args.upsample_factor)
+        )
     return DataLoader(
         dataset,
         batch_size=(
@@ -155,13 +169,19 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
         ):
 
             F = args.formulation
-            assert F in ['X', 'y']
+            assert F in ['X', 'y', 'both']
 
-            # current-map: y; [128, 128]
-            y: torch.Tensor = batch[F].cuda(device)
-
-            # current-map: y_sparse; [64, 64]
-            y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
+            y, y_sparse = None, None
+            if F == 'both':
+                _F = "y" if random.random() < 0.5 else "X"
+                y: torch.Tensor = batch[_F].cuda(device)
+                # current-map: y_sparse; [64, 64]
+                y_sparse: torch.Tensor = batch[f"{_F}_sparse"].cuda(device)
+            else:
+                # current-map: y; [128, 128]
+                y: torch.Tensor = batch[F].cuda(device)
+                # current-map: y_sparse; [64, 64]
+                y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
             # zero gradients
             optimizer.zero_grad()
@@ -170,14 +190,14 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             y_hat: torch.Tensor = model(y_sparse)
             
             # --- L1 ----
-            # loss = torch.nn.functional.l1_loss(y, y_hat)
+            loss = torch.nn.functional.l1_loss(y, y_hat)
 
             # --- Mean Avg Current ----
             # use surrogate model to estimate: 
             # surface_current(y) - surface_current(y_hat)
-            loss = torch.nn.functional.l1_loss(
-                surrogate_model(y), surrogate_model(y_hat)
-            )
+            # loss = torch.nn.functional.l1_loss(
+            #     surrogate_model(y), surrogate_model(y_hat)
+            # )
             
             loss.backward()
             optimizer.step()
@@ -213,13 +233,19 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             ):
                 
                 F = args.formulation
-                assert F in ['X', 'y']
+                assert F in ['X', 'y', 'both']
 
-                # current-map: y; [128, 128]
-                y: torch.Tensor = batch[F].cuda(device)
-
-                # current-map: y_sparse; [64, 64]
-                y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
+                y, y_sparse = None, None
+                if F == 'both':
+                    _F = "y" if random.random() < 0.5 else "X"
+                    y: torch.Tensor = batch[_F].cuda(device)
+                    # current-map: y_sparse; [64, 64]
+                    y_sparse: torch.Tensor = batch[f"{_F}_sparse"].cuda(device)
+                else:
+                    # current-map: y; [128, 128]
+                    y: torch.Tensor = batch[F].cuda(device)
+                    # current-map: y_sparse; [64, 64]
+                    y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
                 # ---- forward: p(y | y_sparse) ----
                 y_hat: torch.Tensor = model(y_sparse)
@@ -311,9 +337,9 @@ if __name__ == "__main__":
     # -------------------- training config args --------------------
     parser.add_argument("-e","--exp_name",type=str,help="Experiment directory name.",default="my-experiment",)
     parser.add_argument("-r","--root", type=str, help="Root directory to save experiment in.",default="__exps__/",)
-    parser.add_argument("-ds", "--dataset", type=str, help="['synthetic', 'mos2-sef', 'sapphire', 'silicon']", default="mos2-sef")
+    parser.add_argument("-ds", "--dataset", type=str, help="'synthetic', 'mos2-sef', 'sapphire', 'silicon', 'all']", default="mos2-sef")
     parser.add_argument("-ws", "--weights", type=str, help="Path to model checkpoints", default="")
-    parser.add_argument("-fm", "--formulation", type=str, help="['X', 'y']", default="y")
+    parser.add_argument("-fm", "--formulation", type=str, help="['X', 'y', 'both']", default="y")
     # -------------------- model config args --------------------
     parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
     parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)

@@ -450,32 +450,7 @@ class UnifiedMOS2SRDataset(Dataset):
         elif choice < .66: item = self.sapphire_dataset.__getitem__(index)
         else:              item =   self.silicon_datset.__getitem__(index)
 
-        y: torch.Tensor = item["X"]
-
-        # [-1, 1] -> [0, 1]
-        # y_sig = (y - y.min()) / (y.max() - y.min())
-        # -> [0, 1]; y is already normalized
-        y_sig = y.clone()
-
-        # HACK: unconditional training
-        # we feed the ControlNet adapter module a completely blank input
-        y_sparse = (y.clone()) * 0
-
-        # -> [H, W, C]
-        # [H, W] -> [H, W, 1]
-        y_img_like = y_sig.clone()
-        y_img_like = y_img_like.unsqueeze(-1)
-        # [H, W, 1] -> [H, W, 3]
-        y_img_like = y_img_like.repeat(1, 1, 3)
-        # [H, W] -> [H, W, 1]
-        y_sparse_img_like = y_sparse.clone()
-        y_sparse_img_like = y_sparse_img_like.unsqueeze(-1)
-        # [H, W, 1] -> [H, W, 3]
-        y_sparse_img_like = y_sparse_img_like.repeat(1, 1, 3)
-        # [0, 1] -> [-1, 1]
-        y_img_like = (y_img_like * 2) - 1
-
-        return dict(jpg=y_img_like, txt="", hint=y_sparse_img_like)
+        return item
 
 
 if __name__ == "__main__":
