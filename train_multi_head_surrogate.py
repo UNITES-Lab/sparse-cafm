@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
 from src.models.our_method.expert_eval_surrogate import ExpertSurrogate
-from src.datasets.mos2_sef import Formulation as F
 from src.datasets.mos2_sef_surrogate import ExpertSurrogateDataset
 from src.util.logger import ExperimentLogger
 from src.util.config import (
@@ -19,6 +18,7 @@ from src.util.config import (
     OPTIMIZERS,
     MODELS,
 )
+torch.multiprocessing.set_sharing_strategy('file_system')
 
 TRAIN_CONFIG_FP = os.path.abspath("configs/train-configs/train_older_surrogate_standalone.yaml")
 EXPERT_FEATURES = [

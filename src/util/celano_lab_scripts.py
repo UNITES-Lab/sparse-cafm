@@ -146,8 +146,12 @@ def process_image(data: np.ndarray, image_size_um: float) -> dict:
     # Sort the peaks by intensity and filter out the peak at the very beginning (close to 0)
     sorted_peaks = sorted(zip(hist[peaks], peak_intensities), reverse=True)
 
+    # HACK: we occasionally get an IndexOOB error here:
     # select the primary peak closest to 0
-    primary_peak_value = sorted_peaks[0][1]
+    try:
+        primary_peak_value = sorted_peaks[0][1]
+    except:
+        primary_peak_value = 0.0
 
     # Find the index of the primary peak
     primary_peak_index = np.digitize(

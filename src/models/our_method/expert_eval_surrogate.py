@@ -22,18 +22,16 @@ EXPERT_FEATURES = [
 ]
 
 
-
 class AvgSurfaceCurrentSurrogate(nn.Module):
 
-    def __init__(self, mean: float, std: float):
+    def __init__(self):
         super(AvgSurfaceCurrentSurrogate, self).__init__()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Calculate the average surface current of a sample.
         """
-        
-        return torch.mean(x) * 1000
+        return (torch.mean(x, dim=(1,2,3))).unsqueeze(1)
     
 
 class ExpertSurrogate(nn.Module):
@@ -50,10 +48,12 @@ class ExpertSurrogate(nn.Module):
         """
         
         super(ExpertSurrogate, self).__init__()
+
+        self.features = features
         self.num_heads = len(features)
         
         # specialized module that predicts `avg_surface_current`
-        # self.avg_surface_current_head = AvgSurfaceCurrentSurrogate()
+        self.avg_surface_current_head = AvgSurfaceCurrentSurrogate()
         
         # ---- VGG-19 Feature Extractor ----
         # self.backbone = models.vgg19_bn(weights=models.VGG19_BN_Weights.DEFAULT)
@@ -79,7 +79,8 @@ class ExpertSurrogate(nn.Module):
         )
 
         # NOTE: use a specialized module for avg_surface_current
-        # self.heads[0] = self.avg_surface_current_head
+        if "average_surface_current" in features:
+            self.heads[0] = self.avg_surface_current_head
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -102,11 +103,18 @@ class ExpertSurrogate(nn.Module):
         # [B, 1, H, W] -> [B, 3, H, W]
         x = x.repeat(1, 3, 1, 1)
         
+        skip = x.clone()
+
         # [B, 3, H, W] -> [B, 1000]
         x = self.backbone(x)
 
-        # predict each characteristic
-        preds = [head(x) for head in self.heads]
+        if "average_surface_current" in self.features:
+            preds = [None]
+            if len(self.heads) > 1:
+                preds = [None] + [head(x) for head in self.heads[1: ]]
+            preds[0] = self.avg_surface_current_head(skip)
+        else:
+            preds = [head(x) for head in self.heads]
 
         out = torch.cat(preds, dim=-1)
         

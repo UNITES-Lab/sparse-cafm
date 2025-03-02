@@ -409,6 +409,7 @@ class UnifiedMOS2SRDataset(Dataset):
         """
 
         super(UnifiedMOS2SRDataset, self).__init__()
+        
         self.mos2_sef_dataset = MOS2SRDataset(
             src_dir=MOS2_SEF_SRC_DIR,
             split=split,
@@ -416,6 +417,7 @@ class UnifiedMOS2SRDataset(Dataset):
             steps_per_epoch=steps_per_epoch,
             original_image_size=original_image_size,
         )
+
         self.sapphire_dataset = MOS2SRDataset(
             src_dir=MOS2_SAPPHIRE_DIR,
             split=split,
@@ -423,6 +425,7 @@ class UnifiedMOS2SRDataset(Dataset):
             steps_per_epoch=steps_per_epoch,
             original_image_size=original_image_size,
         )
+        
         self.silicon_datset = MOS2SRDataset(
             src_dir=MOS2_SILICON_DIR,
             split=split,
@@ -431,7 +434,8 @@ class UnifiedMOS2SRDataset(Dataset):
             original_image_size=original_image_size,
         )
 
-    def __len__(self): return len(self.mos2_sef_dataset)
+    def __len__(self): 
+        return len(self.mos2_sef_dataset)
 
     def __getitem__(self, index: int) -> dict:
         """

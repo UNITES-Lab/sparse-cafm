@@ -27,6 +27,7 @@ from src.util.config import (
 )
 
 warnings.simplefilter("always")
+torch.multiprocessing.set_sharing_strategy('file_system')
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 CONSOLE = Console()
 
@@ -169,7 +170,7 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             y_hat: torch.Tensor = model(y_sparse)
             
             # --- L1 ----
-            # ... 
+            # loss = torch.nn.functional.l1_loss(y, y_hat)
 
             # --- Mean Avg Current ----
             # use surrogate model to estimate: 
