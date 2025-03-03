@@ -148,7 +148,7 @@ class ExpertSurrogateDataset(Dataset):
             steps_per_epoch=NUM_BENCHMARK_STEPS,
             original_image_size=self.original_image_size,
         )
-        train_dataloader = DataLoader(train_dataset, batch_size=1, num_workers=8)
+        train_dataloader = DataLoader(train_dataset, batch_size=1, num_workers=16)
 
         samples = defaultdict(list)
         for train_item in tqdm(train_dataloader, total=NUM_BENCHMARK_STEPS, desc="Calculating global mean/stds..."):
@@ -186,6 +186,7 @@ class ExpertSurrogateDataset(Dataset):
         # get a copy so that we can use non-bootstraped `average_surface_current`
         y_char_og = y_char.copy()
 
+        # TODO: perform identical bootstrapping in eval script
         # NOTE: we reduce variance by sampling multiple times from the expert charcterization script
         # using slight augmentations of the original input image
         NUM_BOOTSTRAPS = 1
@@ -226,7 +227,7 @@ class ExpertSurrogateDataset(Dataset):
 
         for i, feat in enumerate(self.expert_features):
             target_arr[i] = y_char[feat]
-            
+
         target = torch.Tensor(target_arr).float()
 
         item = {}
@@ -237,5 +238,6 @@ class ExpertSurrogateDataset(Dataset):
 
 
 if __name__ == "__main__":
+
     dataset = ExpertSurrogateDataset()
     dataset[0]

@@ -38,7 +38,6 @@ class AvgSurfaceCurrentSurrogate(nn.Module):
 class ExpertSurrogate(nn.Module):
     """
     Predict Celano-Lab characterizations of current-map samples.
-    
     - [H, W] -> surrogate -> [NUM_FEATS]
     - [H, W] -> swinir -> surrogate -> [NUM_FEATS]
     """

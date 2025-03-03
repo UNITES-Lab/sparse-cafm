@@ -330,6 +330,24 @@ def calculate_diff_between_samples(
     return diffs
 
 
+def calculate_abs_diff_between_samples(
+        x1: torch.Tensor, 
+        x2: torch.Tensor, 
+        image_size_um: float
+    ) -> dict:
+    
+    char_1 = process_image(x1, image_size_um)
+    char_2 = process_image(x2, image_size_um)
+
+    diffs = {}
+    for k in char_1:
+        v1, v2 = char_1[k], char_2[k]
+        err = abs(v1 - v2)
+        diffs[k] = err
+
+    return diffs
+
+
 if __name__ == "__main__":
     x1 = torch.rand((1, 128, 128))
     x2 = torch.rand((1, 128, 128))
