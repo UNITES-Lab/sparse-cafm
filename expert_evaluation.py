@@ -13,9 +13,10 @@ from pprint import pprint
 from torch.utils.data import DataLoader
 
 from src.util.logger import Logger
-from src.util.celano_lab_scripts import calculate_abs_diff_between_samples, pcnt_diff_surface_roughness, compute_surface_roughness, process_image
 from src.util.metrics import PSNR, SSIM
+from src.util.celano_lab_scripts import calculate_abs_diff_between_samples, pcnt_diff_surface_roughness, compute_surface_roughness, process_image
 from src.models.our_method.swin_cafm import SwinCAFM
+from src.models.prev_methods.gpr import GPR
 from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SEF_SRC_DIR, MOS2_SAPPHIRE_DIR, MOS2_SILICON_DIR
 
 warnings.simplefilter("ignore")
@@ -42,8 +43,11 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
     logger = Logger(args.exp_root, args.exp_name)
 
     # load model obj
-    model: SwinCAFM = torch.load(fp).cuda().float()
-    model.eval()
+    # model: SwinCAFM = torch.load(fp).cuda().float()
+    # model.eval()
+    
+    # HACK: use GPR as basline
+    model = GPR()
     
     src_dir = ""
     if dataset_name == "mos2-sef": src_dir = MOS2_SEF_SRC_DIR
@@ -56,7 +60,8 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
         upsample_factor=upsampling_ratio, 
         steps_per_epoch=NUM_TRIALS
     )
-    data_loader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=8)
+    BATCH_SIZE = 2
+    data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
 
     total_pred_sr = []
     total_baseline_sr = []
@@ -80,6 +85,8 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
         y_hat    = model(y_sparse)
 
         if formulation=="y":
+
+            breakpoint()
 
             psnr = PSNR(y, y_hat).item()
             y_c = y.unsqueeze(1).repeat(1, 3, 1, 1)

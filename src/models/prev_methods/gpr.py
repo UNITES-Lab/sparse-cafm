@@ -21,23 +21,28 @@ class GPR:
         self.gpr_model = None
 
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
-        
-        if self.gpr_model == None:
+
+        if self.gpr_model is None:
             self.gpr_model = self.gpr_sr(x)
 
-        x = x.clone().cpu().numpy()
-        H, W = x.shape
+        x_np = x.clone().cpu().numpy()
 
-        H_hr, W_hr = self.sr * H, self.sr * W
-        grid_x = np.linspace(0, 1, H_hr)
-        grid_y = np.linspace(0, 1, W_hr)
-        xx, yy = np.meshgrid(grid_x, grid_y, indexing='ij')
-        X_pred = np.column_stack([xx.ravel(), yy.ravel()])
+        if x_np.ndim == 2:
+            x_np = x_np[None, ...]
 
-        y_pred, y_std = self.gpr_model.predict(X_pred, return_std=True)
-        y_pred_img = y_pred.reshape(H_hr, W_hr)
+        batch_outputs = []
+        for img in x_np:
+            H, W = img.shape
+            H_hr, W_hr = self.sr * H, self.sr * W
+            grid_x = np.linspace(0, 1, H_hr)
+            grid_y = np.linspace(0, 1, W_hr)
+            xx, yy = np.meshgrid(grid_x, grid_y, indexing='ij')
+            X_pred = np.column_stack([xx.ravel(), yy.ravel()])
+            y_pred, y_std = self.gpr_model.predict(X_pred, return_std=True)
+            y_pred_img = y_pred.reshape(H_hr, W_hr)
+            batch_outputs.append(torch.Tensor(y_pred_img))
 
-        return torch.Tensor(y_pred_img)
+        return torch.stack(batch_outputs, dim=0)
 
     def gpr_sr(self, y_sparse: torch.Tensor):
         """
