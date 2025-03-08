@@ -20,6 +20,70 @@ FIGURES_DIR_NAME = "figures"
 RESULTS_CSV_NAME = "results.csv"
 
 
+class Logger:
+    """
+    A slightly more flexible logger that doesn't require config files.
+    The user must call ._flush to write.
+    """
+
+    def __init__(self, root: str, exp_name: str):
+        """
+        :param root: path to dir to log experiment
+        """
+
+        # path to experiment
+        assert os.path.isdir(root)
+        self.root = root
+        try:
+            os.makedirs(self.root, exist_ok=True)
+        except:
+            raise Exception(
+                f"Could not create a new experiment directory @: \n \
+                {self.root}")
+        
+        # name of new subdir for expeiment
+        self.exp_name = exp_name
+        try:
+            os.makedirs(
+                os.path.join(self.root, self.exp_name), 
+                exist_ok=True)
+        except:
+            raise Exception(
+                f"Could not create a new experiment directory @: \n \
+                {os.path.join(self.root, self.exp_name)}")
+        
+        self.results_out_path = os.path.join(root, exp_name, "results.csv")
+        
+        # logs
+        self.results = pd.DataFrame()
+        self.log_buffer = []
+
+
+    def _flush(self):
+
+        if not self.log_buffer: return
+        
+        # init new results table from buffer
+        _logs = pd.DataFrame.from_records(self.log_buffer)
+
+        # append results in memory
+        self.results = pd.concat([self.results, _logs], ignore_index=True)
+        if not os.path.exists(self.results_out_path):
+            # create new file
+            _logs.to_csv(self.results_out_path, index=False)
+        else:
+            # write to csv in append mode
+            _logs.to_csv(self.results_out_path, mode="a", header=False, index=False)
+        
+        self.log_buffer = []
+ 
+    def log(self,  **kwargs) -> None:
+        
+        # append results to mem
+        self.log_buffer.append(kwargs)
+        self._flush()
+
+
 class ExperimentLogger:
     """
     A flexible logger used to record and organize experimental runs.

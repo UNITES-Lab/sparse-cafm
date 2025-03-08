@@ -31,3 +31,10 @@
     - Q: how well does our model transfer from training on synthetically downsampled data to real, downsampled data?
 4. [Table] Main Results (AFM-recovery/surface morphology)
     - Report surface roughness (any other metrics we can report here)?
+
+# **TODO**
+---
+
+- Baseline Methods
+    - 1. GPR
+    - 2. RNAN

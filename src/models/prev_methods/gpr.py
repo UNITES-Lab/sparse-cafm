@@ -9,6 +9,45 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel
+
+
+def gpr_sr(y_sparse: torch.Tensor, SR: int = 2) -> torch.Tensor:
+    
+    x = y_sparse.clone()
+    x = x.cpu().numpy()
+    H, W = x.shape
+
+    # create a train/test set
+    train_indices = np.argwhere(~np.isnan(x))
+    y_train = x[~np.isnan(x)]
+    X_train = train_indices.astype(np.float64)
+    X_train[:, 0] /= (H - 1)
+    X_train[:, 1] /= (W - 1)
+
+    # normalize -> [0, 1]
+    X_train = train_indices.astype(np.float64)
+    X_train[:, 0] /= (H - 1)
+    X_train[:, 1] /= (W - 1)
+
+    kernel = RBF(length_scale=0.1, length_scale_bounds=(1e-2, 1e2)) + WhiteKernel(noise_level=1e-3, noise_level_bounds=(1e-5, 1e1))
+    gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True)
+    gp.fit(X_train, y_train)
+
+    H_hr, W_hr = SR * H, SR * W
+    grid_x = np.linspace(0, 1, H_hr)
+    grid_y = np.linspace(0, 1, W_hr)
+    xx, yy = np.meshgrid(grid_x, grid_y, indexing='ij')
+    X_pred = np.column_stack([xx.ravel(), yy.ravel()])  # shape: (SE*H*SR*W, SR)
+
+    y_pred, y_std = gp.predict(X_pred, return_std=True)
+    y_pred_img = y_pred.reshape(H_hr, W_hr)
+    y_std_img = y_std.reshape(H_hr, W_hr)
+
+    return torch.Tensor(y_pred_img)
+
+
 class GPReconstuctionInpainter(nn.Module):
     """
     [DEP]: An older implementation.
