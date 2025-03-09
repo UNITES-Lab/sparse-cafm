@@ -110,12 +110,13 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     logger = setup_logger(config, model_config)
     model = create_model(config)
 
+    # HACK: we don't need to load a surrogate model anymore
     # load expert-evaluation surrogate
-    surrogate_model: Optional[ExpertSurrogate] = None
-    if args.surrogate_weights != "":
-        CONSOLE.print(Rule(f"Loading surrogate model from: {args.surrogate_weights}"))
-        surrogate_model: ExpertSurrogate = torch.load(args.surrogate_weights)
-        assert isinstance(surrogate_model, ExpertSurrogate)
+    # surrogate_model: Optional[ExpertSurrogate] = None
+    # if args.surrogate_weights != "":
+    #     CONSOLE.print(Rule(f"Loading surrogate model from: {args.surrogate_weights}"))
+    #     surrogate_model: ExpertSurrogate = torch.load(args.surrogate_weights)
+    #     assert isinstance(surrogate_model, ExpertSurrogate)
     
     train_dataloader = create_dataloader(args, config, "train")
     val_dataloader = create_dataloader(args, config, "val")
@@ -134,26 +135,27 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     device = config.device
 
     # NOTE: only supported for SwinCAFM atm
-    if config.model_config_file != None:
+    # HACK: we don't load a checkpoint other than the default checkpoint for
+    # the pre-training ablation
 
-        if args.weights != "": 
-            model_config.weights_fp = str(args.weights)
-            CONSOLE.print(Rule(f"Loading model weights from: {args.weights}"))
+    # if config.model_config_file != None:
 
-            assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
-            
-            # load weights/full model ckpt
-            item = torch.load(args.weights)
-            if   isinstance(item, dict):            model.load_state_dict(item['params'])
-            elif isinstance(item, torch.nn.Module): model = item
-            else: raise Exception()
+    #     if args.weights != "": 
+    #         model_config.weights_fp = str(args.weights)
+    #         CONSOLE.print(Rule(f"Loading model weights from: {args.weights}"))
+    #         assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
+    #         # load weights/full model ckpt
+    #         item = torch.load(args.weights)
+    #         if   isinstance(item, dict):            model.load_state_dict(item['params'])
+    #         elif isinstance(item, torch.nn.Module): model = item
+    #         else: raise Exception()
 
     # as per: https://arxiv.org/pdf/2404.00722
     optimizer = torch.optim.Adam(model.parameters(), lr=float(config.learning_rate))
 
-    if surrogate_model != None:
-        surrogate_model.cuda(device)
-        surrogate_model.float()
+    # if surrogate_model != None:
+    #     surrogate_model.cuda(device)
+    #     surrogate_model.float()
 
     model.cuda(device)
     model.float()

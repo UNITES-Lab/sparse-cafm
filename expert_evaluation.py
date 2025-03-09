@@ -47,7 +47,7 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
     # model.eval()
     
     # HACK: use GPR as basline
-    model = GPR()
+    model = GPR(sr=upsampling_ratio)
     
     src_dir = ""
     if dataset_name == "mos2-sef": src_dir = MOS2_SEF_SRC_DIR
@@ -60,7 +60,7 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
         upsample_factor=upsampling_ratio, 
         steps_per_epoch=NUM_TRIALS
     )
-    BATCH_SIZE = 2
+    BATCH_SIZE  = 32
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
 
     total_pred_sr = []
@@ -82,11 +82,9 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
 
         y        = y.cuda().float()
         y_sparse = y_sparse.cuda().float()
-        y_hat    = model(y_sparse)
+        y_hat    = model(y_sparse).cuda().float()
 
         if formulation=="y":
-
-            breakpoint()
 
             psnr = PSNR(y, y_hat).item()
             y_c = y.unsqueeze(1).repeat(1, 3, 1, 1)

@@ -1,5 +1,6 @@
 import os
 import argparse
+import random
 from typing import Optional
 import torch
 import torch.nn as nn
@@ -7,7 +8,7 @@ import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from pathlib import Path
-from src.datasets.mos2_sef import MOS2SEFDataset, Formulation as F
+from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SYNTHETIC, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR, MOS2_SILICON_DIR, UnifiedMOS2SRDataset
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.util.celano_lab_scripts import process_image as celano_lab_characterization
 from src.util.logger import ExperimentLogger
@@ -23,10 +24,12 @@ from src.util.config import (
 EVAL_CONFIG_FP = os.path.abspath("configs/eval.yaml")
 
 
-def setup_logger(train_config: EvalConfig, model_config: Optional[ModelConfig]) -> ExperimentLogger:
+def setup_logger(
+    train_config: EvalConfig, model_config: Optional[ModelConfig]
+) -> ExperimentLogger:
     logger = ExperimentLogger(
         train_config_dict=train_config.to_dict(),
-        model_config_dict = model_config.to_dict() if model_config != None else None,
+        model_config_dict=model_config.to_dict() if model_config != None else None,
         root=train_config.log_root,
         exp_name=train_config.exp_name,
         log_interval=train_config.log_interval,
@@ -46,42 +49,65 @@ def create_model(config: EvalConfig) -> nn.Module:
     else:
         model = model_fn()
     assert isinstance(model, nn.Module)
-    return model.cuda(config.device).float()
+    return model
 
 
-def create_dataloader(config: EvalConfig, split: str) -> DataLoader:
-    img_size = int(config.image_size)
-    dataset = MOS2SEFDataset(
-        split=split,
-        side_length=int(config.crop_size),
-        formulation=F.get_formulation_from_str(config.formulation),
-        steps_per_epoch=(
-            config.steps_per_epoch if split == "train" else config.val_steps_per_epoch
-        ),
-        device=config.device,
-        original_image_size=(img_size, img_size),
-        masking_ratio=int(config.masking_ratio),
-    )
+def create_dataloader(args, config: EvalConfig, split: str) -> DataLoader:
+    
+    assert str(args.dataset) in ['all', 'synthetic', 'mos2-sef', 'sapphire', 'silicon']
+    
+    src_dir = {
+        "all": None,
+        "synthetic": MOS2_SYNTHETIC,
+        "mos2-sef": MOS2_SEF_SRC_DIR,
+        "sapphire": MOS2_SAPPHIRE_DIR,
+        "silicon": MOS2_SILICON_DIR
+    }[args.dataset]
+    
+    dataset = None
+    if str(args.dataset) == 'all':
+        dataset = UnifiedMOS2SRDataset(
+            split=split,
+            steps_per_epoch=(
+                int(config.steps_per_epoch * config.train_batch_size)
+                if split == "train"
+                else config.val_steps_per_epoch
+            ),
+            upsample_factor=int(args.upsample_factor)
+        )
+    else:
+        dataset = MOS2SRDataset(
+            src_dir=src_dir,
+            split=split,
+            steps_per_epoch=(
+                int(config.steps_per_epoch * config.train_batch_size)
+                if split == "train"
+                else config.val_steps_per_epoch
+            ),
+            upsample_factor=int(args.upsample_factor)
+        )
     return DataLoader(
         dataset,
-        batch_size=config.val_batch_size,
+        batch_size=(
+            config.train_batch_size if split == "train" else config.val_batch_size
+        ),
         shuffle=False,
         num_workers=config.num_workers,
     )
 
-
 @torch.no_grad()
-def eval(config: EvalConfig, model_config: ModelConfig) -> None:
+def eval(args, config: EvalConfig, model_config: ModelConfig) -> None:
 
     logger = setup_logger(config, model_config)
     model = create_model(config)
-    val_dataloader = create_dataloader(config, "val")
-    val_dataset: MOS2SEFDataset = val_dataloader.dataset
+    val_dataloader = create_dataloader(args, config, "val")
+    val_dataset: MOS2SRDataset = val_dataloader.dataset
     device = config.device
 
     # load weights from checkpoint
     if config.weights != None:
         model = torch.load(config.weights)
+        
     assert isinstance(model, torch.nn.Module)
 
     # validation loop
@@ -89,30 +115,29 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
 
     for step, batch in enumerate(tqdm(val_dataloader, desc=f"Evaluating...:")):
         
-        # topo-map:    X
-        X: torch.Tensor = batch["X"].cuda(device)
-        
-        # current-map: y
-        y: torch.Tensor = batch["y"].cuda(device)
-        
-        # ---- remove masked pixels ----
-        mask: torch.Tensor = batch["mask"].cuda(device)
-        y_sparse = (y * mask).float()
-        X_sparse = (X * mask).float()
-        
+        F = args.formulation
+        assert F in ['X', 'y', 'both']
+
+        y, y_sparse = None, None
+        if F == 'both':
+            _F = "y" if random.random() < 0.5 else "X"
+            y: torch.Tensor = batch[_F].cuda(device)
+            # current-map: y_sparse; [64, 64]
+            y_sparse: torch.Tensor = batch[f"{_F}_sparse"].cuda(device)
+        else:
+            # current-map: y; [128, 128]
+            y: torch.Tensor = batch[F].cuda(device)
+            # current-map: y_sparse; [64, 64]
+            y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
+    
         # ---- forward: p(y | y_sparse) ----
-        # TODO: add support for different forwards
-        # y_hat = model.two_item_forward(X_sparse, y_sparse)
-        # y_hat = model(X_sparse)
-        # y_hat = model(y_sparse, mask)
-        y_hat = model(y_sparse)
+        y_hat: torch.Tensor = model(y_sparse)
         # ----------------------------------
 
         # get final predicted image
         triplet_name = f"eval_step_{step}.png"
-        final_pred = ImageInpaintingL1Loss.get_final_prediction(
-            predicted_image=y_hat, target_image=y, mask=mask
-        )
+
+        final_pred = y_hat
 
         # 1. MAE
         mae = MAE(final_pred, y)
@@ -191,9 +216,12 @@ def eval(config: EvalConfig, model_config: ModelConfig) -> None:
 
 def main(args: argparse.Namespace):
 
+    # load training config
     config = EvalConfig(EVAL_CONFIG_FP)
+    config.weights = args.weights
+
     model_config: Optional[ModelConfig] = None
-    
+
     # optional: parse model config
     if config.model_config_file != None:
         model_config_abs_path = os.path.join(
@@ -203,20 +231,48 @@ def main(args: argparse.Namespace):
             model_config_abs_path
         ), f"Bad path to model config: {model_config_abs_path}"
         model_config = ModelConfig(model_config_abs_path)
-        
+
     # -------------------- training config args --------------------
     config.exp_name = args.exp_name
-    config.weights = args.model_weights_path
+    config.log_root = args.root
+    # config.learning_rate = str(args.learning_rate)
+    # config.train_batch_size = int(args.batch_size)
+    # -------------------- model config args --------------------
+    if model_config != None:
+        # transformer block depths; e.g., [6, 6, 6, 6, 6, 6]
+        model_config.depths = [args.depths] * args.num_blocks
+        # num heads per block; e.g., [6, 6, 6, 6, 6, 6]
+        model_config.num_heads = [args.num_heads] * args.num_blocks
+        # size of sifted-attention window
+        model_config.window_size = args.window_size
+        model_config.drop_path_rate = args.drop_path_rate
+        model_config.norm_layer = args.norm_layer
+
+    args.upsample_factor = int(args.upsample_factor)
     
     # run eval
-    eval(config, model_config)
+    eval(args, config, model_config)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # -------------------- eval run config args --------------------
-    parser.add_argument("-e", "--exp_name", type=str, help="Experiment directory name", default="my-experiment")
-    parser.add_argument("-mwp", "--model_weights_path", type=str, help="Path to model checkpoint to evaluate.")
-    # --------------------------------------------------------------
+    # -------------------- training config args --------------------
+    parser.add_argument("-e","--exp_name",type=str,help="Experiment directory name.",default="my-experiment",)
+    parser.add_argument("-r","--root", type=str, help="Root directory to save experiment in.",default="__exps__/",)
+    parser.add_argument("-ds", "--dataset", type=str, help="'synthetic', 'mos2-sef', 'sapphire', 'silicon', 'all']", default="mos2-sef")
+    parser.add_argument("-ws", "--weights", type=str, help="Path to model checkpoints", default="")
+    parser.add_argument("-fm", "--formulation", type=str, help="['X', 'y', 'both']", default="y")
+    # -------------------- model config args --------------------
+    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
+    parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
+    parser.add_argument("-nhs","--num_heads",type=int,help="Number of heads per RSTB block",default=6,)
+    parser.add_argument("-wsz","--window_size",type=int,help="Size of shifted attention window",default=8,)
+    parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
+    parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
+    # -------------------- ablation args --------------------
+    parser.add_argument("-sw", "--surrogate_weights", type=str, help="", default="")
+    parser.add_argument("-lr", "--learning_rate", type=float, help="", default=1e-5)
+    parser.add_argument("-bs", "--batch_size", type=int, help="", default=1)
+    parser.add_argument("-sr", "--upsample_factor", type=int, help="", default=2)
     args = parser.parse_args()
     main(args)

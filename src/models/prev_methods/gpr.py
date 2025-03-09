@@ -3,6 +3,7 @@ Guassian Process Regression.
 Inspired by: https://onlinelibrary.wiley.com/doi/pdf/10.1002/smll.202002878?casa_token=OP1n_oLqe4kAAAAA%3Aiovq39gdeNfEIR8Vyi_FRd3Ec9lz8cDm3m9MtmCoOXbg6w1ohs5YPom5x9uVK9S3wsqmssIPFzfsCIBM9w
 """
 
+from concurrent.futures import ThreadPoolExecutor
 import gpim
 import gpytorch
 import torch
@@ -23,25 +24,29 @@ class GPR:
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
 
         if self.gpr_model is None:
-            self.gpr_model = self.gpr_sr(x)
-
+            self.gpr_model = self.gpr_sr(x[0, ...])
+    
         x_np = x.clone().cpu().numpy()
-
+        
         if x_np.ndim == 2:
             x_np = x_np[None, ...]
-
-        batch_outputs = []
-        for img in x_np:
+        
+        def process_image(img):
             H, W = img.shape
             H_hr, W_hr = self.sr * H, self.sr * W
             grid_x = np.linspace(0, 1, H_hr)
             grid_y = np.linspace(0, 1, W_hr)
             xx, yy = np.meshgrid(grid_x, grid_y, indexing='ij')
             X_pred = np.column_stack([xx.ravel(), yy.ravel()])
+            
             y_pred, y_std = self.gpr_model.predict(X_pred, return_std=True)
             y_pred_img = y_pred.reshape(H_hr, W_hr)
-            batch_outputs.append(torch.Tensor(y_pred_img))
-
+            
+            return torch.Tensor(y_pred_img)
+        
+        with ThreadPoolExecutor() as executor:
+            batch_outputs = list(executor.map(process_image, x_np))
+        
         return torch.stack(batch_outputs, dim=0)
 
     def gpr_sr(self, y_sparse: torch.Tensor):
