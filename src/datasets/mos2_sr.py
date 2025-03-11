@@ -446,10 +446,15 @@ class UnifiedMOS2SRDataset(Dataset):
 
         item = {}
         choice = random.random()
-
-        if choice   < .33: item = self.mos2_sef_dataset.__getitem__(index)
-        elif choice < .66: item = self.sapphire_dataset.__getitem__(index)
-        else:              item =   self.silicon_datset.__getitem__(index)
+        
+        # if choice   < .33: item = self.mos2_sef_dataset.__getitem__(index)
+        # elif choice < .66: item = self.sapphire_dataset.__getitem__(index)
+        # else:              item =   self.silicon_datset.__getitem__(index)
+        
+        # HACK: only use two datasets for transfer learning ablation
+        if choice   < .50: item = self.mos2_sef_dataset.__getitem__(index)
+        else             : item = self.sapphire_dataset.__getitem__(index)
+        # else:              item =   self.silicon_datset.__getitem__(index)
 
         return item
 

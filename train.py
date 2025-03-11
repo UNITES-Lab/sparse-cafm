@@ -116,23 +116,12 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
 def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,) -> None:
     
     logger = setup_logger(config, model_config)
-
-    # model = create_model(config)
-    model = RNAN()
-
-    # HACK: we don't need to load a surrogate model anymore
-    # load expert-evaluation surrogate
-    # surrogate_model: Optional[ExpertSurrogate] = None
-    # if args.surrogate_weights != "":
-    #     CONSOLE.print(Rule(f"Loading surrogate model from: {args.surrogate_weights}"))
-    #     surrogate_model: ExpertSurrogate = torch.load(args.surrogate_weights)
-    #     assert isinstance(surrogate_model, ExpertSurrogate)
     
+    # model = create_model(config)
+    model = SwinCAFM.init_from_config(model_config.to_dict())
+
     train_dataloader = create_dataloader(args, config, "train")
     val_dataloader = create_dataloader(args, config, "val")
-
-    # # HACK: avg_surface_current surrogate
-    # surrogate_model = AvgSurfaceCurrentSurrogate()
 
     # define loss function and optimizer
     train_loss: torch.nn.Module = LOSS_FUNCTIONS[config.train_loss]()
@@ -144,12 +133,7 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     num_epochs = config.epochs
     device = config.device
 
-    # NOTE: only supported for SwinCAFM atm
-    # HACK: we don't load a checkpoint other than the default checkpoint for
-    # the pre-training ablation
-
     # if config.model_config_file != None:
-
     #     if args.weights != "": 
     #         model_config.weights_fp = str(args.weights)
     #         CONSOLE.print(Rule(f"Loading model weights from: {args.weights}"))
@@ -163,14 +147,8 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     # as per: https://arxiv.org/pdf/2404.00722
     optimizer = torch.optim.Adam(model.parameters(), lr=float(config.learning_rate))
 
-    # if surrogate_model != None:
-    #     surrogate_model.cuda(device)
-    #     surrogate_model.float()
-
     model.cuda(device)
     model.float()
-
-    # TODO: implement grad_accumulation
 
     # ---------- training loop ----------
     for epoch in range(num_epochs):
@@ -202,21 +180,14 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             # ---- forward: p(y | y_sparse) ----
             y_hat: torch.Tensor = model(y_sparse)
 
-            # HACK: RNAN
-            # [B, 1, H, W] -> [B, H, W]
-            if len(y_hat.shape) == 4:
-                y_hat = y_hat.squeeze(1)
+            # # HACK: RNAN
+            # # [B, 1, H, W] -> [B, H, W]
+            # if len(y_hat.shape) == 4:
+            #     y_hat = y_hat.squeeze(1)
             
             # --- L1 ----
             loss = torch.nn.functional.l1_loss(y, y_hat)
 
-            # --- Mean Avg Current ----
-            # use surrogate model to estimate: 
-            # surface_current(y) - surface_current(y_hat)
-            # loss = torch.nn.functional.l1_loss(
-            #     surrogate_model(y), surrogate_model(y_hat)
-            # )
-            
             loss.backward()
             optimizer.step()
 
@@ -265,13 +236,14 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                     # current-map: y_sparse; [64, 64]
                     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
+
                 # ---- forward: p(y | y_sparse) ----
                 y_hat: torch.Tensor = model(y_sparse)
 
-                # HACK: RNAN
-                # [B, 1, H, W] -> [B, H, W]
-                if len(y_hat.shape) == 4:
-                    y_hat = y_hat.squeeze(1)
+                # # HACK: RNAN
+                # # [B, 1, H, W] -> [B, H, W]
+                # if len(y_hat.shape) == 4:
+                #     y_hat = y_hat.squeeze(1)
                 
                 # --- L1 ----
                 loss = val_loss(y_hat, y)

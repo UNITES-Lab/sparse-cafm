@@ -1,18 +1,18 @@
 global:
   device: 0
   mode: train  # ['train', 'eval']
-  formulation: 2x-sr
+  formulation: 8x-sr
 
 model:
   name: ours
   # pretrained: True
   weights:
-  config: model-configs/001_classic_img_sr-2x-sr64.yaml
+  config: model-configs/001_classic_img_sr-8x-s48.yaml
+  # config: model-configs/001_classic_img_sr-2x-sr64.yaml
   # config: model-configs/001_classic_img_sr-4x-s64.yaml
-  # config: model-configs/001_classic_img_sr-8x-s48.yaml
 
 training:
-  batch_size: 16
+  batch_size: 4
   steps_per_epoch: 1024
   epochs: 200
   loss: L1
@@ -27,8 +27,8 @@ validation:
 dataset:
   name: MOS2SRDataset
   image_size: 512
-  crop_size: 128
-  num_workers: 8
+  crop_size: 384
+  num_workers: 0
   masking_ratio: 1
 
 logging:

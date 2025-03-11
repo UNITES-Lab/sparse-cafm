@@ -371,7 +371,7 @@ class RNAN(nn.Module):
             n_feats = 64
             reduction = ...
             # assuming this is a standard SR factor
-            scale = 2
+            scale = 8
             assert scale in [2, 4, 8]
             
         kernel_size = 3
