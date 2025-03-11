@@ -10,7 +10,7 @@ NORM_LAYER=torch.nn.LayerNorm
 SURROGATE_FP="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/expert-surrogates/2025-03-02_15-27-59_{average_surface_current, coverage_percentage, total_area_extended_shapes}-ViT-Trainable-BS=64/{average_surface_current, coverage_percentage, total_area_extended_shapes}-ViT-Trainable-BS=64_best_older_surrogate.pth"
 WEIGHTS_FP="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/foundation-models/3. combined/2x/2025-03-03_11-01-10_DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
 LOGS_DIR="__exps__/__logs__"
-EXP_ROOT_DIR="__exps__/ablations/augmentations"
+EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/_evals"
 EXP_NAME="augmentations={horizontal_flip, vertical_flip, random_rotation, elastic_transform}"
 
 UPSAMPLE_FACTOR=2
@@ -19,14 +19,15 @@ DATASET="mos2-sef"
 
 # --------------------------------------------------------------------------
 
-export CUDA_VISIBLE_DEVICES=1
 LOGS_DIR="__exps__/__logs__"
 EXP_ROOT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/_evals"
 
-CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-08_12-06-13_augmentations={None}/augmentations={None}_best.pth"
+export CUDA_VISIBLE_DEVICES=2
+CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-09_10-20-10_augmentations={None}/augmentations={None}_best.pth"
 EXP_NAME="{None}"
 python test.py \
     --root "$EXP_ROOT_DIR" \
+    --exp_name "$EXP_NAME" \
     --upsample_factor $UPSAMPLE_FACTOR \
     --dataset $DATASET \
     --formulation $FORMULATION \
@@ -39,10 +40,12 @@ python test.py \
     --norm_layer $NORM_LAYER \
     > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
 
-CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-08_12-06-26_augmentations={horizontal_flip}/augmentations={horizontal_flip}_best.pth"
+export CUDA_VISIBLE_DEVICES=3
+CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-09_10-20-33_augmentations={horizontal_flip}/augmentations={horizontal_flip}_best.pth"
 EXP_NAME="{horizontal_flip, }"
 python test.py \
     --root "$EXP_ROOT_DIR" \
+    --exp_name "$EXP_NAME" \
     --upsample_factor $UPSAMPLE_FACTOR \
     --dataset $DATASET \
     --formulation $FORMULATION \
@@ -55,10 +58,12 @@ python test.py \
     --norm_layer $NORM_LAYER \
     > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
 
-CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-08_12-06-52_augmentations={horizontal_flip, vertical_flip}/augmentations={horizontal_flip, vertical_flip}_best.pth"
+export CUDA_VISIBLE_DEVICES=4
+CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-09_10-20-50_augmentations={horizontal_flip, vertical_flip}/augmentations={horizontal_flip, vertical_flip}_best.pth"
 EXP_NAME="{horizontal_flip, vertical_flip}"
 python test.py \
     --root "$EXP_ROOT_DIR" \
+    --exp_name "$EXP_NAME" \
     --upsample_factor $UPSAMPLE_FACTOR \
     --dataset $DATASET \
     --formulation $FORMULATION \
@@ -71,11 +76,12 @@ python test.py \
     --norm_layer $NORM_LAYER \
     > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
 
-CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-08_12-07-17_augmentations={horizontal_flip, vertical_flip, random_rotation}/augmentations={horizontal_flip, vertical_flip, random_rotation}_best.pth"
+export CUDA_VISIBLE_DEVICES=5
+CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-09_10-21-02_augmentations={horizontal_flip, vertical_flip, rotate}/augmentations={horizontal_flip, vertical_flip, rotate}_best.pth"
 EXP_NAME="{horizontal_flip, vertical_flip, random_rotation}"
 python test.py \
-    python test.py \
     --root "$EXP_ROOT_DIR" \
+    --exp_name "$EXP_NAME" \
     --upsample_factor $UPSAMPLE_FACTOR \
     --dataset $DATASET \
     --formulation $FORMULATION \
@@ -87,12 +93,12 @@ python test.py \
     --drop_path_rate $DPR \
     --norm_layer $NORM_LAYER \
     > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
-
-CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-08_12-07-34_augmentations={horizontal_flip, vertical_flip, random_rotation, elastic_transform}/augmentations={horizontal_flip, vertical_flip, random_rotation, elastic_transform}_best.pth"
-EXP_NAME="{horizontal_flip, vertical_flip, elastic_transform}"
+    
+CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/augmentations/2025-03-09_10-21-19_augmentations={horizontal_flip, vertical_flip, rotate, elastic_transform}/augmentations={horizontal_flip, vertical_flip, rotate, elastic_transform}_best.pth"
+EXP_NAME="{horizontal_flip, vertical_flip, random_rotation, elastic_transform}"
 python test.py \
-    python test.py \
     --root "$EXP_ROOT_DIR" \
+    --exp_name "$EXP_NAME" \
     --upsample_factor $UPSAMPLE_FACTOR \
     --dataset $DATASET \
     --formulation $FORMULATION \

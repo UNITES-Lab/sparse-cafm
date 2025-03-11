@@ -15,9 +15,17 @@ from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
 
+from src.models.prev_methods.rnan import RNAN
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.our_method.expert_eval_surrogate import ExpertSurrogate, AvgSurfaceCurrentSurrogate
-from src.datasets.mos2_sr import UnifiedMOS2SRDataset, MOS2SRDataset, MOS2_SILICON_DIR, MOS2_SAPPHIRE_DIR, MOS2_SEF_SRC_DIR, MOS2_SYNTHETIC
+from src.datasets.mos2_sr import (
+    UnifiedMOS2SRDataset, 
+    MOS2SRDataset, 
+    MOS2_SILICON_DIR, 
+    MOS2_SAPPHIRE_DIR, 
+    MOS2_SEF_SRC_DIR, 
+    MOS2_SYNTHETIC
+)
 from src.util.logger import ExperimentLogger
 from src.util.config import (
     TrainConfig,
@@ -108,7 +116,9 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
 def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,) -> None:
     
     logger = setup_logger(config, model_config)
-    model = create_model(config)
+
+    # model = create_model(config)
+    model = RNAN()
 
     # HACK: we don't need to load a surrogate model anymore
     # load expert-evaluation surrogate
@@ -191,6 +201,11 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
 
             # ---- forward: p(y | y_sparse) ----
             y_hat: torch.Tensor = model(y_sparse)
+
+            # HACK: RNAN
+            # [B, 1, H, W] -> [B, H, W]
+            if len(y_hat.shape) == 4:
+                y_hat = y_hat.squeeze(1)
             
             # --- L1 ----
             loss = torch.nn.functional.l1_loss(y, y_hat)
@@ -253,6 +268,11 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                 # ---- forward: p(y | y_sparse) ----
                 y_hat: torch.Tensor = model(y_sparse)
 
+                # HACK: RNAN
+                # [B, 1, H, W] -> [B, H, W]
+                if len(y_hat.shape) == 4:
+                    y_hat = y_hat.squeeze(1)
+                
                 # --- L1 ----
                 loss = val_loss(y_hat, y)
 

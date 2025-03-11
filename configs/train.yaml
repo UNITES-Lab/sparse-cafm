@@ -12,9 +12,9 @@ model:
   # config: model-configs/001_classic_img_sr-8x-s48.yaml
 
 training:
-  batch_size: 4
+  batch_size: 16
   steps_per_epoch: 1024
-  epochs: 20
+  epochs: 200
   loss: L1
   lr: 1e-5
   optimizer: AdamW
