@@ -327,7 +327,7 @@ class MOS2SRDataset(Dataset):
 
         # [512, 512] -> [128, 128] + apply augs
         # HACK: always apply augmentations
-        if self.split == "train" or self.split == "val":
+        if self.split == "train":
             X: np.ndarray = augmented["X"]
             y: np.ndarray = augmented["image"]
         elif self.split == "val":

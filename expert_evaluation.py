@@ -17,6 +17,7 @@ from src.util.metrics import PSNR, SSIM
 from src.util.celano_lab_scripts import calculate_abs_diff_between_samples, pcnt_diff_surface_roughness, compute_surface_roughness, process_image
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.prev_methods.gpr import GPR
+from src.models.prev_methods.rnan import RNAN
 from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SEF_SRC_DIR, MOS2_SAPPHIRE_DIR, MOS2_SILICON_DIR
 
 warnings.simplefilter("ignore")
@@ -47,7 +48,7 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
     # model.eval()
     
     # HACK: use GPR as basline
-    model = GPR(sr=upsampling_ratio)
+    model: RNAN = torch.load(fp).cuda().float()
     
     src_dir = ""
     if dataset_name == "mos2-sef": src_dir = MOS2_SEF_SRC_DIR
@@ -80,9 +81,21 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
         y_sparse: torch.Tensor = batch[f"{formulation}_sparse"]
         y_unnorm: torch.Tensor = batch[f"{formulation}_unnorm"]
 
+        # HACK: RNAN
+        # [B, H, W] -> [B, 1, H, W]
+        if len(y_sparse.shape) == 3:
+            y_sparse = y_sparse.unsqueeze(1)
+
         y        = y.cuda().float()
         y_sparse = y_sparse.cuda().float()
         y_hat    = model(y_sparse).cuda().float()
+
+        # HACK: RNAN
+        # [B, 1, H, W] -> [B, H, W]
+        if len(y_hat.shape) == 4:
+            y_hat = y_hat.squeeze(1)
+
+        breakpoint()
 
         if formulation=="y":
 
@@ -195,7 +208,7 @@ if __name__ == "__main__":
 
     assert os.path.isfile(args.ckpt_fp)
     assert args.formulation in ["X", "y"]
-    assert args.dataset in ["mos2-sef", "silicon", "sapphire"]
+    assert args.dataset in ["mos2-sef", "silicon", "sapphire", "all"]
     args.upsampling_ratio = int(args.upsampling_ratio)
     assert args.upsampling_ratio in [2, 4, 8]
     

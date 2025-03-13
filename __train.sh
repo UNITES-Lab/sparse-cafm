@@ -11,9 +11,9 @@ SURROGATE_FP="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__
 WEIGHTS_FP="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/foundation-models/3. combined/2x/2025-03-03_11-01-10_DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
 LOGS_DIR="__exps__/__logs__"
 EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/transfer-learning/pre-trained-models"
-EXP_NAME="8x-DS={mos2-sef, silicon}"
+EXP_NAME="4x-DS={mos2-sef, silicon}"
 
-UPSAMPLE_FACTOR=8
+UPSAMPLE_FACTOR=4
 FORMULATION="both"
 DATASET="all"
 
@@ -31,7 +31,7 @@ python train.py \
   --window_size $WINDOW_SIZE \
   --drop_path_rate $DPR \
   --norm_layer $NORM_LAYER \
-  # > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
+  > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
 
 # ---------------------------------------
-# exit
+exit

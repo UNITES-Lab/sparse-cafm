@@ -343,7 +343,7 @@ class _NLResGroup(nn.Module):
 
 class RNAN(nn.Module):
 
-    def __init__(self, args: Optional[dict] = None, conv=default_conv):
+    def __init__(self, scale_factor: Optional[int] = 8, args: Optional[dict] = None, conv=default_conv):
         """
         Default parameters provided from the original paper. 
         https://arxiv.org/pdf/1903.10082
@@ -371,7 +371,7 @@ class RNAN(nn.Module):
             n_feats = 64
             reduction = ...
             # assuming this is a standard SR factor
-            scale = 8
+            scale = scale_factor
             assert scale in [2, 4, 8]
             
         kernel_size = 3
