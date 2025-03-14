@@ -3,7 +3,7 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](TODO)
 
-This is the official Pytorch implementation of our paper: **SparseC-AFM**: a deep learning method for fast and accurate characterization of $MoS_{2}$ with C-AFM. We present a novel method for rapid acquisition and analysis of C-AFM scans using a super-resolution model based on the work of SwinIR. In this repository, you can find the datasets and model weights used in our paper, as well as scripts to **train** and **deploy** our model on ***your own datasets***.
+This is the official Pytorch implementation of our paper: **SparseC-AFM**: a deep learning method for fast and accurate characterization of MoS<sub>2</sub> with C-AFM. We present a novel method for rapid acquisition and analysis of C-AFM scans using a super-resolution model based on the work of SwinIR. In this repository, you can find the datasets and model weights used in our paper, as well as scripts to **train** and **deploy** our model on ***your own datasets***.
 
 Below we include our enviornments, data, and model weights.
 
@@ -23,11 +23,18 @@ conda activate sparse-cafm
 
 ## Datasets
 
-| Path | Material | Height Maps | Current Maps | Substrate | Scanning Mode | # Samples | # Data Points | Resolutions |
+| Path | Material | Height Maps | Current Maps | Substrate | Mode | # Samples | # Data Points | Resolutions |
 | :---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [`data/raw-data/3-12-25`](data/raw-data/3-12-25)   | BTO             | ✅  | ❌ | ---                          | Tapping (AFM Only) | 4 | 16 | {64, 128, 256, 512} |
+| [`data/raw-data/2-6-25`](data/raw-data/2-6-25)     | MoS<sub>2</sub> | ✅  | ✅ | SiO<sub>2</sub>-Si           | Contact            | 1 | 4  | {64, 128, 256, 512} |
+| [`data/raw-data/1-23-25`](data/raw-data/1-23-25)   | MoS<sub>2</sub> | ✅  | ✅ | SiO<sub>2</sub>-Si           | Contact            | 1 | 5  | {512}|
+| [`data/raw-data/11-19-24`](data/raw-data/11-19-24) | MoS<sub>2</sub> | ✅  | ✅ | SiO<sub>2</sub>-Si, Sapphire | Contact            | 2 | 10 | {512} |
 
 ## Model Weights
+
+## Training
+
+## Inference
 
 ## Citation
     @article{harris2025sparsec-afm,
