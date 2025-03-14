@@ -17,13 +17,13 @@ from torch.utils.data import DataLoader
 
 from src.models.prev_methods.rnan import RNAN
 from src.models.our_method.swin_cafm import SwinCAFM
-from src.models.our_method.expert_eval_surrogate import ExpertSurrogate, AvgSurfaceCurrentSurrogate
 from src.datasets.mos2_sr import (
+    BTOSRDataset,
     UnifiedMOS2SRDataset, 
-    MOS2SRDataset, 
-    MOS2_SILICON_DIR, 
-    MOS2_SAPPHIRE_DIR, 
-    MOS2_SEF_SRC_DIR, 
+    MOS2SRDataset,
+    MOS2_SEF_MANY_RES_SRC_DIR,
+    MOS2_SILICON_DIR,
+    MOS2_SAPPHIRE_DIR,
     MOS2_SYNTHETIC
 )
 from src.util.logger import ExperimentLogger
@@ -71,12 +71,12 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
     
-    assert str(args.dataset) in ['all', 'synthetic', 'mos2-sef', 'sapphire', 'silicon']
+    assert str(args.dataset) in ['all', 'synthetic', 'bto', 'mos2-sef', 'sapphire', 'silicon']
     
     src_dir = {
         "all": None,
         "synthetic": MOS2_SYNTHETIC,
-        "mos2-sef": MOS2_SEF_SRC_DIR,
+        "mos2-sef": MOS2_SEF_MANY_RES_SRC_DIR,
         "sapphire": MOS2_SAPPHIRE_DIR,
         "silicon": MOS2_SILICON_DIR
     }[args.dataset]
@@ -85,6 +85,15 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
     if str(args.dataset) == 'all':
         dataset = UnifiedMOS2SRDataset(
             split=split,
+            steps_per_epoch=(
+                int(config.steps_per_epoch * config.train_batch_size)
+                if split == "train"
+                else config.val_steps_per_epoch
+            ),
+            upsample_factor=int(args.upsample_factor)
+        )
+    elif str(args.dataset) == 'bto':
+        dataset = BTOSRDataset(
             steps_per_epoch=(
                 int(config.steps_per_epoch * config.train_batch_size)
                 if split == "train"
@@ -103,6 +112,7 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
             ),
             upsample_factor=int(args.upsample_factor)
         )
+    
     return DataLoader(
         dataset,
         batch_size=(
@@ -159,34 +169,36 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
 
-            F = args.formulation
-            assert F in ['X', 'y', 'both']
+            # F = args.formulation
+            # assert F in ['X', 'y', 'both']
 
-            y, y_sparse = None, None
-            if F == 'both':
-                _F = "y" if random.random() < 0.5 else "X"
-                y: torch.Tensor = batch[_F].cuda(device)
-                # current-map: y_sparse; [64, 64]
-                y_sparse: torch.Tensor = batch[f"{_F}_sparse"].cuda(device)
-            else:
-                # current-map: y; [128, 128]
-                y: torch.Tensor = batch[F].cuda(device)
-                # current-map: y_sparse; [64, 64]
-                y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
+            # y, y_sparse = None, None
+            # if F == 'both':
+            #     _F = "y" if random.random() < 0.5 else "X"
+            #     y: torch.Tensor = batch[_F].cuda(device)
+            #     # current-map: y_sparse; [64, 64]
+            #     y_sparse: torch.Tensor = batch[f"{_F}_sparse"].cuda(device)
+            # else:
+            #     # current-map: y; [128, 128]
+            #     y: torch.Tensor = batch[F].cuda(device)
+            #     # current-map: y_sparse; [64, 64]
+            #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
+
+            X        = batch["X"]
+            X_sparse = batch["X_sparse"]
+            X_64     = batch["X_64"]
+            X_128    = batch["X_128"]
+            X_256    = batch["X_256"]
+            X_512    = batch["X_512"]
 
             # zero gradients
             optimizer.zero_grad()
 
             # ---- forward: p(y | y_sparse) ----
-            y_hat: torch.Tensor = model(y_sparse)
+            X_hat: torch.Tensor = model(X_sparse)
 
-            # # HACK: RNAN
-            # # [B, 1, H, W] -> [B, H, W]
-            # if len(y_hat.shape) == 4:
-            #     y_hat = y_hat.squeeze(1)
-            
             # --- L1 ----
-            loss = torch.nn.functional.l1_loss(y, y_hat)
+            loss = torch.nn.functional.l1_loss(X, X_hat)
 
             loss.backward()
             optimizer.step()
@@ -204,11 +216,12 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             # log figures every 100 steps
             if step % 100 != 0:
                 continue
+
             triplet_name = f"train_epoch_{epoch}_step_{step}.png"
             logger.log_colorized_tensors(
-                (y, "Target (y)"),
-                (y_sparse, "Model Input (y_sparse)"),
-                (y_hat, "Model Prediction"),
+                (X, "Target (X)"),
+                (X_sparse, "Model Input (X_sparse)"),
+                (X_hat, "Model Prediction"),
                 file_name=triplet_name,
             )
 
@@ -216,39 +229,42 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
         model.eval()
         val_running_loss = 0.0
         num_val_steps = 1
+        
         with torch.no_grad():
+            
             for i, batch in enumerate(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
                 
-                F = args.formulation
-                assert F in ['X', 'y', 'both']
+                # F = args.formulation
+                # assert F in ['X', 'y', 'both']
 
-                y, y_sparse = None, None
-                if F == 'both':
-                    _F = "y" if random.random() < 0.5 else "X"
-                    y: torch.Tensor = batch[_F].cuda(device)
-                    # current-map: y_sparse; [64, 64]
-                    y_sparse: torch.Tensor = batch[f"{_F}_sparse"].cuda(device)
-                else:
-                    # current-map: y; [128, 128]
-                    y: torch.Tensor = batch[F].cuda(device)
-                    # current-map: y_sparse; [64, 64]
-                    y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
+                # y, y_sparse = None, None
+                # if F == 'both':
+                #     _F = "y" if random.random() < 0.5 else "X"
+                #     y: torch.Tensor = batch[_F].cuda(device)
+                #     # current-map: y_sparse; [64, 64]
+                #     y_sparse: torch.Tensor = batch[f"{_F}_sparse"].cuda(device)
+                # else:
+                #     # current-map: y; [128, 128]
+                #     y: torch.Tensor = batch[F].cuda(device)
+                #     # current-map: y_sparse; [64, 64]
+                #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
+                X        = batch["X"]
+                X_sparse = batch["X_sparse"]
+                X_64     = batch["X_64"]
+                X_128    = batch["X_128"]
+                X_256    = batch["X_256"]
+                X_512    = batch["X_512"]
 
                 # ---- forward: p(y | y_sparse) ----
-                y_hat: torch.Tensor = model(y_sparse)
+                X_hat: torch.Tensor = model(X_sparse)
 
-                # # HACK: RNAN
-                # # [B, 1, H, W] -> [B, H, W]
-                # if len(y_hat.shape) == 4:
-                #     y_hat = y_hat.squeeze(1)
-                
                 # --- L1 ----
-                loss = val_loss(y_hat, y)
+                loss = val_loss(X_hat, X)
 
-                val_running_loss += loss.item() * y_sparse.size(0)
+                val_running_loss += loss.item() * X.size(0)
 
                 logger.log(
                     **{
@@ -263,11 +279,12 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                 # log figures every 100 steps
                 if i % 100 != 0:
                     continue
+                
                 triplet_name = f"val_epoch_{epoch}_step_{i}.png"
                 logger.log_colorized_tensors(
-                    (y, "Target (y)"),
-                    (y_sparse, "Model Input (y_sparse)"),
-                    (y_hat, "Model Prediction(y_hat)"),
+                    (X,                     "Target (y)"),
+                    (X_sparse,              "Model Input (y_sparse)"),
+                    (X_hat,                 "Model Prediction(y_hat)"),
                     file_name=triplet_name,
                 )
 
