@@ -18,6 +18,7 @@ BTO_MANY_RES               = "data/raw-data/3-12-25"
 
 TRAIN_SPLIT = "train"
 VAL_SPLIT = "val"
+TEST_SPLIT = "test"
 ORIGINAL_IMAGE_SIZE = (512, 512)
 CROPPED_IMG_SIDE_LENGTH = 64
 IMG_SIZE_UM = 2.0
@@ -109,10 +110,12 @@ class MOS2SRDataset(Dataset):
         self.normalized_data_range: Tuple[float, float] = NORMALIZED_DATA_RANGE
 
         # load all data from src files
-        if self.src_dir == MOS2_SEF_SRC_DIR:
+        if self.src_dir == MOS2_SEF_FULL_RES_SRC_DIR:
             self._load_imgs_mos2_sef()
         elif src_dir == MOS2_SILICON_DIR or src_dir == MOS2_SAPPHIRE_DIR:
             self._load_imgs_sil_saf()
+        elif src_dir == BTO_MANY_RES:
+            self._load_bto_many_res()
         elif src_dir == MOS2_SYNTHETIC:
             self._load_imgs_mos2_synth()
         else:
@@ -124,6 +127,14 @@ class MOS2SRDataset(Dataset):
 
         # find the mean/std of current and topo maps
         self._calculate_mean_std()
+
+    def _load_bto_many_res(self) -> None:
+        """
+        BTO dataset only contains surface morphology maps.
+        - 4x scans @{512, 256, 128, 64}
+        """
+
+        raise Exception("BTO dataset is not supported with this dataloader.")
 
     def _load_imgs_mos2_synth(self) -> None: 
         
@@ -389,8 +400,8 @@ class MOS2SRDataset(Dataset):
             )
         y_sparse = y_sparse.squeeze(0).squeeze(0)
         
+        assert (X.max() <= 1.0 and X.min() >= 0.0), f"Error normalizing X sample: {X.shape}"
         assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
-        assert (X.max() <= 1.0 and X.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
         
         return {
             "X": X,
@@ -401,6 +412,253 @@ class MOS2SRDataset(Dataset):
             "y_unnorm": y_unnorm,
         }
     
+
+class BTOSRDataset(Dataset):
+    """
+    Dataset class used for sparse-sampling of BTO surface morphology maps.
+
+    :Definitions:
+    - X: surface height map | (H, W)
+    """
+
+    def __init__(
+        self,
+        src_dir: str = BTO_MANY_RES,
+        split: str = "train",
+        upsample_factor: int = 2,
+        steps_per_epoch: int = 100,
+        original_image_size: Tuple[int, int] = ORIGINAL_IMAGE_SIZE,
+    ):
+        """
+        Parameters
+        ---
+        split : str
+            Dataset split; one of {'train', 'val', 'test'}.
+                - 'train': Uses synthetic downsampling for training samples.
+                - 'val': Uses synthetic downsampling for validation samples.
+                - 'test': Uses only real downsampled data.
+        steps_per_epoch : int
+            Number of batches per epoch. Data is randomly augmented, so the number of samples per epoch is arbitrary.
+        upsample_factor : int
+            Upsampling factor; must be one of {2, 4, 8}.
+        original_image_size : tuple of int
+            Size of the original images in the dataset, e.g., (512, 512).
+        """
+
+        super(BTOSRDataset, self).__init__()
+        self.steps_per_epoch: int = steps_per_epoch
+
+        assert split.lower() in ["train", "val", "test"], f"Error: invalid split. Expected 'train' or 'val'"
+        self.split: str = split.lower()
+
+        assert upsample_factor in [2, 4, 8], f"Error: expected upsample_factor in: [2, 4, 8]"
+        self.upsample_factor = upsample_factor
+
+        # size of subsamples to crop from original (512, 512) data
+        self.side_length = 128
+        if self.upsample_factor == 2:
+            # [64, 64] -> [128, 128]
+            self.side_length == 64 * 2
+        if self.upsample_factor == 4:
+            # [64, 64] -> [256, 256]
+            self.side_length = 64 * 4
+        if self.upsample_factor == 8:
+            # [48, 48] -> [384, 384]
+            self.side_length = 48 * 8
+
+        assert os.path.isdir(src_dir), f"Error: invalid src_dir: {src_dir}"
+        self.src_dir = src_dir
+
+        self.original_image_size: Tuple[int, int] = original_image_size
+        self.augmentation_pipeline = self._create_augmentation_pipeline()
+
+        # (B, H, W)
+        self.topo_maps = None
+
+        # paths to un-normalized, high-precision current maps
+        self._raw_topo_fps: Optional[List[str]] = None
+
+        # use these vals to normalize all data -> [0, 1]
+        self.topo_maps_mean = 0.0
+        self.topo_maps_std = 0.0
+
+        # original sample size is 2umx2um (512x512)
+        self.img_size_um = IMG_SIZE_UM
+
+        # all data (current + topo maps) normalized to -> [0, 1]
+        self.normalized_data_range: Tuple[float, float] = NORMALIZED_DATA_RANGE
+
+        self._load_bto_many_res()
+
+        # find the mean/std of current and topo maps
+        self._calculate_mean_std()
+
+    def _load_bto_many_res(self) -> None:
+        """
+        BTO dataset only contains surface morphology maps.
+        - 4x scans @{512, 256, 128, 64}
+        """
+
+        topo_map_regex_64  = f"{self.src_dir}/*64*.npy"
+        topo_map_regex_128 = f"{self.src_dir}/*128*.npy"
+        topo_map_regex_256 = f"{self.src_dir}/*256*.npy"
+        topo_map_regex_512 = f"{self.src_dir}/*512*.npy"
+
+        self._raw_topo_64_fps  = sorted(glob(topo_map_regex_64))
+        self._raw_topo_128_fps = sorted(glob(topo_map_regex_128))
+        self._raw_topo_256_fps = sorted(glob(topo_map_regex_256))
+        self._raw_topo_512_fps = sorted(glob(topo_map_regex_512))
+
+        assert (len(self._raw_topo_64_fps) > 0), f"Error: could not load images using regex: {topo_map_regex_64}"
+
+        # [H, W]
+        self.topo_maps_64 : List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_64_fps]
+        self.topo_maps_128: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_128_fps]
+        self.topo_maps_256: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_256_fps]
+        self.topo_maps_512: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_512_fps]
+
+        # convert maps to type -> float64
+        self.topo_maps_64  = [tm.astype(np.float64) for tm in self.topo_maps_64]
+        self.topo_maps_128 = [tm.astype(np.float64) for tm in self.topo_maps_128]
+        self.topo_maps_256 = [tm.astype(np.float64) for tm in self.topo_maps_256]
+        self.topo_maps_512 = [tm.astype(np.float64) for tm in self.topo_maps_512]
+
+        breakpoint()
+
+    def _calculate_mean_std(self) -> None:
+        """
+        Calculate the mean and std of topo/curr maps.
+        Saves results as internal vars.
+        """
+
+        self.topo_maps_mean = np.mean(np.array(self.topo_maps))
+        self.topo_maps_std = np.std(np.array(self.topo_maps))
+        self.topo_maps_max = np.amax(np.array(self.topo_maps))
+        self.topo_maps_min = np.amin(np.array(self.topo_maps))
+
+    def _create_augmentation_pipeline(self):
+        return A.Compose(
+            [
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.5),
+                A.RandomRotate90(p=0.5),
+                A.Rotate(limit=15, p=0.5),
+                A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
+            ],
+            additional_targets={
+                "X":      "image",
+                "X_mask": "mask",
+            },
+        )
+
+    def __len__(self) -> int:
+        """
+        len(self) == self.steps_per_epoch
+        """
+        return self.steps_per_epoch
+
+    def __getitem__(self, index: int) -> Dict:
+        """
+        Get the next randomly sampled item from the dataset.
+
+        :param index: currently unused, necessiary for batch data-loading
+        :returns:
+            ```
+                {
+                    'X'       : torch.Tensor, topo-map w/ shape    [H, W]
+                    'X_sparse': torch.Tensor, topo-map w/ shape    [H / upsample_factor, W / upsample_factor]
+                    'X_unnorm': torch.Tensor, topo-map w/ shape    [H / upsample_factor, W / upsample_factor]
+                }
+        """
+        
+        # NOTE: we only consider samples: [0, 1, 2, 3];
+        # HACK: hard-coded train/val splits
+        # choose a random sample idx
+        if self.split == TRAIN_SPLIT:
+            # randint is inclusive: [a, b]
+            # select a random sample from self.data[:-1]
+            sample_idx = random.randint(0, len(self.current_maps) - 2)
+        elif self.split == VAL_SPLIT:
+            # select the final data sample: self.data[-1]
+            sample_idx = len(self.current_maps) - 1
+        elif self.split == TEST_SPLIT:
+            sample_idx = len(self.current_maps) - 1
+        else:
+            raise Exception(f"Invalid split: {self.split}")
+        
+        # [512, 512]; un-normalized, full-sized topography map
+        X: np.ndarray = self.topo_maps[sample_idx]
+        
+        # [512, 512]; un-normalized, full-sized current map
+        y: np.ndarray = self.current_maps[sample_idx]
+
+        # ---- select a [128, 128] subset from full-sample ----
+        augmented: np.ndarray = self.augmentation_pipeline(image=y, X=X, X_mask=X, y=y)
+
+        # [512, 512] -> [128, 128] + apply augs
+        # HACK: always apply augmentations
+        if self.split == "train":
+            X: np.ndarray = augmented["X"]
+            y: np.ndarray = augmented["image"]
+        elif self.split == "val":
+            X: np.ndarray = augmented["X_mask"]
+            y: np.ndarray = augmented["y"]
+        else:
+            raise Exception("Something has gone very wrong")
+        
+        X: torch.Tensor = torch.Tensor(X).float()
+        y: torch.Tensor = torch.Tensor(y).float()
+        
+        # [128, 128]
+        X_unnorm = X.clone()
+        y_unnorm = y.clone()
+
+        # -> [0, 1]
+        X = (X - self.topo_maps_min) / (
+            self.topo_maps_max - self.topo_maps_min
+        )
+
+        # -> [0, 1]
+        y = (y - self.current_maps_min) / (
+            self.current_maps_max - self.current_maps_min
+        )
+
+        # ---- bicubic downsampling ----
+
+        # -> [1, 1, 128, 128]
+        X_unsqueezed = X.unsqueeze(0).unsqueeze(0)
+        # -> [H', W']
+        X_sparse = F.interpolate(
+            X_unsqueezed, 
+            scale_factor=1/self.upsample_factor, 
+            mode='bicubic', 
+            align_corners=False
+            )
+        X_sparse = X_sparse.squeeze(0).squeeze(0)
+        
+        # -> [1, 1, 128, 128]
+        y_unsqueezed = y.unsqueeze(0).unsqueeze(0)
+        # -> [H', W']
+        y_sparse = F.interpolate(
+            y_unsqueezed, 
+            scale_factor=1/self.upsample_factor, 
+            mode='bicubic', 
+            align_corners=False
+            )
+        y_sparse = y_sparse.squeeze(0).squeeze(0)
+        
+        assert (X.max() <= 1.0 and X.min() >= 0.0), f"Error normalizing X sample: {X.shape}"
+        assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
+        
+        return {
+            "X_512": X,
+            "X_256": X,
+            "X_128": X,
+            "X_64" : X,
+            "X_synth_downsampled": X_sparse,
+            "X_unnorm": X_unnorm,
+        }
+
 
 class UnifiedMOS2SRDataset(Dataset):
     """
@@ -473,8 +731,8 @@ class UnifiedMOS2SRDataset(Dataset):
 
 if __name__ == "__main__":
 
-    dataset = MOS2SRDataset(
-        src_dir=MOS2_SYNTHETIC,
+    dataset = BTOSRDataset(
+        src_dir=BTO_MANY_RES,
         split="train", 
         upsample_factor=2, 
     )
