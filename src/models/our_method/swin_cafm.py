@@ -1115,8 +1115,9 @@ class SwinCAFM(nn.Module):
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-
-        x_original = x.clone()
+        """
+        TODO: we still add dummy C dims to use original conv filters, is there a better way?
+        """
 
         # (B, H, W) -> (B, 1, H, W)
         x = x.unsqueeze(1)
@@ -1129,7 +1130,7 @@ class SwinCAFM(nn.Module):
         # NOTE: not just "checking" image size – might pad also...
         x = self.check_image_size(x)
 
-        # HACK: we apply our own image norms
+        # NOTE: we perform all normalization in the dataloader
         # self.mean = self.mean.type_as(x)
         # x = (x - self.mean) * self.img_range
 
@@ -1188,17 +1189,6 @@ class SwinCAFM(nn.Module):
         # NOTE: just choose on channel dim;
         # it is CRITICAL that this is not removed
         x = x[:, 1, :, :]
-
-        # HACK: final image with a unet
-        # out = self.blend_conv(self.out_unet())
-
-        # NOTE:
-        # --------------------------------------------------------------------
-        # we want to adapt the pre-trained transformer backbone to our setting
-        # idea: blend frozen model prediction with UNet pred
-        # x = x + self.blend_conv(unet_pred)
-        # return self.out_unet(x_original)
-        # ---------------------------------------------------------------------
 
         # clamp outputs to -> [0, 1]
         x = torch.nn.functional.sigmoid(x)
