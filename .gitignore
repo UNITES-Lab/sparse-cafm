@@ -27,9 +27,12 @@ _lama/
 _I2SB/
 _dsbm-pytorch/
 
+___.ipynb
+___baselines.ipynb
 __pycache__/
 __benchmarks__/
 __exps__/__controlnet_runs__/
 __repos__/
+__notes__/
 __old__/
 __exps__/

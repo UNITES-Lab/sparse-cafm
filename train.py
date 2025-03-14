@@ -187,12 +187,12 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             #     # current-map: y_sparse; [64, 64]
             #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
-            X        = batch["X"]
-            X_sparse = batch["X_synth_downsampled"]
-            X_64     = batch["X_64"]
-            X_128    = batch["X_128"]
-            X_256    = batch["X_256"]
-            X_512    = batch["X_512"]
+            X        = batch["X"].float().cuda()
+            X_sparse = batch["X_synth_downsampled"].float().cuda()
+            # X_64   = batch["X_64"]
+            # X_128  = batch["X_128"]
+            # X_256  = batch["X_256"]
+            # X_512  = batch["X_512"]
 
             # zero gradients
             optimizer.zero_grad()
@@ -254,12 +254,12 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                 #     # current-map: y_sparse; [64, 64]
                 #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
-                X        = batch["X"]
-                X_sparse = batch["X_synth_downsampled"]
-                X_64     = batch["X_64"]
-                X_128    = batch["X_128"]
-                X_256    = batch["X_256"]
-                X_512    = batch["X_512"]
+                X        = batch["X"].float().cuda()
+                X_sparse = batch["X_synth_downsampled"].float().cuda()
+                # X_64     = batch["X_64"]
+                # X_128    = batch["X_128"]
+                # X_256    = batch["X_256"]
+                # X_512    = batch["X_512"]
 
                 # ---- forward: p(y | y_sparse) ----
                 X_hat: torch.Tensor = model(X_sparse)

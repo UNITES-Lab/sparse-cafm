@@ -12,13 +12,13 @@ SURROGATE_FP="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__
 WEIGHTS_FP="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/foundation-models/3. combined/2x/2025-03-04_11-14-17_DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
 
 LOGS_DIR="__exps__/__logs__"
-EXP_NAME="BTO-3-samples"
+EXP_NAME="BTO-1-samples"
 
 UPSAMPLE_FACTOR=2
-FORMULATION="both"
+FORMULATION="X"
 DATASET="bto"
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=2
 python train.py \
   --exp_name "$EXP_NAME" \
   --root "$EXP_ROOT_DIR" \

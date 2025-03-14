@@ -637,7 +637,7 @@ class BTOSRDataset(Dataset):
         # ---- bicubic downsampling ----
 
         # -> [1, 1, 128, 128]
-        X_unsqueezed = X_512.unsqueeze(0).unsqueeze(0)
+        X_unsqueezed = X.unsqueeze(0).unsqueeze(0)
         # -> [H', W']
         X_sparse = F.interpolate(
             X_unsqueezed, 
