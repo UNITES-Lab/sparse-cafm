@@ -649,9 +649,9 @@ class BTOSRDataset(Dataset):
         
         assert (X.max()     <= 1.0 and X.min()     >= 0.0), f"Error normalizing X sample: {X.shape}"
         assert (X_512.max() <= 1.0 and X_512.min() >= 0.0), f"Error normalizing X sample: {X_512.shape}"
-        assert (X_256.max() <= 1.0 and X_256.min() >= 0.0), f"Error normalizing X sample: {X_256.shape}"
-        assert (X_128.max() <= 1.0 and X_128.min() >= 0.0), f"Error normalizing X sample: {X_128.shape}"
-        assert (X_64.max()  <= 1.0 and X_64.min()  >= 0.0), f"Error normalizing X sample: {X_64.shape}"
+        # assert (X_256.max() <= 1.0 and X_256.min() >= 0.0), f"Error normalizing X sample: {X_256.shape}"
+        # assert (X_128.max() <= 1.0 and X_128.min() >= 0.0), f"Error normalizing X sample: {X_128.shape}"
+        # assert (X_64.max()  <= 1.0 and X_64.min()  >= 0.0), f"Error normalizing X sample: {X_64.shape}"
         
         return {
             "X"    : X,

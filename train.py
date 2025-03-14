@@ -24,7 +24,8 @@ from src.datasets.mos2_sr import (
     MOS2_SEF_MANY_RES_SRC_DIR,
     MOS2_SILICON_DIR,
     MOS2_SAPPHIRE_DIR,
-    MOS2_SYNTHETIC
+    MOS2_SYNTHETIC,
+    BTO_MANY_RES
 )
 from src.util.logger import ExperimentLogger
 from src.util.config import (
@@ -78,7 +79,8 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
         "synthetic": MOS2_SYNTHETIC,
         "mos2-sef": MOS2_SEF_MANY_RES_SRC_DIR,
         "sapphire": MOS2_SAPPHIRE_DIR,
-        "silicon": MOS2_SILICON_DIR
+        "silicon": MOS2_SILICON_DIR,
+        "bto": BTO_MANY_RES,
     }[args.dataset]
     
     dataset = None
@@ -128,7 +130,8 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     logger = setup_logger(config, model_config)
     
     # model = create_model(config)
-    model = SwinCAFM.init_from_config(model_config.to_dict())
+    # model = SwinCAFM.init_from_config(model_config.to_dict())
+    model = torch.load(str(args.weights))
 
     train_dataloader = create_dataloader(args, config, "train")
     val_dataloader = create_dataloader(args, config, "val")
@@ -185,7 +188,7 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
             X        = batch["X"]
-            X_sparse = batch["X_sparse"]
+            X_sparse = batch["X_synth_downsampled"]
             X_64     = batch["X_64"]
             X_128    = batch["X_128"]
             X_256    = batch["X_256"]
@@ -252,7 +255,7 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                 #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
                 X        = batch["X"]
-                X_sparse = batch["X_sparse"]
+                X_sparse = batch["X_synth_downsampled"]
                 X_64     = batch["X_64"]
                 X_128    = batch["X_128"]
                 X_256    = batch["X_256"]

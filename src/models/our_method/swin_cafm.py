@@ -816,7 +816,7 @@ class UpsampleOneStep(nn.Sequential):
 
 class SwinCAFM(nn.Module):
     r"""SwinCAFM
-        An upsampling model based on the work of SwinIR for rapid upsampling of C-AFM scans of 2D materials.
+        A PyTorch impl of : `SwinCAFM`.
 
     Args:
         img_size (int | tuple(int)): Input image size. Default 64
@@ -904,7 +904,7 @@ class SwinCAFM(nn.Module):
         #####################################################################################################
         ################################### 1, shallow feature extraction ###################################
 
-        # extract low-level features from image
+        # TODO: ablate
         self.conv_first = nn.Conv2d(num_in_ch, embed_dim, 3, 1, 1)
 
         #####################################################################################################
@@ -1114,42 +1114,43 @@ class SwinCAFM(nn.Module):
 
         return x
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def two_item_forward(
+        self, x_sparse: torch.Tensor, y_sparse: torch.Tensor
+    ) -> torch.Tensor:
         """
-        TODO: we still add dummy C dims to use original conv filters, is there a better way?
+        For p(y | x_sparse, y_sparse) formulation.
         """
 
-        # (B, H, W) -> (B, 1, H, W)
-        x = x.unsqueeze(1)
-
-        # (B, 1, H, W) -> (B, 3, H, W)
-        x = x.repeat(1, 3, 1, 1)
+        # [B, H, W] -> [B, 2, H, W]
+        y_sparse = y_sparse.unsqueeze(1).repeat(1, 2, 1, 1)
+        # [B, H, W] ->  # [B, 1, H, W]
+        x_sparse = x_sparse.unsqueeze(1)
+        # [B, 3, H, W]
+        x = torch.cat([y_sparse, x_sparse], dim=1)
 
         H, W = x.shape[2:]
 
         # NOTE: not just "checking" image size – might pad also...
         x = self.check_image_size(x)
 
-        # NOTE: we perform all normalization in the dataloader
+        # HACK: we apply our own image norms
         # self.mean = self.mean.type_as(x)
         # x = (x - self.mean) * self.img_range
 
+        # TODO: remove
         if self.upsampler == "pixelshuffle":
             # for classical SR
-            breakpoint()
-            x = self.conv_first(x) # [B, C, H, W]
-            x = self.conv_after_body(self.forward_features(x)) + x # [B, D, H, W]
+            x = self.conv_first(x)
+            x = self.conv_after_body(self.forward_features(x)) + x
             x = self.conv_before_upsample(x)
-            x = self.conv_last(self.upsample(x))  # [B, D, H * SR, W * SR]
+            x = self.conv_last(self.upsample(x))
         elif self.upsampler == "pixelshuffledirect":
             # for lightweight SR
-            breakpoint()
             x = self.conv_first(x)
             x = self.conv_after_body(self.forward_features(x)) + x
             x = self.upsample(x)
         elif self.upsampler == "nearest+conv":
             # for real-world SR
-            breakpoint()
             x = self.conv_first(x)
             x = self.conv_after_body(self.forward_features(x)) + x
             x = self.conv_before_upsample(x)
@@ -1168,7 +1169,92 @@ class SwinCAFM(nn.Module):
                 )
             x = self.conv_last(self.lrelu(self.conv_hr(x)))
         else:
-            breakpoint()
+            # NOTE: we take this branch
+            # for image denoising and JPEG compression artifact reduction
+            # TODO: ablate-is this the best way to perform the initial upsampling?
+            # probably not too terrible, we are upsampling so idt we lose any signal technically...
+            # this just seems likely a slightly naive way to do the shallow feature extraction
+            # ---- feature extraction ----
+            # [B, 3, H, W] -> [B, D, H, W]
+            x_first = self.conv_first(x)
+            # [B, D, H, W]
+            res = self.conv_after_body(self.forward_features(x_first)) + x_first
+            x = x + self.conv_last(res)
+
+        # x = x / self.img_range + self.mean
+        # [B, C, H, W] -> [B, C, H, W]
+        # x = x[:, :, : H * self.upscale, : W * self.upscale]
+
+        # [B, C, H, W] -> [B, H, W]
+        # NOTE: just choose on channel dim;
+        # it is CRITICAL that this is not removed
+        x = x[:, 1, :, :]
+
+        # HACK: final image with a unet
+        # out = self.blend_conv(self.out_unet())
+
+        # NOTE:
+        # --------------------------------------------------------------------
+        # we want to adapt the pre-trained transformer backbone to our setting
+        # idea: blend frozen model prediction with UNet pred
+        # x = x + self.blend_conv(unet_pred)
+        # return self.out_unet(x_original)
+        # ---------------------------------------------------------------------
+
+        # clamp outputs to -> [0, 1]
+        x = torch.nn.functional.sigmoid(x)
+        return x
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        x_original = x.clone()
+
+        # (B, H, W) -> (B, 1, H, W)
+        x = x.unsqueeze(1)
+
+        # (B, 1, H, W) -> (B, 3, H, W)
+        x = x.repeat(1, 3, 1, 1)
+
+        H, W = x.shape[2:]
+
+        # NOTE: not just "checking" image size – might pad also...
+        x = self.check_image_size(x)
+
+        # HACK: we apply our own image norms
+        # self.mean = self.mean.type_as(x)
+        # x = (x - self.mean) * self.img_range
+
+        if self.upsampler == "pixelshuffle":
+            # for classical SR
+            x = self.conv_first(x)
+            x = self.conv_after_body(self.forward_features(x)) + x
+            x = self.conv_before_upsample(x)
+            x = self.conv_last(self.upsample(x))
+        elif self.upsampler == "pixelshuffledirect":
+            # for lightweight SR
+            x = self.conv_first(x)
+            x = self.conv_after_body(self.forward_features(x)) + x
+            x = self.upsample(x)
+        elif self.upsampler == "nearest+conv":
+            # for real-world SR
+            x = self.conv_first(x)
+            x = self.conv_after_body(self.forward_features(x)) + x
+            x = self.conv_before_upsample(x)
+            x = self.lrelu(
+                self.conv_up1(
+                    torch.nn.functional.interpolate(x, scale_factor=2, mode="nearest")
+                )
+            )
+            if self.upscale == 4:
+                x = self.lrelu(
+                    self.conv_up2(
+                        torch.nn.functional.interpolate(
+                            x, scale_factor=2, mode="nearest"
+                        )
+                    )
+                )
+            x = self.conv_last(self.lrelu(self.conv_hr(x)))
+        else:
             # NOTE: we take this branch
             # for image denoising and JPEG compression artifact reduction
 
@@ -1193,6 +1279,17 @@ class SwinCAFM(nn.Module):
         # NOTE: just choose on channel dim;
         # it is CRITICAL that this is not removed
         x = x[:, 1, :, :]
+
+        # HACK: final image with a unet
+        # out = self.blend_conv(self.out_unet())
+
+        # NOTE:
+        # --------------------------------------------------------------------
+        # we want to adapt the pre-trained transformer backbone to our setting
+        # idea: blend frozen model prediction with UNet pred
+        # x = x + self.blend_conv(unet_pred)
+        # return self.out_unet(x_original)
+        # ---------------------------------------------------------------------
 
         # clamp outputs to -> [0, 1]
         x = torch.nn.functional.sigmoid(x)
@@ -1302,6 +1399,4 @@ class SwinCAFM(nn.Module):
 
 
 if __name__ == "__main__":
-    model = SwinCAFM.get()
-    x = torch.rand((1,128,128))
-    model(x)
+    pass
