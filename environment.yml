@@ -1,0 +1,19 @@
+name: sparse-cafm
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - pip=20.3
+  - python==3.8.19
+  - torchvision
+  - ipykernel
+  - cryptography
+  - jpeg
+  - pillow
+  - requests
+  - scipy
+  - tqdm
+  - urllib3
+  - p7zip
+  - timm
+prefix: /home/mufan/miniforge3/envs/control
