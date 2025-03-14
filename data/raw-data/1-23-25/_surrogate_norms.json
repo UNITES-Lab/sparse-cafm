@@ -1,0 +1,38 @@
+{
+    "average_surface_current": {
+        "mean": 10.535118603272052,
+        "std": 3.635668468235591
+    },
+    "coverage_percentage": {
+        "mean": 64.93607788085937,
+        "std": 29.908027365957214
+    },
+    "total_len_detected_curves": {
+        "mean": 17.711736403312536,
+        "std": 3.9850831567773177
+    },
+    "total_area_circular_shapes": {
+        "mean": 0.9474560546875,
+        "std": 0.12419273814273454
+    },
+    "total_area_extended_shapes": {
+        "mean": 0.01646044921875,
+        "std": 0.04263061117340384
+    },
+    "total_defect_area": {
+        "mean": 0.005883279442787171,
+        "std": 0.0007558570629442348
+    },
+    "num_circular_shapes": {
+        "mean": 78.924,
+        "std": 12.996546618236708
+    },
+    "num_extended_shapes": {
+        "mean": 0.184,
+        "std": 0.4584146594514622
+    },
+    "num_curved_lines": {
+        "mean": 1.686,
+        "std": 0.8315070655141783
+    }
+}
