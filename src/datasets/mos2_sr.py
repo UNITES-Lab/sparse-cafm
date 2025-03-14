@@ -9,10 +9,12 @@ from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List, Union
 from glob import glob
 
-MOS2_SYNTHETIC    = "data/synth-datasets"
-MOS2_SAPPHIRE_DIR = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
-MOS2_SILICON_DIR  = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
-MOS2_SEF_SRC_DIR  = "data/raw-data/1-23-25"
+MOS2_SYNTHETIC             = "data/synth-datasets"
+MOS2_SAPPHIRE_DIR          = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
+MOS2_SILICON_DIR           = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
+MOS2_SEF_FULL_RES_SRC_DIR  = "data/raw-data/1-23-25"
+MOS2_SEF_MANY_RES_SRC_DIR  = "data/raw-data/2-6-25"
+BTO_MANY_RES               = "data/raw-data/3-12-25"
 
 TRAIN_SPLIT = "train"
 VAL_SPLIT = "val"
@@ -27,28 +29,38 @@ class MOS2SRDataset(Dataset):
     Dataset class for sparse-sampling of MoS2 samples collected on various substrates.
 
     :Definitions:
-    - y: current map | (H, W)
+    - X: surface height map | (H, W)
+    - y: current map        | (H, W)
     """
 
     def __init__(
         self,
-        src_dir: str = MOS2_SEF_SRC_DIR,
+        src_dir: str = MOS2_SEF_FULL_RES_SRC_DIR,
         split: str = "train",
         upsample_factor: int = 2,
         steps_per_epoch: int = 100,
         original_image_size: Tuple[int, int] = ORIGINAL_IMAGE_SIZE,
     ):
         """
-        :param split: "train" or "val"
-        :param steps_per_epoch: data is sampled using random augmentations, therefore the # sample per epoch is arbitrary
-        :param upsample_factor: 1, 2, 4 or 8x
-        :param original_image_size: size of the original images in the dataset: e.g., (512, 512)
+        Parameters
+        ---
+        split : str
+            Dataset split; one of {'train', 'val', 'test'}.
+                - 'train': Uses synthetic downsampling for training samples.
+                - 'val': Uses synthetic downsampling for validation samples.
+                - 'test': Uses only real downsampled data; supported by `MOS2_SEF_MANY_RES_SRC_DIR` and `BTO_MANY_RES` datasets.
+        steps_per_epoch : int
+            Number of batches per epoch. Data is randomly augmented, so the number of samples per epoch is arbitrary.
+        upsample_factor : int
+            Upsampling factor; must be one of {1, 2, 4, 8}.
+        original_image_size : tuple of int
+            Size of the original images in the dataset, e.g., (512, 512).
         """
 
         super(MOS2SRDataset, self).__init__()
         self.steps_per_epoch: int = steps_per_epoch
 
-        assert split.lower() in ["train", "val"], f"Error: invalid split. Expected 'train' or 'val'"
+        assert split.lower() in ["train", "val", "test"], f"Error: invalid split. Expected 'train' or 'val'"
         self.split: str = split.lower()
 
         assert upsample_factor in [1, 2, 4, 8], f"Error: expected upsample_factor in: [1, 2, 4, 8]"

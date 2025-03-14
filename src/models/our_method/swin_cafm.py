@@ -816,7 +816,7 @@ class UpsampleOneStep(nn.Sequential):
 
 class SwinCAFM(nn.Module):
     r"""SwinCAFM
-        A PyTorch impl of : `SwinCAFM`.
+        An upsampling model based on the work of SwinIR for rapid upsampling of C-AFM scans of 2D materials.
 
     Args:
         img_size (int | tuple(int)): Input image size. Default 64
