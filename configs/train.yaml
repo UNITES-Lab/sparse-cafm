@@ -5,14 +5,14 @@ global:
 
 model:
   name: ours
-  # pretrained: True
   weights:
-  config: model-configs/001_classic_img_sr-2x-sr64.yaml
-  # config: model-configs/001_classic_img_sr-4x-s64.yaml
+  config: model-configs/001_classic_img_sr-4x-s64.yaml
+  # pretrained: True
+  # config: model-configs/001_classic_img_sr-2x-sr64.yaml
   # config: model-configs/001_classic_img_sr-8x-s48.yaml
 
 training:
-  batch_size: 24
+  batch_size: 16
   steps_per_epoch: 1024
   epochs: 200
   loss: L1

@@ -19,13 +19,13 @@ from src.models.prev_methods.rnan import RNAN
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import (
     BTOSRDataset,
-    UnifiedMOS2SRDataset, 
+    UnifiedMOS2SRDataset,
     MOS2SRDataset,
     MOS2_SEF_MANY_RES_SRC_DIR,
     MOS2_SILICON_DIR,
     MOS2_SAPPHIRE_DIR,
     MOS2_SYNTHETIC,
-    BTO_MANY_RES
+    BTO_MANY_RES,
 )
 from src.util.logger import ExperimentLogger
 from src.util.config import (
@@ -37,7 +37,7 @@ from src.util.config import (
 )
 
 warnings.simplefilter("always")
-torch.multiprocessing.set_sharing_strategy('file_system')
+torch.multiprocessing.set_sharing_strategy("file_system")
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 CONSOLE = Console()
 
@@ -71,9 +71,16 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 
 def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
-    
-    assert str(args.dataset) in ['all', 'synthetic', 'bto', 'mos2-sef', 'sapphire', 'silicon']
-    
+
+    assert str(args.dataset) in [
+        "all",
+        "synthetic",
+        "bto",
+        "mos2-sef",
+        "sapphire",
+        "silicon",
+    ]
+
     src_dir = {
         "all": None,
         "synthetic": MOS2_SYNTHETIC,
@@ -82,9 +89,9 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
         "silicon": MOS2_SILICON_DIR,
         "bto": BTO_MANY_RES,
     }[args.dataset]
-    
+
     dataset = None
-    if str(args.dataset) == 'all':
+    if str(args.dataset) == "all":
         dataset = UnifiedMOS2SRDataset(
             split=split,
             steps_per_epoch=(
@@ -92,16 +99,16 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
                 if split == "train"
                 else config.val_steps_per_epoch
             ),
-            upsample_factor=int(args.upsample_factor)
+            upsample_factor=int(args.upsample_factor),
         )
-    elif str(args.dataset) == 'bto':
+    elif str(args.dataset) == "bto":
         dataset = BTOSRDataset(
             steps_per_epoch=(
                 int(config.steps_per_epoch * config.train_batch_size)
                 if split == "train"
                 else config.val_steps_per_epoch
             ),
-            upsample_factor=int(args.upsample_factor)
+            upsample_factor=int(args.upsample_factor),
         )
     else:
         dataset = MOS2SRDataset(
@@ -112,9 +119,9 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
                 if split == "train"
                 else config.val_steps_per_epoch
             ),
-            upsample_factor=int(args.upsample_factor)
+            upsample_factor=int(args.upsample_factor),
         )
-    
+
     return DataLoader(
         dataset,
         batch_size=(
@@ -125,10 +132,14 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
     )
 
 
-def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,) -> None:
-    
+def train(
+    args,
+    config: TrainConfig,
+    model_config: Optional[ModelConfig] = None,
+) -> None:
+
     logger = setup_logger(config, model_config)
-    
+
     # model = create_model(config)
     # model = SwinCAFM.init_from_config(model_config.to_dict())
     model = torch.load(str(args.weights))
@@ -147,7 +158,7 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     device = config.device
 
     # if config.model_config_file != None:
-    #     if args.weights != "": 
+    #     if args.weights != "":
     #         model_config.weights_fp = str(args.weights)
     #         CONSOLE.print(Rule(f"Loading model weights from: {args.weights}"))
     #         assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
@@ -187,8 +198,8 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             #     # current-map: y_sparse; [64, 64]
             #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
-            X        = batch["X"].float().cuda()
-            X_sparse = batch["X_synth_downsampled"].float().cuda()
+            X = batch["X"].float().cuda()
+            X_sparse = batch["X_sparse"].float().cuda()
             # X_64   = batch["X_64"]
             # X_128  = batch["X_128"]
             # X_256  = batch["X_256"]
@@ -232,13 +243,13 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
         model.eval()
         val_running_loss = 0.0
         num_val_steps = 1
-        
+
         with torch.no_grad():
-            
+
             for i, batch in enumerate(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
-                
+
                 # F = args.formulation
                 # assert F in ['X', 'y', 'both']
 
@@ -254,8 +265,8 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                 #     # current-map: y_sparse; [64, 64]
                 #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
-                X        = batch["X"].float().cuda()
-                X_sparse = batch["X_synth_downsampled"].float().cuda()
+                X = batch["X"].float().cuda()
+                X_sparse = batch["X_sparse"].float().cuda()
                 # X_64     = batch["X_64"]
                 # X_128    = batch["X_128"]
                 # X_256    = batch["X_256"]
@@ -282,12 +293,12 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                 # log figures every 100 steps
                 if i % 100 != 0:
                     continue
-                
+
                 triplet_name = f"val_epoch_{epoch}_step_{i}.png"
                 logger.log_colorized_tensors(
-                    (X,                     "Target (y)"),
-                    (X_sparse,              "Model Input (y_sparse)"),
-                    (X_hat,                 "Model Prediction(y_hat)"),
+                    (X, "Target (y)"),
+                    (X_sparse, "Model Input (y_sparse)"),
+                    (X_hat, "Model Prediction(y_hat)"),
                     file_name=triplet_name,
                 )
 
@@ -350,18 +361,58 @@ def main(args: argparse.Namespace) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # -------------------- training config args --------------------
-    parser.add_argument("-e","--exp_name",type=str,help="Experiment directory name.",default="my-experiment",)
-    parser.add_argument("-r","--root", type=str, help="Root directory to save experiment in.",default="__exps__/",)
-    parser.add_argument("-ds", "--dataset", type=str, help="'synthetic', 'mos2-sef', 'sapphire', 'silicon', 'all']", default="mos2-sef")
-    parser.add_argument("-ws", "--weights", type=str, help="Path to model checkpoints", default="")
-    parser.add_argument("-fm", "--formulation", type=str, help="['X', 'y', 'both']", default="y")
+    parser.add_argument(
+        "-e",
+        "--exp_name",
+        type=str,
+        help="Experiment directory name.",
+        default="my-experiment",
+    )
+    parser.add_argument(
+        "-r",
+        "--root",
+        type=str,
+        help="Root directory to save experiment in.",
+        default="__exps__/",
+    )
+    parser.add_argument(
+        "-ds",
+        "--dataset",
+        type=str,
+        help="'synthetic', 'mos2-sef', 'sapphire', 'silicon', 'all']",
+        default="mos2-sef",
+    )
+    parser.add_argument(
+        "-ws", "--weights", type=str, help="Path to model checkpoints", default=""
+    )
+    parser.add_argument(
+        "-fm", "--formulation", type=str, help="['X', 'y', 'both']", default="y"
+    )
     # -------------------- model config args --------------------
-    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
-    parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
-    parser.add_argument("-nhs","--num_heads",type=int,help="Number of heads per RSTB block",default=6,)
-    parser.add_argument("-wsz","--window_size",type=int,help="Size of shifted attention window",default=8,)
+    parser.add_argument(
+        "-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6
+    )
+    parser.add_argument(
+        "-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6
+    )
+    parser.add_argument(
+        "-nhs",
+        "--num_heads",
+        type=int,
+        help="Number of heads per RSTB block",
+        default=6,
+    )
+    parser.add_argument(
+        "-wsz",
+        "--window_size",
+        type=int,
+        help="Size of shifted attention window",
+        default=8,
+    )
     parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
-    parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
+    parser.add_argument(
+        "-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm"
+    )
     # -------------------- ablation args --------------------
     parser.add_argument("-sw", "--surrogate_weights", type=str, help="", default="")
     parser.add_argument("-lr", "--learning_rate", type=float, help="", default=1e-5)

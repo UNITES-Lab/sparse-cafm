@@ -24,9 +24,6 @@ from src.models.classic_recon import (
     NearestNeighborsInpainter,
 )
 from src.models.our_method.swin_cafm import SwinCAFM
-from src.models.our_method.expert_eval_surrogate import (
-    ExpertSurrogate,
-)
 from src.models.prev_methods.sstem import SSTEM
 from src.models.prev_methods.gpstruct import GPSTRUCT
 
@@ -92,7 +89,6 @@ MODELS = {
     "nn_interpolation": {"fn": NearestNeighborsInpainter.get, "weights": None},
     "sstem_interpolation": {"fn": SSTEM.get, "weights": None},
     "gpstruct_interpolation": {"fn": GPSTRUCT.get, "weights": None},
-    "older_surrogate_mh": {"fn": ExpertSurrogate.get, "weights": None},
 }
 
 OPTIMIZERS = {
