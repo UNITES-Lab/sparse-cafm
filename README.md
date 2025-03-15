@@ -24,7 +24,7 @@ conda activate sparse-cafm
 ## Datasets
 
 | Path | Material | Height Maps | Current Maps | Substrate | Mode | # Samples | # Data Points | Resolutions |
-| :---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |
+| ---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |
 | [`data/raw-data/3-12-25`](data/raw-data/3-12-25)   | BTO             | ✅  | ❌ | ---                          | Tapping (AFM Only) | 4 | 16 | {64, 128, 256, 512} |
 | [`data/raw-data/2-6-25`](data/raw-data/2-6-25)     | MoS<sub>2</sub> | ✅  | ✅ | SiO<sub>2</sub>-Si           | Contact            | 1 | 4  | {64, 128, 256, 512} |
 | [`data/raw-data/1-23-25`](data/raw-data/1-23-25)   | MoS<sub>2</sub> | ✅  | ✅ | SiO<sub>2</sub>-Si           | Contact            | 1 | 5  | {512}|
@@ -32,11 +32,11 @@ conda activate sparse-cafm
 
 ## Model Weights
 
-| Path | Upscaling Factor | Height Maps | Current Maps | Substrate | Mode |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
-| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
-| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| Path | Upscaling Factor | Material| Height Maps | Current Maps | Substrates | Mode |
+| :---: | :---: | :---: |:---: | :---: | :---: | :---: | 
+| --- | MoS<sub>2</sub> | $$\times2$$ | ✅ | ✅ | SiO<sub>2</sub>-Si, Sapphire | Contact |
+| --- | MoS<sub>2</sub> | $$\times4$$ | ✅ | ✅ | SiO<sub>2</sub>-Si, Sapphire | Contact | 
+| --- | MoS<sub>2</sub> | $$\times8$$ | ✅ | ✅ | SiO<sub>2</sub>-Si, Sapphire | Contact | 
 
 ## Training
 
