@@ -18,7 +18,7 @@ from src.util.celano_lab_scripts import calculate_abs_diff_between_samples, pcnt
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.prev_methods.gpr import GPR
 from src.models.prev_methods.rnan import RNAN
-from src.datasets.mos2_sr import MOS2SRDataset, MOS2_SEF_SRC_DIR, MOS2_SAPPHIRE_DIR, MOS2_SILICON_DIR
+from src.datasets.mos2_sr import MOS2SRDataset, BTOSRDataset, MOS2_SEF_MANY_RES_SRC_DIR, MOS2_SAPPHIRE_DIR, MOS2_SILICON_DIR, BTO_MANY_RES
 
 warnings.simplefilter("ignore")
 
@@ -44,24 +44,30 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
     logger = Logger(args.exp_root, args.exp_name)
 
     # load model obj
-    # model: SwinCAFM = torch.load(fp).cuda().float()
-    # model.eval()
-    
-    # HACK: use GPR as basline
-    model: RNAN = torch.load(fp).cuda().float()
+    model: SwinCAFM = torch.load(fp).cuda().float()
+    model.eval()
     
     src_dir = ""
-    if dataset_name == "mos2-sef": src_dir = MOS2_SEF_SRC_DIR
+    if dataset_name == "mos2-sef": src_dir = MOS2_SEF_MANY_RES_SRC_DIR
     if dataset_name == "sapphire": src_dir = MOS2_SAPPHIRE_DIR
-    if dataset_name == "silicon": src_dir = MOS2_SILICON_DIR
+    if dataset_name == "silicon" : src_dir = MOS2_SILICON_DIR
+    if dataset_name == "bto"     : src_dir = BTO_MANY_RES
 
-    dataset = MOS2SRDataset(
-        src_dir=src_dir, 
-        split="val",
-        upsample_factor=upsampling_ratio, 
-        steps_per_epoch=NUM_TRIALS
-    )
-    BATCH_SIZE  = 32
+    if dataset_name != "bto":
+        dataset = MOS2SRDataset(
+            src_dir=src_dir, 
+            split="val",
+            upsample_factor=upsampling_ratio, 
+            steps_per_epoch=NUM_TRIALS
+        )
+    else:
+        dataset = BTOSRDataset(
+            split="val",
+            upsample_factor=upsampling_ratio,
+            steps_per_epoch=NUM_TRIALS, 
+        )
+
+    BATCH_SIZE  = 64
     data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
 
     total_pred_sr = []
@@ -81,28 +87,21 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
         y_sparse: torch.Tensor = batch[f"{formulation}_sparse"]
         y_unnorm: torch.Tensor = batch[f"{formulation}_unnorm"]
 
-        # HACK: RNAN
-        # [B, H, W] -> [B, 1, H, W]
-        if len(y_sparse.shape) == 3:
-            y_sparse = y_sparse.unsqueeze(1)
-
         y        = y.cuda().float()
         y_sparse = y_sparse.cuda().float()
         y_hat    = model(y_sparse).cuda().float()
 
-        # HACK: RNAN
-        # [B, 1, H, W] -> [B, H, W]
-        if len(y_hat.shape) == 4:
-            y_hat = y_hat.squeeze(1)
+        # HACK: y -> X
+        if formulation=="X":
 
-        breakpoint()
+            # [0, 1]
+            # NOTE: I believe that PSNR is typically reported using tensors strictly in range [-1, 1]
+            # this is probably okay, as we don't compare against any previous reported PSNR values
 
-        if formulation=="y":
-
-            psnr = PSNR(y, y_hat).item()
-            y_c = y.unsqueeze(1).repeat(1, 3, 1, 1)
+            psnr    = PSNR(y, y_hat).item()
+            y_c     = y.unsqueeze(1).repeat(1, 3, 1, 1)
             y_hat_c = y_hat.unsqueeze(1).repeat(1, 3, 1, 1)
-            ssim = SSIM(y_c, y_hat_c).item()
+            ssim    = SSIM(y_c, y_hat_c).item()
 
             psnr_vals.append(psnr)
             ssim_vals.append(ssim)
@@ -161,7 +160,8 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
 
         #     num_samples += 1
     
-    if formulation=="X":
+    # HACK: X -> y
+    if formulation=="y":
         
         console = Console()
         console.print(Rule(f"[bold blue]Results for SR: {upsampling_ratio} | dataset: {dataset_name}"))
@@ -170,8 +170,8 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
         console.print("[bold magenta]Average %diffs (y, y_hat):")
         console.print(Pretty(np.array(total_pred_sr).mean(), indent_guides=True))
         console.print(Rule(style="bold blue"))
-
-    elif formulation=="y":
+    # HACK: "y" -> X
+    elif formulation=="X":
 
         errs = {
             "psnr": np.array(psnr_vals).mean(),
@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
     assert os.path.isfile(args.ckpt_fp)
     assert args.formulation in ["X", "y"]
-    assert args.dataset in ["mos2-sef", "silicon", "sapphire", "all"]
+    assert args.dataset in ["bto", "mos2-sef", "silicon", "sapphire", "all"]
     args.upsampling_ratio = int(args.upsampling_ratio)
     assert args.upsampling_ratio in [2, 4, 8]
     
