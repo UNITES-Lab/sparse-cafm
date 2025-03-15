@@ -23,13 +23,20 @@ tb_logs/
 **.vscode/**
 
 _SwinIR/
+_RNAN/
+
 _lama/
 _I2SB/
 _dsbm-pytorch/
 
+___.ipynb
+___baselines.ipynb
 __pycache__/
 __benchmarks__/
-__exps__/__controlnet_runs__/
-__repos__/
-__old__/
 __exps__/
+__repos__/
+__notes__/
+__old__/
+__old__/**
+__exps__/
+__exps__/**

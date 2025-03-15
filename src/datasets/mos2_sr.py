@@ -637,7 +637,7 @@ class BTOSRDataset(Dataset):
         # ---- bicubic downsampling ----
 
         # -> [1, 1, 128, 128]
-        X_unsqueezed = X_512.unsqueeze(0).unsqueeze(0)
+        X_unsqueezed = X.unsqueeze(0).unsqueeze(0)
         # -> [H', W']
         X_sparse = F.interpolate(
             X_unsqueezed, 
@@ -654,12 +654,12 @@ class BTOSRDataset(Dataset):
         # assert (X_64.max()  <= 1.0 and X_64.min()  >= 0.0), f"Error normalizing X sample: {X_64.shape}"
         
         return {
-            "X"    : X,
-            "X_512": X_512,
-            "X_256": X_256,
-            "X_128": X_128,
-            "X_64" : X_64,
-            "X_synth_downsampled": X_sparse,
+            "X"       : X,
+            "X_sparse": X_sparse,
+            "X_512"   : X_512,
+            "X_256"   : X_256,
+            "X_128"   : X_128,
+            "X_64"    : X_64,
             "X_unnorm": X_unnorm,
         }
 
