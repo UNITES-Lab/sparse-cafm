@@ -9,12 +9,12 @@ from torch.utils.data import Dataset
 from typing import Dict, Optional, Tuple, List, Union
 from glob import glob
 
-MOS2_SYNTHETIC = "data/synth-datasets"
-MOS2_SAPPHIRE_DIR = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
-MOS2_SILICON_DIR = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
-MOS2_SEF_FULL_RES_SRC_DIR = "data/raw-data/1-23-25"
-MOS2_SEF_MANY_RES_SRC_DIR = "data/raw-data/2-6-25"
-BTO_MANY_RES = "data/raw-data/3-12-25"
+MOS2_SYNTHETIC             = "data/synth-datasets"
+MOS2_SAPPHIRE_DIR          = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
+MOS2_SILICON_DIR           = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
+MOS2_SEF_FULL_RES_SRC_DIR  = "data/raw-data/1-23-25"
+MOS2_SEF_MANY_RES_SRC_DIR  = "data/raw-data/2-6-25"
+BTO_MANY_RES               = "data/raw-data/3-12-25"
 
 TRAIN_SPLIT = "train"
 VAL_SPLIT = "val"
@@ -61,19 +61,10 @@ class MOS2SRDataset(Dataset):
         super(MOS2SRDataset, self).__init__()
         self.steps_per_epoch: int = steps_per_epoch
 
-        assert split.lower() in [
-            "train",
-            "val",
-            "test",
-        ], f"Error: invalid split. Expected 'train' or 'val'"
+        assert split.lower() in ["train", "val", "test"], f"Error: invalid split. Expected 'train' or 'val'"
         self.split: str = split.lower()
 
-        assert upsample_factor in [
-            1,
-            2,
-            4,
-            8,
-        ], f"Error: expected upsample_factor in: [1, 2, 4, 8]"
+        assert upsample_factor in [1, 2, 4, 8], f"Error: expected upsample_factor in: [1, 2, 4, 8]"
         self.upsample_factor = upsample_factor
 
         # size of subsamples to crop from original (512, 512) data
@@ -145,8 +136,8 @@ class MOS2SRDataset(Dataset):
 
         raise Exception("BTO dataset is not supported with this dataloader.")
 
-    def _load_imgs_mos2_synth(self) -> None:
-
+    def _load_imgs_mos2_synth(self) -> None: 
+        
         # current_map_regex = f"{self.src_dir}/current/{self.split}/current-maps/*.npy"
         # topo_map_regex = f"{self.src_dir}/topology/{self.split}/topo-maps/*.npy"
 
@@ -158,30 +149,22 @@ class MOS2SRDataset(Dataset):
         self._raw_current_fps = sorted(glob(current_map_regex))[:NUM_SAMPLES]
         self._raw_topo_fps = sorted(glob(topo_map_regex))[:NUM_SAMPLES]
 
-        assert (
-            len(self._raw_current_fps) > 0
-        ), f"Error: could not load images using regex: {current_map_regex}"
-        assert (
-            len(self._raw_topo_fps) > 0
-        ), f"Error: could not load images using regex: {current_map_regex}"
+        assert (len(self._raw_current_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"
+        assert (len(self._raw_topo_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"
 
         # [H, W, C]
-        self.current_maps: List[np.ndarray] = [
-            np.load(fp) for fp in self._raw_current_fps
-        ]
+        self.current_maps: List[np.ndarray] = [np.load(fp) for fp in self._raw_current_fps]
         self.topo_maps: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_fps]
 
         # validate current, topo map paris are aligned
         _current_fps_basenames = [os.path.basename(fp) for fp in self._raw_current_fps]
         _topo_fps_basenames = [os.path.basename(fp) for fp in self._raw_topo_fps]
-        assert (
-            _current_fps_basenames == _topo_fps_basenames
-        ), f"Error: misalignment of current maps and topo maps during dataloading"
+        assert (_current_fps_basenames == _topo_fps_basenames), f"Error: misalignment of current maps and topo maps during dataloading"
 
         # convert maps to type -> float64
         self.current_maps = [cm.astype(np.float64) for cm in self.current_maps]
         self.topo_maps = [tm.astype(np.float64) for tm in self.topo_maps]
-
+        
         # [H, W, C] -> [H, W] by averaging across the channel dimension
         self.current_maps = [np.mean(cm, axis=-1) for cm in self.current_maps]
         self.topo_maps = [np.mean(tm, axis=-1) for tm in self.topo_maps]
@@ -197,31 +180,22 @@ class MOS2SRDataset(Dataset):
         self._raw_current_fps = sorted(glob(current_map_regex))
         self._raw_topo_fps = sorted(glob(topo_map_regex))
 
-        assert (
-            len(self._raw_current_fps) > 0
-        ), f"Error: could not load images using regex: {current_map_regex}"
-        assert (
-            len(self._raw_topo_fps) > 0
-        ), f"Error: could not load images using regex: {current_map_regex}"
+        assert (len(self._raw_current_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"
+        assert (len(self._raw_topo_fps) > 0), f"Error: could not load images using regex: {current_map_regex}"
 
         # [H, W, C]
-        self.current_maps: List[np.ndarray] = [
-            np.load(fp) for fp in self._raw_current_fps
-        ]
+        self.current_maps: List[np.ndarray] = [np.load(fp) for fp in self._raw_current_fps]
         self.topo_maps: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_fps]
 
         # validate current, topo map paris are aligned
-        _current_fps_basenames = [
-            os.path.basename(fp)[:4] for fp in self._raw_current_fps
-        ]
+        _current_fps_basenames = [os.path.basename(fp)[:4] for fp in self._raw_current_fps]
         _topo_fps_basenames = [os.path.basename(fp)[:4] for fp in self._raw_topo_fps]
-        assert (
-            _current_fps_basenames == _topo_fps_basenames
-        ), f"Error: misalignment of current maps and topo maps during dataloading"
+        assert (_current_fps_basenames == _topo_fps_basenames), f"Error: misalignment of current maps and topo maps during dataloading"
 
         # convert maps to type -> float64
         self.current_maps = [cm.astype(np.float64) for cm in self.current_maps]
         self.topo_maps = [tm.astype(np.float64) for tm in self.topo_maps]
+
 
     def _load_imgs_sil_saf(self) -> None:
         """
@@ -323,9 +297,9 @@ class MOS2SRDataset(Dataset):
                 A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
             ],
             additional_targets={
-                "X": "image",
+                "X":      "image",
                 "X_mask": "mask",
-                "y": "mask",
+                "y":      "mask",
             },
         )
 
@@ -351,7 +325,7 @@ class MOS2SRDataset(Dataset):
                     'y_unnorm': torch.Tensor, current-map w/ shape [H / upsample_factor, W / upsample_factor]
                 }
         """
-
+        
         # NOTE: we only consider samples: [0, 1, 2, 3];
         # HACK: hard-coded train/val splits
         # choose a random sample idx
@@ -364,10 +338,10 @@ class MOS2SRDataset(Dataset):
             sample_idx = len(self.current_maps) - 1
         else:
             raise Exception(f"Invalid split: {self.split}")
-
+        
         # [512, 512]; un-normalized, full-sized topography map
         X: np.ndarray = self.topo_maps[sample_idx]
-
+        
         # [512, 512]; un-normalized, full-sized current map
         y: np.ndarray = self.current_maps[sample_idx]
 
@@ -384,16 +358,18 @@ class MOS2SRDataset(Dataset):
             y: np.ndarray = augmented["y"]
         else:
             raise Exception("Something has gone very wrong")
-
+        
         X: torch.Tensor = torch.Tensor(X).float()
         y: torch.Tensor = torch.Tensor(y).float()
-
+        
         # [128, 128]
         X_unnorm = X.clone()
         y_unnorm = y.clone()
 
         # -> [0, 1]
-        X = (X - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
+        X = (X - self.topo_maps_min) / (
+            self.topo_maps_max - self.topo_maps_min
+        )
 
         # -> [0, 1]
         y = (y - self.current_maps_min) / (
@@ -406,31 +382,27 @@ class MOS2SRDataset(Dataset):
         X_unsqueezed = X.unsqueeze(0).unsqueeze(0)
         # -> [H', W']
         X_sparse = F.interpolate(
-            X_unsqueezed,
-            scale_factor=1 / self.upsample_factor,
-            mode="bicubic",
-            align_corners=False,
-        )
+            X_unsqueezed, 
+            scale_factor=1/self.upsample_factor, 
+            mode='bicubic', 
+            align_corners=False
+            )
         X_sparse = X_sparse.squeeze(0).squeeze(0)
-
+        
         # -> [1, 1, 128, 128]
         y_unsqueezed = y.unsqueeze(0).unsqueeze(0)
         # -> [H', W']
         y_sparse = F.interpolate(
-            y_unsqueezed,
-            scale_factor=1 / self.upsample_factor,
-            mode="bicubic",
-            align_corners=False,
-        )
+            y_unsqueezed, 
+            scale_factor=1/self.upsample_factor, 
+            mode='bicubic', 
+            align_corners=False
+            )
         y_sparse = y_sparse.squeeze(0).squeeze(0)
-
-        assert (
-            X.max() <= 1.0 and X.min() >= 0.0
-        ), f"Error normalizing X sample: {X.shape}"
-        assert (
-            y.max() <= 1.0 and y.min() >= 0.0
-        ), f"Error normalizing y sample: {y.shape}"
-
+        
+        assert (X.max() <= 1.0 and X.min() >= 0.0), f"Error normalizing X sample: {X.shape}"
+        assert (y.max() <= 1.0 and y.min() >= 0.0), f"Error normalizing y sample: {y.shape}"
+        
         return {
             "X": X,
             "X_sparse": X_sparse,
@@ -439,7 +411,7 @@ class MOS2SRDataset(Dataset):
             "y_sparse": y_sparse,
             "y_unnorm": y_unnorm,
         }
-
+    
 
 class BTOSRDataset(Dataset):
     """
@@ -476,18 +448,10 @@ class BTOSRDataset(Dataset):
         super(BTOSRDataset, self).__init__()
         self.steps_per_epoch: int = steps_per_epoch
 
-        assert split.lower() in [
-            "train",
-            "val",
-            "test",
-        ], f"Error: invalid split. Expected 'train' or 'val'"
+        assert split.lower() in ["train", "val", "test"], f"Error: invalid split. Expected 'train' or 'val'"
         self.split: str = split.lower()
 
-        assert upsample_factor in [
-            2,
-            4,
-            8,
-        ], f"Error: expected upsample_factor in: [2, 4, 8]"
+        assert upsample_factor in [2, 4, 8], f"Error: expected upsample_factor in: [2, 4, 8]"
         self.upsample_factor = upsample_factor
 
         # size of subsamples to crop from original (512, 512) data
@@ -535,36 +499,26 @@ class BTOSRDataset(Dataset):
         - 4x scans @{512, 256, 128, 64}
         """
 
-        topo_map_regex_64 = f"{self.src_dir}/*64*.npy"
+        topo_map_regex_64  = f"{self.src_dir}/*64*.npy"
         topo_map_regex_128 = f"{self.src_dir}/*128*.npy"
         topo_map_regex_256 = f"{self.src_dir}/*256*.npy"
         topo_map_regex_512 = f"{self.src_dir}/*512*.npy"
 
-        self._raw_topo_64_fps = sorted(glob(topo_map_regex_64))
+        self._raw_topo_64_fps  = sorted(glob(topo_map_regex_64))
         self._raw_topo_128_fps = sorted(glob(topo_map_regex_128))
         self._raw_topo_256_fps = sorted(glob(topo_map_regex_256))
         self._raw_topo_512_fps = sorted(glob(topo_map_regex_512))
 
-        assert (
-            len(self._raw_topo_64_fps) > 0
-        ), f"Error: could not load images using regex: {topo_map_regex_64}"
+        assert (len(self._raw_topo_64_fps) > 0), f"Error: could not load images using regex: {topo_map_regex_64}"
 
         # [H, W]
-        self.topo_maps_64: List[np.ndarray] = [
-            np.load(fp) for fp in self._raw_topo_64_fps
-        ]
-        self.topo_maps_128: List[np.ndarray] = [
-            np.load(fp) for fp in self._raw_topo_128_fps
-        ]
-        self.topo_maps_256: List[np.ndarray] = [
-            np.load(fp) for fp in self._raw_topo_256_fps
-        ]
-        self.topo_maps_512: List[np.ndarray] = [
-            np.load(fp) for fp in self._raw_topo_512_fps
-        ]
+        self.topo_maps_64 : List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_64_fps]
+        self.topo_maps_128: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_128_fps]
+        self.topo_maps_256: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_256_fps]
+        self.topo_maps_512: List[np.ndarray] = [np.load(fp) for fp in self._raw_topo_512_fps]
 
         # convert maps to type -> float64
-        self.topo_maps_64 = [tm.astype(np.float64) for tm in self.topo_maps_64]
+        self.topo_maps_64  = [tm.astype(np.float64) for tm in self.topo_maps_64]
         self.topo_maps_128 = [tm.astype(np.float64) for tm in self.topo_maps_128]
         self.topo_maps_256 = [tm.astype(np.float64) for tm in self.topo_maps_256]
         self.topo_maps_512 = [tm.astype(np.float64) for tm in self.topo_maps_512]
@@ -576,9 +530,9 @@ class BTOSRDataset(Dataset):
         """
 
         self.topo_maps_mean = np.mean(np.array(self.topo_maps_512))
-        self.topo_maps_std = np.std(np.array(self.topo_maps_512))
-        self.topo_maps_max = np.amax(np.array(self.topo_maps_512))
-        self.topo_maps_min = np.amin(np.array(self.topo_maps_512))
+        self.topo_maps_std  = np.std(np.array(self.topo_maps_512))
+        self.topo_maps_max  = np.amax(np.array(self.topo_maps_512))
+        self.topo_maps_min  = np.amin(np.array(self.topo_maps_512))
 
     def _create_augmentation_pipeline(self):
         return A.Compose(
@@ -590,7 +544,7 @@ class BTOSRDataset(Dataset):
                 A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
             ],
             additional_targets={
-                "X": "image",
+                "X":      "image",
                 "X_mask": "mask",
             },
         )
@@ -617,7 +571,7 @@ class BTOSRDataset(Dataset):
                     'X_unnorm': torch.Tensor, topo-map w/ shape    [H / upsample_factor, W / upsample_factor]
                 }
         """
-
+        
         # NOTE: we only consider samples: [0, 1, 2, 3];
         # choose a random sample idx
         if self.split == TRAIN_SPLIT:
@@ -631,12 +585,12 @@ class BTOSRDataset(Dataset):
             sample_idx = len(self.topo_maps_512) - 1
         else:
             raise Exception(f"Invalid split: {self.split}")
-
+        
         # [512, 512]; un-normalized, full-sized topography map
         X_512: np.ndarray = self.topo_maps_512[sample_idx]
         X_256: np.ndarray = self.topo_maps_256[sample_idx]
         X_128: np.ndarray = self.topo_maps_128[sample_idx]
-        X_64: np.ndarray = self.topo_maps_64[sample_idx]
+        X_64 : np.ndarray = self.topo_maps_64[sample_idx]
 
         X: np.ndarray = X_512.copy()
 
@@ -644,7 +598,7 @@ class BTOSRDataset(Dataset):
         augmented: np.ndarray = self.augmentation_pipeline(image=X, X=X, X_mask=X)
 
         # [512, 512] -> [128, 128] + apply augs
-        if self.split == TRAIN_SPLIT:
+        if self.split   == TRAIN_SPLIT:
             X: np.ndarray = augmented["X"]
         elif self.split == VAL_SPLIT:
             X: np.ndarray = augmented["X_mask"]
@@ -653,21 +607,32 @@ class BTOSRDataset(Dataset):
             pass
         else:
             raise Exception("Something has gone very wrong")
-
-        X: torch.Tensor = torch.Tensor(X).float()
+        
+        X    : torch.Tensor = torch.Tensor(X).float()
         X_512: torch.Tensor = torch.Tensor(X_512).float()
         X_256: torch.Tensor = torch.Tensor(X_256).float()
         X_128: torch.Tensor = torch.Tensor(X_128).float()
-        X_64: torch.Tensor = torch.Tensor(X_64).float()
-
+        X_64 : torch.Tensor = torch.Tensor(X_64).float()
+        
         X_unnorm = X_512.clone()
 
+
         # -> [0, 1]
-        X = (X - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
-        X_512 = (X_512 - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
-        X_256 = (X_256 - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
-        X_128 = (X_128 - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
-        X_64 = (X_64 - self.topo_maps_min) / (self.topo_maps_max - self.topo_maps_min)
+        X = (X - self.topo_maps_min) / (
+            self.topo_maps_max - self.topo_maps_min
+        )
+        X_512 = (X_512 - self.topo_maps_min) / (
+            self.topo_maps_max - self.topo_maps_min
+        )
+        X_256 = (X_256 - self.topo_maps_min) / (
+            self.topo_maps_max - self.topo_maps_min
+        )
+        X_128 = (X_128 - self.topo_maps_min) / (
+            self.topo_maps_max - self.topo_maps_min
+        )
+        X_64  = (X_64 - self.topo_maps_min) / (
+            self.topo_maps_max - self.topo_maps_min
+        )
 
         # ---- bicubic downsampling ----
 
@@ -675,30 +640,26 @@ class BTOSRDataset(Dataset):
         X_unsqueezed = X.unsqueeze(0).unsqueeze(0)
         # -> [H', W']
         X_sparse = F.interpolate(
-            X_unsqueezed,
-            scale_factor=1 / self.upsample_factor,
-            mode="bicubic",
-            align_corners=False,
-        )
+            X_unsqueezed, 
+            scale_factor=1/self.upsample_factor, 
+            mode='bicubic', 
+            align_corners=False
+            )
         X_sparse = X_sparse.squeeze(0).squeeze(0)
-
-        assert (
-            X.max() <= 1.0 and X.min() >= 0.0
-        ), f"Error normalizing X sample: {X.shape}"
-        assert (
-            X_512.max() <= 1.0 and X_512.min() >= 0.0
-        ), f"Error normalizing X sample: {X_512.shape}"
+        
+        assert (X.max()     <= 1.0 and X.min()     >= 0.0), f"Error normalizing X sample: {X.shape}"
+        assert (X_512.max() <= 1.0 and X_512.min() >= 0.0), f"Error normalizing X sample: {X_512.shape}"
         # assert (X_256.max() <= 1.0 and X_256.min() >= 0.0), f"Error normalizing X sample: {X_256.shape}"
         # assert (X_128.max() <= 1.0 and X_128.min() >= 0.0), f"Error normalizing X sample: {X_128.shape}"
         # assert (X_64.max()  <= 1.0 and X_64.min()  >= 0.0), f"Error normalizing X sample: {X_64.shape}"
-
+        
         return {
-            "X": X,
+            "X"       : X,
             "X_sparse": X_sparse,
-            "X_512": X_512,
-            "X_256": X_256,
-            "X_128": X_128,
-            "X_64": X_64,
+            "X_512"   : X_512,
+            "X_256"   : X_256,
+            "X_128"   : X_128,
+            "X_64"    : X_64,
             "X_unnorm": X_unnorm,
         }
 
@@ -708,7 +669,7 @@ class UnifiedMOS2SRDataset(Dataset):
     A horrible abomination that contains all datasets in one.
     """
 
-    def __init__(
+    def  __init__(
         self,
         split: str = "train",
         upsample_factor: int = 2,
@@ -723,7 +684,7 @@ class UnifiedMOS2SRDataset(Dataset):
         """
 
         super(UnifiedMOS2SRDataset, self).__init__()
-
+        
         self.mos2_sef_dataset = MOS2SRDataset(
             src_dir=MOS2_SEF_SRC_DIR,
             split=split,
@@ -739,7 +700,7 @@ class UnifiedMOS2SRDataset(Dataset):
             steps_per_epoch=steps_per_epoch,
             original_image_size=original_image_size,
         )
-
+        
         self.silicon_datset = MOS2SRDataset(
             src_dir=MOS2_SILICON_DIR,
             split=split,
@@ -748,7 +709,7 @@ class UnifiedMOS2SRDataset(Dataset):
             original_image_size=original_image_size,
         )
 
-    def __len__(self):
+    def __len__(self): 
         return len(self.mos2_sef_dataset)
 
     def __getitem__(self, index: int) -> dict:
@@ -759,16 +720,14 @@ class UnifiedMOS2SRDataset(Dataset):
 
         item = {}
         choice = random.random()
-
+        
         # if choice   < .33: item = self.mos2_sef_dataset.__getitem__(index)
         # elif choice < .66: item = self.sapphire_dataset.__getitem__(index)
         # else:              item =   self.silicon_datset.__getitem__(index)
-
+        
         # HACK: only use two datasets for transfer learning ablation
-        if choice < 0.50:
-            item = self.mos2_sef_dataset.__getitem__(index)
-        else:
-            item = self.sapphire_dataset.__getitem__(index)
+        if choice   < .50: item = self.mos2_sef_dataset.__getitem__(index)
+        else             : item = self.sapphire_dataset.__getitem__(index)
         # else:              item =   self.silicon_datset.__getitem__(index)
 
         return item
@@ -778,7 +737,7 @@ if __name__ == "__main__":
 
     dataset = BTOSRDataset(
         src_dir=BTO_MANY_RES,
-        split="train",
-        upsample_factor=2,
+        split="train", 
+        upsample_factor=2, 
     )
     dataset[0]

@@ -32,6 +32,12 @@ conda activate sparse-cafm
 
 ## Model Weights
 
+| Path | Upscaling Factor | Height Maps | Current Maps | Substrate | Mode |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+
 ## Training
 
 ## Inference
@@ -43,3 +49,7 @@ conda activate sparse-cafm
       journal={...},
       year={2025}
     }
+
+## License
+
+We release our work under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) ❤️. 

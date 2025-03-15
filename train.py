@@ -199,7 +199,7 @@ def train(
             #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
             X = batch["X"].float().cuda()
-            X_sparse = batch["X_synth_downsampled"].float().cuda()
+            X_sparse = batch["X_sparse"].float().cuda()
             # X_64   = batch["X_64"]
             # X_128  = batch["X_128"]
             # X_256  = batch["X_256"]
@@ -266,7 +266,7 @@ def train(
                 #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
                 X = batch["X"].float().cuda()
-                X_sparse = batch["X_synth_downsampled"].float().cuda()
+                X_sparse = batch["X_sparse"].float().cuda()
                 # X_64     = batch["X_64"]
                 # X_128    = batch["X_128"]
                 # X_256    = batch["X_256"]
