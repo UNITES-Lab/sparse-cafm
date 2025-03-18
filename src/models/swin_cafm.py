@@ -11,7 +11,6 @@ import torch.utils.checkpoint as checkpoint
 
 from typing import Optional
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
-from src.models.unet.unet import SwinIRUNetHead
 
 
 class Mlp(nn.Module):
