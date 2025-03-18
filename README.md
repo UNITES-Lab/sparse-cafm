@@ -32,7 +32,7 @@ conda activate sparse-cafm
 
 ## Model Weights
 
-| Path | Upscaling Factor | Material| Height Maps | Current Maps | Substrates | Mode |
+| Path | Material | Upscaling Factor| Height Maps | Current Maps | Substrates | Mode |
 | :---: | :---: | :---: |:---: | :---: | :---: | :---: | 
 | --- | MoS<sub>2</sub> | $$\times2$$ | ✅ | ✅ | SiO<sub>2</sub>-Si, Sapphire | Contact |
 | --- | MoS<sub>2</sub> | $$\times4$$ | ✅ | ✅ | SiO<sub>2</sub>-Si, Sapphire | Contact | 

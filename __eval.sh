@@ -21,8 +21,9 @@ DATASET="bto"
 # --------------------------------------------------------------------------
 
 # ---- 2x2 == 4x upscaling ----
-CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/foundation-models/3. combined/8x/2025-03-03_10-56-59_DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
-EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-0-samples"
+UPSAMPLING_RATIO=2
+CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/foundation-models/3. combined/2x/2025-03-04_11-14-17_DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
+EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-2-samples"
 python expert_evaluation.py \
     --exp_root "$EXP_ROOT" \
     --exp_name "$EXP_NAME" \
@@ -31,35 +32,16 @@ python expert_evaluation.py \
     --dataset "$DATASET" \
     --upsampling_ratio "$UPSAMPLING_RATIO"
 
-# CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/transfer-learning/bto/2025-03-14_13-14-16_BTO-1-samples/BTO-1-samples_best.pth"
-# EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-1-samples"
-# python expert_evaluation.py \
-#     --exp_root "$EXP_ROOT" \
-#     --exp_name "$EXP_NAME" \
-#     --ckpt_fp "$CKPT" \
-#     --formulation "$FORMULATION" \
-#     --dataset "$DATASET" \
-#     --upsampling_ratio "$UPSAMPLING_RATIO"
-
-# CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/transfer-learning/bto/2025-03-14_13-12-52_BTO-2-samples/BTO-2-samples_best.pth"
-# EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-2-samples"
-# python expert_evaluation.py \
-#     --exp_root "$EXP_ROOT" \
-#     --exp_name "$EXP_NAME" \
-#     --ckpt_fp "$CKPT" \
-#     --formulation "$FORMULATION" \
-#     --dataset "$DATASET" \
-#     --upsampling_ratio "$UPSAMPLING_RATIO"
-
-# CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/transfer-learning/bto/2025-03-14_13-10-40_BTO-3-samples/BTO-3-samples_best.pth"
-# EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-3-samples"
-# python expert_evaluation.py \
-#     --exp_root "$EXP_ROOT" \
-#     --exp_name "$EXP_NAME" \
-#     --ckpt_fp "$CKPT" \
-#     --formulation "$FORMULATION" \
-#     --dataset "$DATASET" \
-#     --upsampling_ratio "$UPSAMPLING_RATIO"
+UPSAMPLING_RATIO=4
+CKPT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/foundation-models/3. combined/4x/2025-03-03_10-59-32_DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
+EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-3-samples"
+python expert_evaluation.py \
+    --exp_root "$EXP_ROOT" \
+    --exp_name "$EXP_NAME" \
+    --ckpt_fp "$CKPT" \
+    --formulation "$FORMULATION" \
+    --dataset "$DATASET" \
+    --upsampling_ratio "$UPSAMPLING_RATIO"
 
 # -------------------------------------------
 exit

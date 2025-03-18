@@ -98,6 +98,11 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
     psnr_vals = []
     ssim_vals = []
 
+    import torch.nn as nn
+    # HACK: use random init weights
+    for param in model.parameters():
+        nn.init.uniform_(param, a=-0.1, b=0.1)  # random values between -0.1 and 0.1
+
     # evaluate model
     for batch in tqdm(
         data_loader, desc=f"Processing SR: {upsampling_ratio} | dataset: {dataset_name}"
