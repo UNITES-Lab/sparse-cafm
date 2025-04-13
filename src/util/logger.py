@@ -310,10 +310,11 @@ class ExperimentLogger:
         if name.endswith(".npy"):
             np.save(out_fp, data)
             
-    def log_colorized_tensors(self, *samples: Tuple[torch.Tensor, str], file_name: str) -> None:
+    def log_colorized_tensors(self, *samples: Tuple[torch.Tensor, str], file_name: str) -> plt.Figure:
         """
         Log tensors with the exact shape: [B, H, W], using an added color pallet to make things pretty.
         """
+
         MAX_COLS = 3
         IMAGE_SIZE_IN = 6
         num_images = len(samples)
@@ -355,7 +356,7 @@ class ExperimentLogger:
         os.makedirs(outdir, exist_ok=True)
         out_fp = os.path.join(outdir, file_name)
         plt.savefig(out_fp, bbox_inches="tight", pad_inches=0.1, dpi=300)
-        plt.close(fig)
+        return fig
 
 
     def log_original_masked_predicted_sample_triplet(

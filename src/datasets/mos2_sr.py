@@ -13,7 +13,7 @@ MOS2_SYNTHETIC             = "data/synth-datasets"
 MOS2_SAPPHIRE_DIR          = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
 MOS2_SILICON_DIR           = "data/raw-data/11-19-24/2. MoS2 on Sapphire"
 MOS2_SEF_FULL_RES_SRC_DIR  = "data/raw-data/1-23-25"
-MOS2_SEF_MANY_RES_SRC_DIR  = "data/raw-data/2-6-25"
+MOS2_SEF_MANY_RES_SRC_DIR  = "/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/data/raw-data/2-6-25"
 BTO_MANY_RES               = "data/raw-data/3-12-25"
 
 TRAIN_SPLIT = "train"
@@ -289,11 +289,11 @@ class MOS2SRDataset(Dataset):
     def _create_augmentation_pipeline(self):
         return A.Compose(
             [
-                A.HorizontalFlip(p=0.5),
-                A.VerticalFlip(p=0.5),
-                A.RandomRotate90(p=0.5),
-                A.Rotate(limit=15, p=0.5),
-                A.ElasticTransform(),
+                # A.HorizontalFlip(p=0.5),
+                # A.VerticalFlip(p=0.5),
+                # A.RandomRotate90(p=0.5),
+                # A.Rotate(limit=15, p=0.5),
+                # A.ElasticTransform(),
                 A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
             ],
             additional_targets={

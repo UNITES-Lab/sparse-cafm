@@ -1,4 +1,5 @@
 import os
+import wandb
 import random
 import sys
 import argparse
@@ -15,17 +16,18 @@ from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
 
-from src.models.prev_methods.rnan import RNAN
+from src.util.metrics import PSNR, SSIM
+from src.models.unet.unet import UNet
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import (
     BTOSRDataset,
-    UnifiedMOS2SRDataset, 
+    UnifiedMOS2SRDataset,
     MOS2SRDataset,
-    MOS2_SEF_MANY_RES_SRC_DIR,
+    MOS2_SEF_FULL_RES_SRC_DIR,
     MOS2_SILICON_DIR,
     MOS2_SAPPHIRE_DIR,
     MOS2_SYNTHETIC,
-    BTO_MANY_RES
+    BTO_MANY_RES,
 )
 from src.util.logger import ExperimentLogger
 from src.util.config import (
@@ -37,14 +39,14 @@ from src.util.config import (
 )
 
 warnings.simplefilter("always")
-torch.multiprocessing.set_sharing_strategy('file_system')
+torch.multiprocessing.set_sharing_strategy("file_system")
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 CONSOLE = Console()
-
 
 def setup_logger(
     train_config: TrainConfig, model_config: Optional[ModelConfig]
 ) -> ExperimentLogger:
+    
     logger = ExperimentLogger(
         train_config_dict=train_config.to_dict(),
         model_config_dict=model_config.to_dict() if model_config != None else None,
@@ -71,20 +73,27 @@ def create_model(config: TrainConfig) -> nn.Module:
 
 
 def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
-    
-    assert str(args.dataset) in ['all', 'synthetic', 'bto', 'mos2-sef', 'sapphire', 'silicon']
-    
+
+    assert str(args.dataset) in [
+        "all",
+        "synthetic",
+        "bto",
+        "mos2-sef",
+        "sapphire",
+        "silicon",
+    ]
+
     src_dir = {
         "all": None,
         "synthetic": MOS2_SYNTHETIC,
-        "mos2-sef": MOS2_SEF_MANY_RES_SRC_DIR,
+        "mos2-sef": MOS2_SEF_FULL_RES_SRC_DIR,
         "sapphire": MOS2_SAPPHIRE_DIR,
         "silicon": MOS2_SILICON_DIR,
         "bto": BTO_MANY_RES,
     }[args.dataset]
-    
+
     dataset = None
-    if str(args.dataset) == 'all':
+    if str(args.dataset) == "all":
         dataset = UnifiedMOS2SRDataset(
             split=split,
             steps_per_epoch=(
@@ -92,16 +101,16 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
                 if split == "train"
                 else config.val_steps_per_epoch
             ),
-            upsample_factor=int(args.upsample_factor)
+            upsample_factor=int(args.upsample_factor),
         )
-    elif str(args.dataset) == 'bto':
+    elif str(args.dataset) == "bto":
         dataset = BTOSRDataset(
             steps_per_epoch=(
                 int(config.steps_per_epoch * config.train_batch_size)
                 if split == "train"
                 else config.val_steps_per_epoch
             ),
-            upsample_factor=int(args.upsample_factor)
+            upsample_factor=int(args.upsample_factor),
         )
     else:
         dataset = MOS2SRDataset(
@@ -112,9 +121,9 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
                 if split == "train"
                 else config.val_steps_per_epoch
             ),
-            upsample_factor=int(args.upsample_factor)
+            upsample_factor=int(args.upsample_factor),
         )
-    
+
     return DataLoader(
         dataset,
         batch_size=(
@@ -125,13 +134,29 @@ def create_dataloader(args, config: TrainConfig, split: str) -> DataLoader:
     )
 
 
-def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,) -> None:
-    
+def train(
+    args,
+    config: TrainConfig,
+    model_config: Optional[ModelConfig] = None,
+) -> None:
+
     logger = setup_logger(config, model_config)
-    
+
+    # wandb login
+    wandb.login(key="3d8c09b359c1abc995fd03c27398c41afce857c1")
+    wandb.init(
+        entity="team-levi",
+        project="sparse-cafm",
+        config=config.to_dict()
+    )
+
+    # HACK: just loading a torch .pth file
+
     # model = create_model(config)
     # model = SwinCAFM.init_from_config(model_config.to_dict())
-    model = torch.load(str(args.weights))
+    # model = torch.load(str(args.weights))
+
+    model = UNet.get()
 
     train_dataloader = create_dataloader(args, config, "train")
     val_dataloader = create_dataloader(args, config, "val")
@@ -147,7 +172,7 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     device = config.device
 
     # if config.model_config_file != None:
-    #     if args.weights != "": 
+    #     if args.weights != "":
     #         model_config.weights_fp = str(args.weights)
     #         CONSOLE.print(Rule(f"Loading model weights from: {args.weights}"))
     #         assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
@@ -160,6 +185,12 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
     # as per: https://arxiv.org/pdf/2404.00722
     optimizer = torch.optim.Adam(model.parameters(), lr=float(config.learning_rate))
 
+    # assert isinstance(model, SwinCAFM)
+
+    # HACK: randomly init weights
+    # model.apply(model._init_weights)
+
+    model = UNet.get()
     model.cuda(device)
     model.float()
 
@@ -187,13 +218,10 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
             #     # current-map: y_sparse; [64, 64]
             #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
-            X        = batch["X"].float().cuda()
-            X_sparse = batch["X_synth_downsampled"].float().cuda()
-            # X_64   = batch["X_64"]
-            # X_128  = batch["X_128"]
-            # X_256  = batch["X_256"]
-            # X_512  = batch["X_512"]
-
+            # [0, 1]
+            X = batch["y"].float().cuda()
+            X_sparse = batch["y_sparse"].float().cuda()
+            
             # zero gradients
             optimizer.zero_grad()
 
@@ -202,6 +230,16 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
 
             # --- L1 ----
             loss = torch.nn.functional.l1_loss(X, X_hat)
+
+            # HACK: clip to [0, 1]
+            X_hat = torch.clip(X_hat, 0, 1)
+
+            # ---- add dummy dims for PSNR/SSIM ----
+            X_il    : torch.Tensor     = X.unsqueeze(1).repeat(1,3,1,1)
+            X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1,3,1,1)
+
+            psnr = PSNR(X_il, X_hat_il, (0, 1))
+            ssim = SSIM(X_il, X_hat_il, (0, 1))
 
             loss.backward()
             optimizer.step()
@@ -215,30 +253,40 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                     "val_loss": None,
                 }
             )
+            wandb.log(
+                {
+                    "epoch": epoch,
+                    "train_l1_loss": loss.item(),
+                    "train_psnr": psnr,
+                    "train_ssim": ssim,
+                }
+            )
 
             # log figures every 100 steps
             if step % 100 != 0:
                 continue
 
             triplet_name = f"train_epoch_{epoch}_step_{step}.png"
-            logger.log_colorized_tensors(
+            fig = logger.log_colorized_tensors(
                 (X, "Target (X)"),
                 (X_sparse, "Model Input (X_sparse)"),
                 (X_hat, "Model Prediction"),
                 file_name=triplet_name,
             )
 
+            wandb.log({"Train Qualitative Results": wandb.Image(fig)})
+
         # validation
         model.eval()
         val_running_loss = 0.0
         num_val_steps = 1
-        
+
         with torch.no_grad():
-            
+
             for i, batch in enumerate(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
-                
+
                 # F = args.formulation
                 # assert F in ['X', 'y', 'both']
 
@@ -254,15 +302,18 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                 #     # current-map: y_sparse; [64, 64]
                 #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
-                X        = batch["X"].float().cuda()
-                X_sparse = batch["X_synth_downsampled"].float().cuda()
-                # X_64     = batch["X_64"]
-                # X_128    = batch["X_128"]
-                # X_256    = batch["X_256"]
-                # X_512    = batch["X_512"]
+                X = batch["y"].float().cuda()
+                X_sparse = batch["y_sparse"].float().cuda()
 
                 # ---- forward: p(y | y_sparse) ----
                 X_hat: torch.Tensor = model(X_sparse)
+
+                # ---- add dummy dims for PSNR/SSIM ----
+                X_il    : torch.Tensor     = X.unsqueeze(1).repeat(1,3,1,1)
+                X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1,3,1,1)
+
+                psnr = PSNR(X_il, X_hat_il, (0, 1))
+                ssim = SSIM(X_il, X_hat_il, (0, 1))
 
                 # --- L1 ----
                 loss = val_loss(X_hat, X)
@@ -278,18 +329,28 @@ def train(args, config: TrainConfig, model_config: Optional[ModelConfig] = None,
                         "val_loss": loss.item(),
                     }
                 )
+                wandb.log(
+                    {
+                        "epoch": epoch,
+                        "val_l1_loss": loss.item(),
+                        "val_psnr": psnr,
+                        "val_ssim": ssim,
+                    }
+                )
 
                 # log figures every 100 steps
                 if i % 100 != 0:
                     continue
-                
+
                 triplet_name = f"val_epoch_{epoch}_step_{i}.png"
                 logger.log_colorized_tensors(
-                    (X,                     "Target (y)"),
-                    (X_sparse,              "Model Input (y_sparse)"),
-                    (X_hat,                 "Model Prediction(y_hat)"),
+                    (X, "Target (y)"),
+                    (X_sparse, "Model Input (y_sparse)"),
+                    (X_hat, "Model Prediction(y_hat)"),
                     file_name=triplet_name,
                 )
+
+                wandb.log({"Train Qualitative Results": wandb.Image(fig)})
 
             # optional: log best/recent model weights
             avg_val_loss = val_running_loss / num_val_steps
@@ -350,22 +411,63 @@ def main(args: argparse.Namespace) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # -------------------- training config args --------------------
-    parser.add_argument("-e","--exp_name",type=str,help="Experiment directory name.",default="my-experiment",)
-    parser.add_argument("-r","--root", type=str, help="Root directory to save experiment in.",default="__exps__/",)
-    parser.add_argument("-ds", "--dataset", type=str, help="'synthetic', 'mos2-sef', 'sapphire', 'silicon', 'all']", default="mos2-sef")
-    parser.add_argument("-ws", "--weights", type=str, help="Path to model checkpoints", default="")
-    parser.add_argument("-fm", "--formulation", type=str, help="['X', 'y', 'both']", default="y")
+    parser.add_argument(
+        "-e",
+        "--exp_name",
+        type=str,
+        help="Experiment directory name.",
+        default="my-experiment",
+    )
+    parser.add_argument(
+        "-r",
+        "--root",
+        type=str,
+        help="Root directory to save experiment in.",
+        default="__exps__/",
+    )
+    parser.add_argument(
+        "-ds",
+        "--dataset",
+        type=str,
+        help="'synthetic', 'mos2-sef', 'sapphire', 'silicon', 'all']",
+        default="mos2-sef",
+    )
+    parser.add_argument(
+        "-ws", "--weights", type=str, help="Path to model checkpoints", default=""
+    )
+    parser.add_argument(
+        "-fm", "--formulation", type=str, help="['X', 'y', 'both']", default="y"
+    )
     # -------------------- model config args --------------------
-    parser.add_argument("-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6)
-    parser.add_argument("-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6)
-    parser.add_argument("-nhs","--num_heads",type=int,help="Number of heads per RSTB block",default=6,)
-    parser.add_argument("-wsz","--window_size",type=int,help="Size of shifted attention window",default=8,)
+    parser.add_argument(
+        "-dps", "--depths", type=int, help="Depths of RSTB blocks", default=6
+    )
+    parser.add_argument(
+        "-nbs", "--num_blocks", type=int, help="Number of RSTB blocks", default=6
+    )
+    parser.add_argument(
+        "-nhs",
+        "--num_heads",
+        type=int,
+        help="Number of heads per RSTB block",
+        default=6,
+    )
+    parser.add_argument(
+        "-wsz",
+        "--window_size",
+        type=int,
+        help="Size of shifted attention window",
+        default=8,
+    )
     parser.add_argument("-dpr", "--drop_path_rate", type=float, help="", default=0.1)
-    parser.add_argument("-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm")
+    parser.add_argument(
+        "-nlr", "--norm_layer", type=str, help="", default="torch.nn.LayerNorm"
+    )
     # -------------------- ablation args --------------------
     parser.add_argument("-sw", "--surrogate_weights", type=str, help="", default="")
     parser.add_argument("-lr", "--learning_rate", type=float, help="", default=1e-5)
     parser.add_argument("-bs", "--batch_size", type=int, help="", default=1)
     parser.add_argument("-sr", "--upsample_factor", type=int, help="", default=2)
     args = parser.parse_args()
+    
     main(args)

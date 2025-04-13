@@ -4,6 +4,7 @@ import torch
 import argparse
 import warnings
 import numpy as np
+import torch.nn.functional as F
 
 from tqdm import tqdm
 from rich.console import Console
@@ -14,15 +15,32 @@ from torch.utils.data import DataLoader
 
 from src.util.logger import Logger
 from src.util.metrics import PSNR, SSIM
-from src.util.celano_lab_scripts import calculate_abs_diff_between_samples, pcnt_diff_surface_roughness, compute_surface_roughness, process_image
+from src.util.celano_lab_scripts import (
+    pcnt_diff_surface_roughness,
+    compute_surface_roughness,
+    process_image,
+)
+from src.util.material_property_eval import calculate_abs_diff_between_samples
+
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.prev_methods.gpr import GPR
 from src.models.prev_methods.rnan import RNAN
-from src.datasets.mos2_sr import MOS2SRDataset, BTOSRDataset, MOS2_SEF_MANY_RES_SRC_DIR, MOS2_SAPPHIRE_DIR, MOS2_SILICON_DIR, BTO_MANY_RES
+from src.datasets.mos2_sr import (
+    MOS2SRDataset,
+    BTOSRDataset,
+    MOS2_SEF_FULL_RES_SRC_DIR,
+    MOS2_SAPPHIRE_DIR,
+    MOS2_SILICON_DIR,
+    BTO_MANY_RES,
+)
 
 warnings.simplefilter("ignore")
 
-NUM_TRIALS = 1028
+# NOTE: why 1028 trials?
+
+NUM_TRIALS = 64
+BATCH_SIZE = 64
+
 console = Console()
 
 
@@ -41,157 +59,216 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
     Evaluate a super-resolution model for a given dataset/resolution/upsampling-ratio.
     """
 
-    logger = Logger(args.exp_root, args.exp_name)
-
-    # load model obj
+    # load model obj from a torch object
     model: SwinCAFM = torch.load(fp).cuda().float()
     model.eval()
-    
-    src_dir = ""
-    if dataset_name == "mos2-sef": src_dir = MOS2_SEF_MANY_RES_SRC_DIR
-    if dataset_name == "sapphire": src_dir = MOS2_SAPPHIRE_DIR
-    if dataset_name == "silicon" : src_dir = MOS2_SILICON_DIR
-    if dataset_name == "bto"     : src_dir = BTO_MANY_RES
 
+    src_dir = ""
+    if dataset_name == "mos2-sef":
+        src_dir = MOS2_SEF_FULL_RES_SRC_DIR
+    if dataset_name == "sapphire":
+        src_dir = MOS2_SAPPHIRE_DIR
+    if dataset_name == "silicon":
+        src_dir = MOS2_SILICON_DIR
+    if dataset_name == "bto":
+        src_dir = BTO_MANY_RES
+
+    # load MoS2 SR dataset
     if dataset_name != "bto":
         dataset = MOS2SRDataset(
-            src_dir=src_dir, 
+            src_dir=src_dir,
             split="val",
-            upsample_factor=upsampling_ratio, 
-            steps_per_epoch=NUM_TRIALS
+            upsample_factor=upsampling_ratio,
+            steps_per_epoch=NUM_TRIALS,
         )
     else:
         dataset = BTOSRDataset(
             split="val",
             upsample_factor=upsampling_ratio,
-            steps_per_epoch=NUM_TRIALS, 
+            steps_per_epoch=NUM_TRIALS,
         )
 
-    BATCH_SIZE  = 64
-    data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
+    data_loader = DataLoader(
+        dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8
+    )
 
+    # ???
     total_pred_sr = []
     total_baseline_sr = []
+
+    psnr_vals = []
+    ssim_vals = []
 
     total_baseline_errs = None
     total_pred_errs = None
     num_samples = 0
 
-    psnr_vals = []
-    ssim_vals = []
-
     # evaluate model
-    for batch in tqdm(data_loader, desc=f"Processing SR: {upsampling_ratio} | dataset: {dataset_name}"):
-        
+    for batch in tqdm(
+        data_loader, desc=f"Processing SR: {upsampling_ratio} | dataset: {dataset_name}"
+    ):
+
         y       : torch.Tensor = batch[f"{formulation}"]
         y_sparse: torch.Tensor = batch[f"{formulation}_sparse"]
         y_unnorm: torch.Tensor = batch[f"{formulation}_unnorm"]
 
+        # move tensors -> gpu
         y        = y.cuda().float()
         y_sparse = y_sparse.cuda().float()
         y_hat    = model(y_sparse).cuda().float()
 
-        # HACK: y -> X
-        if formulation=="X":
+        # # NOTE: naively upsample y_sparse to match shape of y_hat
+        # y_sparse = F.interpolate(y_sparse.unsqueeze(1), scale_factor=8, mode='nearest').squeeze(1)
 
-            # [0, 1]
-            # NOTE: I believe that PSNR is typically reported using tensors strictly in range [-1, 1]
-            # this is probably okay, as we don't compare against any previous reported PSNR values
+        if formulation == "y":
 
-            psnr    = PSNR(y, y_hat).item()
-            y_c     = y.unsqueeze(1).repeat(1, 3, 1, 1)
+            # y/y-hat in range: [0, 1]
+            psnr = PSNR(y, y_hat, data_range=(0, 1)).item()
+
+            y_c = y.unsqueeze(1).repeat(1, 3, 1, 1)
             y_hat_c = y_hat.unsqueeze(1).repeat(1, 3, 1, 1)
-            ssim    = SSIM(y_c, y_hat_c).item()
+
+            ssim = SSIM(y_c, y_hat_c, _data_range=(0, 1)).item()
 
             psnr_vals.append(psnr)
             ssim_vals.append(ssim)
 
             # --- NOTE: scale + shift ---
+            # NOTE: we change data range when we apply this normalization...
+            # making PSNR/SSIM invalid for assumed [0, 1] range
+
             # std normal -> original current/topo map mean/std
-            # mu = dataset.current_maps_mean
-            # sigma = dataset.current_maps_std
-            
-            # y        = normalize(y, mu, sigma)
-            # y_hat    = normalize(y_hat, mu, sigma)
-            # y_sparse = normalize(y_sparse, mu, sigma)
+            mu = dataset.current_maps_mean
+            sigma = dataset.current_maps_std
 
-        # # iterate over all samples in the batch
-        # for i in range(y_hat.size(0)):
-            
-        #     sample_y = y[i]
-        #     sample_y_sparse = y_sparse[i]
-        #     sample_y_hat = y_hat[i]
+            y        = normalize(y, mu, sigma)
+            y_hat    = normalize(y_hat, mu, sigma)
+            y_sparse = normalize(y_sparse, mu, sigma)
 
-        #     if formulation=="X":
+        # iterate over all samples in the batch
+        for i in range(y_hat.size(0)):
 
-        #         # HACK: normalize sf
-        #         # current = compute_surface_roughness(sample_y_hat) 
-        #         # target = compute_surface_roughness(sample_y_sparse)
-        #         # scale = target / current
-        #         # sample_y_hat: torch.Tensor = (sample_y_hat.mean()) + \
-        #         #     scale * (sample_y_hat - sample_y_hat.mean())
-  
-        #         total_baseline_sr.append(pcnt_diff_surface_roughness(sample_y, sample_y_sparse))
-        #         total_pred_sr.append(pcnt_diff_surface_roughness(sample_y, sample_y_hat))
-            
-        #     elif formulation=="y":
+            sample_y = y[i]
+            sample_y_sparse = y_sparse[i]
+            sample_y_hat = y_hat[i]
 
-        #         # NOTE: scale -> y_sparse mean
-        #         alpha = sample_y_sparse.mean() / sample_y_hat.mean()
-        #         sample_y_hat *= alpha
+            if formulation == "X":
+                raise Exception("Unsupported")
+                # HACK: normalize sf
+                # current = compute_surface_roughness(sample_y_hat)
+                # target = compute_surface_roughness(sample_y_sparse)
+                # scale = target / current
+                # sample_y_hat: torch.Tensor = (sample_y_hat.mean()) + \
+                #     scale * (sample_y_hat - sample_y_hat.mean())
 
-        #         # baseline
-        #         current_baseline_errs = calculate_abs_diff_between_samples(sample_y, sample_y_sparse, 2.0)
-                
-        #         # experiment
-        #         current_pred_errs = calculate_abs_diff_between_samples(sample_y, sample_y_hat, 2.0)
-                
-        #         # record results
-        #         if total_pred_errs is None:
-        #             total_pred_errs     = {"baseline_"  + key: value for key, value in current_pred_errs.items()}
-        #             total_baseline_errs = {"predicted_" + key: value for key, value in current_baseline_errs.items()}
-        #         else:
-        #             for key in current_pred_errs:
-        #                 total_pred_errs["baseline_"  + key]     += current_pred_errs[key]
-        #             for key in current_baseline_errs:
-        #                 total_baseline_errs["predicted_" + key] += current_baseline_errs[key]
-        #     else:
-        #         raise Exception()
+                total_baseline_sr.append(
+                    pcnt_diff_surface_roughness(sample_y, sample_y_sparse)
+                )
+                total_pred_sr.append(
+                    pcnt_diff_surface_roughness(sample_y, sample_y_hat)
+                )
+            elif formulation == "y":
 
-        #     num_samples += 1
-    
-    # HACK: X -> y
-    if formulation=="y":
-        
+                # NOTE: scale -> y_sparse mean
+                # simple trick to match the average surface current of y_sparse (given)
+                alpha = sample_y_sparse.mean() / sample_y_hat.mean()
+                sample_y_hat *= alpha
+
+                # baseline
+                current_baseline_errs = calculate_abs_diff_between_samples(
+                    sample_y, sample_y_sparse, 2.0
+                )
+
+                # experiment
+                current_pred_errs = calculate_abs_diff_between_samples(
+                    sample_y, sample_y_hat, 2.0
+                )
+
+                # record results
+                if total_pred_errs is None:
+
+                    # baseline
+                    total_baseline_errs = {
+                        "baseline_" + key: value
+                        for key, value in current_baseline_errs.items()
+                    }
+
+                    # experiment
+                    total_pred_errs = {
+                        "predicted_" + key: value
+                        for key, value in current_pred_errs.items()
+                    }
+
+                else:
+                    
+                    # baseline
+                    for key in current_baseline_errs:
+                        total_baseline_errs[
+                            "baseline_" + key
+                        ] += current_baseline_errs[key]
+                    
+                    # experiment
+                    for key in current_pred_errs:
+                        total_pred_errs["predicted_" + key] += current_pred_errs[key]
+                    
+            else:
+                raise Exception()
+
+            num_samples += 1
+
+    if formulation == "X":
+
+        raise Exception()
+
         console = Console()
-        console.print(Rule(f"[bold blue]Results for SR: {upsampling_ratio} | dataset: {dataset_name}"))
+        console.print(
+            Rule(
+                f"[bold blue]Results for SR: {upsampling_ratio} | dataset: {dataset_name}"
+            )
+        )
         console.print("[bold magenta]Average %diffs (y, y_sparse):")
         console.print(Pretty(np.array(total_baseline_sr).mean(), indent_guides=True))
         console.print("[bold magenta]Average %diffs (y, y_hat):")
         console.print(Pretty(np.array(total_pred_sr).mean(), indent_guides=True))
         console.print(Rule(style="bold blue"))
-    # HACK: "y" -> X
-    elif formulation=="X":
+
+    elif formulation == "y":
 
         errs = {
             "psnr": np.array(psnr_vals).mean(),
             "ssim": np.array(ssim_vals).mean(),
         }
 
-        # avg_pred_errs = {key: value / num_samples for key, value in total_pred_errs.items()}
-        # avg_baseline_errs = {key: value / num_samples for key, value in total_baseline_errs.items()}
-        
-        # write results to log
+        # take mean errors
+        avg_pred_errs = {
+            key: value / num_samples for key, value in total_pred_errs.items()
+        }
+        avg_baseline_errs = {
+            key: value / num_samples for key, value in total_baseline_errs.items()
+        }
+
+        # # write results to log
         # total_pred_errs.update(total_baseline_errs)
         # logger.log(**total_pred_errs)
-        
+
         console = Console()
-        console.print(Rule(f"[bold blue]Results for SR: {upsampling_ratio} | dataset: {dataset_name}"))
-        # console.print("[bold magenta]Average %diffs (y, y_sparse):")
-        # console.print(Pretty(avg_baseline_errs, indent_guides=True))
+        console.print(
+            Rule(
+                f"[bold blue]Results for SR: {upsampling_ratio} | dataset: {dataset_name}"
+            )
+        )
+
+        console.print("[bold magenta]Average %diffs (y, y_sparse):")
+        console.print(Pretty(avg_baseline_errs, indent_guides=True))
+
         console.print("[bold magenta]Average %diffs (y, y_hat):")
+        console.print(Pretty(avg_pred_errs, indent_guides=True))
+
+        console.print("[bold magenta]Reconstruction Stats (y, y_hat):")
         console.print(Pretty(errs, indent_guides=True))
+
         console.print(Rule(style="bold blue"))
+
 
 # --------------------------------------------
 
@@ -211,5 +288,5 @@ if __name__ == "__main__":
     assert args.dataset in ["bto", "mos2-sef", "silicon", "sapphire", "all"]
     args.upsampling_ratio = int(args.upsampling_ratio)
     assert args.upsampling_ratio in [2, 4, 8]
-    
+
     eval(args.ckpt_fp, args.formulation, args.dataset, args.upsampling_ratio)

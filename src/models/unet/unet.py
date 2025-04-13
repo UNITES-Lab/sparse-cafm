@@ -62,6 +62,11 @@ class SwinIRUNetHead(nn.Module):
 
 
 class UNet(nn.Module):
+    """
+    Generic UNet.
+    Perform 2X super-resolution.
+    """
+    
     def __init__(self, n_channels, n_classes, bilinear=False, up_ks=1, down_ks=1):
         
         super(UNet, self).__init__()
@@ -85,15 +90,13 @@ class UNet(nn.Module):
         # downsample channel dim 3 -> 1
         # self.final_downsample_channel = nn.Conv2d(in_channels=3, out_channels=1, kernel_size=1, stride=1, bias=True)
         
-        # -> [0, 1]
-        self.outc = OutConv(128, n_classes)
+        # -> [0, 1]; nope...
+        # HACK: hard code num channels to 4 for 2x sr
+        self.outc = OutConv(128, 4)
+
+        self.pixel_shuffle = nn.PixelShuffle(upscale_factor=2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
-        # HACK: pad the channel dim
-        # [B, H, W] -> [B, C, H, W]
-        if len(x.shape) == 3:
-            x = x.unsqueeze(1)
         
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -105,8 +108,11 @@ class UNet(nn.Module):
         x = self.up3(x, x2)
         x = self.up4(x, x1)
         x = self.outc(x)
+
+        # -> [B, 1, H, W]
+        x = self.pixel_shuffle(x)
         
-        # [B, C, H, W] -> [B, H, W]
+        # [B, 1, H, W] -> [B, H, W]
         x = x.squeeze(1)
         
         return x

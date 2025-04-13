@@ -5,13 +5,14 @@
 
 import math
 import torch
+import warnings
+import functools
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 
-from typing import Optional
+from typing import Optional, Callable, TypeVar
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
-from src.models.unet.unet import SwinIRUNetHead
 
 
 class Mlp(nn.Module):
@@ -1307,6 +1308,31 @@ class SwinCAFM(nn.Module):
         return flops
 
     @staticmethod
+    def swin_cafm_2x() -> torch.nn.Module:
+        return SwinCAFM(
+            upscale=2,
+            img_size=64,
+            window_size=8,
+            img_range=1.0,
+            depths=[6, 6, 6, 6, 6, 6],
+            embed_dim=180,
+            num_heads=[6, 6, 6, 6, 6, 6],
+            mlp_ratio=2,
+            drop_path_rate=0.1,
+            norm_layer=torch.nn.LayerNorm,
+            upsampler="pixelshuffle",
+            resi_connection="1conv",
+        )
+
+    @staticmethod
+    def swin_cafm_4x():
+        pass
+
+    @staticmethod
+    def swin_cafm_8x():
+        pass
+
+    @staticmethod
     def get(weights=None) -> torch.nn.Module:
         """
         Return a SwinIR model for image size (128, 128).
@@ -1345,7 +1371,9 @@ class SwinCAFM(nn.Module):
             upsampler="pixelshuffle",
             resi_connection="1conv",
         )
-        model.load_state_dict(torch.load(WEIGHTS_FP, weights_only=True)['params'], strict=False)
+        model.load_state_dict(
+            torch.load(WEIGHTS_FP, weights_only=True)["params"], strict=False
+        )
         return model
 
     @staticmethod

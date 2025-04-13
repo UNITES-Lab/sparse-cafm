@@ -7,18 +7,18 @@ WINDOW_SIZE=8
 DPR=0.1
 NORM_LAYER=torch.nn.LayerNorm
 
-EXP_ROOT_DIR="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/transfer-learning/bto"
-SURROGATE_FP="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/expert-surrogates/2025-03-02_15-27-59_{average_surface_current, coverage_percentage, total_area_extended_shapes}-ViT-Trainable-BS=64/{average_surface_current, coverage_percentage, total_area_extended_shapes}-ViT-Trainable-BS=64_best_older_surrogate.pth"
-WEIGHTS_FP="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/foundation-models/3. combined/2x/2025-03-04_11-14-17_DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
+SURROGATE_FP="__exps__/expert-surrogates/2025-03-02_15-27-59_{average_surface_current, coverage_percentage, total_area_extended_shapes}-ViT-Trainable-BS=64/{average_surface_current, coverage_percentage, total_area_extended_shapes}-ViT-Trainable-BS=64_best_older_surrogate.pth"
+EXP_ROOT_DIR="__exps__/scratch-runs/mos2-sef/current-map/2x"
+WEIGHTS_FP="__weights__/8x/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
 
 LOGS_DIR="__exps__/__logs__"
-EXP_NAME="BTO-1-samples"
+EXP_NAME="mos2-y-2x-UNet"
 
 UPSAMPLE_FACTOR=2
-FORMULATION="X"
-DATASET="bto"
+FORMULATION="y"
+DATASET="mos2-sef"
 
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=6
 python train.py \
   --exp_name "$EXP_NAME" \
   --root "$EXP_ROOT_DIR" \
