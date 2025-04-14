@@ -194,13 +194,38 @@ def process_image(data, height, width, pixel_size_um: float = 2.0) -> dict:
     return results
 
 
-def calculate_roughness(height_data):
+def calculate_roughness(height_data: np.ndarray) -> dict:
 
-    height_data -= np.mean(height_data)  # Zero-centering the data
-    Sq = np.sqrt(np.mean(height_data**2)) * 1e9  # RMS roughness in nm
-    Sa = np.mean(np.abs(height_data)) * 1e9  # Mean roughness in nm
+    if isinstance(height_data, torch.Tensor):
+        height_data = height_data.cpu().numpy()
+
+    # Zero-centering the data
+    height_data -= np.mean(height_data)
+
+    # RMS roughness in nm
+    Sq = np.sqrt(np.mean(height_data**2)) * 1e9
+
+    # Mean roughness in nm
+    Sa = np.mean(np.abs(height_data)) * 1e9
 
     return {"RMS roughness (Sq)": Sq, "Mean roughness (Sa)": Sa}
+
+
+def pcnt_abs_diff_surface_roughness(x1: torch.Tensor, x2: torch.Tensor) -> dict:
+
+    x1 = x1.cpu().numpy()
+    x2 = x2.cpu().numpy()
+
+    char_1 = calculate_roughness(x1)
+    char_2 = calculate_roughness(x2)
+
+    diffs = {}
+    for k in char_1:
+        v1, v2 = char_1[k], char_2[k]
+        err = abs(v1 - v2)
+        diffs[k] = err
+
+    return diffs
 
 
 def calculate_abs_diff_between_samples(

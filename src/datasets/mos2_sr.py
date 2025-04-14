@@ -537,10 +537,10 @@ class BTOSRDataset(Dataset):
     def _create_augmentation_pipeline(self):
         return A.Compose(
             [
-                A.HorizontalFlip(p=0.5),
-                A.VerticalFlip(p=0.5),
-                A.RandomRotate90(p=0.5),
-                A.Rotate(limit=15, p=0.5),
+                # A.HorizontalFlip(p=0.5),
+                # A.VerticalFlip(p=0.5),
+                # A.RandomRotate90(p=0.5),
+                # A.Rotate(limit=15, p=0.5),
                 A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
             ],
             additional_targets={

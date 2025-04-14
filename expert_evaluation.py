@@ -15,12 +15,7 @@ from torch.utils.data import DataLoader
 
 from src.util.logger import Logger
 from src.util.metrics import PSNR, SSIM
-from src.util.celano_lab_scripts import (
-    pcnt_diff_surface_roughness,
-    compute_surface_roughness,
-    process_image,
-)
-from src.util.material_property_eval import calculate_abs_diff_between_samples
+from src.util.material_property_eval import calculate_abs_diff_between_samples, pcnt_abs_diff_surface_roughness, calculate_roughness
 
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.models.prev_methods.gpr import GPR
@@ -144,6 +139,19 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
             y        = normalize(y, mu, sigma)
             y_hat    = normalize(y_hat, mu, sigma)
             y_sparse = normalize(y_sparse, mu, sigma)
+        elif formulation == "X":
+            
+            # similarly, we must normalize the topo maps
+            # to their original distribution
+            # std normal -> original current/topo map mean/std
+
+            mu    = dataset.topo_maps_mean
+            sigma = dataset.topo_maps_std
+            
+            y        = normalize(y, mu, sigma)
+            y_hat    = normalize(y_hat, mu, sigma)
+            y_sparse = normalize(y_sparse, mu, sigma)
+
 
         # iterate over all samples in the batch
         for i in range(y_hat.size(0)):
@@ -153,20 +161,52 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
             sample_y_hat = y_hat[i]
 
             if formulation == "X":
-                raise Exception("Unsupported")
-                # HACK: normalize sf
-                # current = compute_surface_roughness(sample_y_hat)
-                # target = compute_surface_roughness(sample_y_sparse)
-                # scale = target / current
-                # sample_y_hat: torch.Tensor = (sample_y_hat.mean()) + \
-                #     scale * (sample_y_hat - sample_y_hat.mean())
 
-                total_baseline_sr.append(
-                    pcnt_diff_surface_roughness(sample_y, sample_y_sparse)
+                # HACK: normalize sf
+                current = calculate_roughness(sample_y_hat)['Mean roughness (Sa)']
+                target  = calculate_roughness(sample_y_sparse)['Mean roughness (Sa)']
+                scale   = target / current
+                
+                sample_y_hat: torch.Tensor = (sample_y_hat.mean()) + \
+                    scale * (sample_y_hat - sample_y_hat.mean())
+
+                # baseline
+                current_baseline_errs = pcnt_abs_diff_surface_roughness(
+                    sample_y, sample_y_sparse
                 )
-                total_pred_sr.append(
-                    pcnt_diff_surface_roughness(sample_y, sample_y_hat)
+
+                # experiment
+                current_pred_errs = pcnt_abs_diff_surface_roughness(
+                    sample_y, sample_y_hat
                 )
+
+                # record results
+                if total_pred_errs is None:
+
+                    # baseline
+                    total_baseline_errs = {
+                        "baseline_" + key: value
+                        for key, value in current_baseline_errs.items()
+                    }
+
+                    # experiment
+                    total_pred_errs = {
+                        "predicted_" + key: value
+                        for key, value in current_pred_errs.items()
+                    }
+
+                else:
+                    
+                    # baseline
+                    for key in current_baseline_errs:
+                        total_baseline_errs[
+                            "baseline_" + key
+                        ] += current_baseline_errs[key]
+                    
+                    # experiment
+                    for key in current_pred_errs:
+                        total_pred_errs["predicted_" + key] += current_pred_errs[key]
+
             elif formulation == "y":
 
                 # NOTE: scale -> y_sparse mean
@@ -218,7 +258,18 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
 
     if formulation == "X":
 
-        raise Exception()
+        
+        # take mean errors
+        avg_pred_errs = {
+            key: value / num_samples for key, value in total_pred_errs.items()
+        }
+        avg_baseline_errs = {
+            key: value / num_samples for key, value in total_baseline_errs.items()
+        }
+
+        # # write results to log
+        # total_pred_errs.update(total_baseline_errs)
+        # logger.log(**total_pred_errs)
 
         console = Console()
         console.print(
@@ -226,10 +277,13 @@ def eval(fp: str, formulation: str, dataset_name: str, upsampling_ratio: int) ->
                 f"[bold blue]Results for SR: {upsampling_ratio} | dataset: {dataset_name}"
             )
         )
+
         console.print("[bold magenta]Average %diffs (y, y_sparse):")
-        console.print(Pretty(np.array(total_baseline_sr).mean(), indent_guides=True))
+        console.print(Pretty(avg_baseline_errs, indent_guides=True))
+
         console.print("[bold magenta]Average %diffs (y, y_hat):")
-        console.print(Pretty(np.array(total_pred_sr).mean(), indent_guides=True))
+        console.print(Pretty(avg_pred_errs, indent_guides=True))
+
         console.print(Rule(style="bold blue"))
 
     elif formulation == "y":

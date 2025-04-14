@@ -13,15 +13,15 @@ LOGS_DIR="__exps__/__logs__"
 EXP_NAME="augmentations={horizontal_flip, vertical_flip, random_rotation, elastic_transform}"
 EXP_ROOT="/playpen/mufan/levi/tianlong-chen-lab/material-super-resolution/__exps__/ablations/transfer-learning/bto/_evals"
 
-UPSAMPLING_RATIO=2
-FORMULATION="y"
-CKPT="__weights__/2x/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
-
+FORMULATION="X"
+DATASET="bto"
 # --------------------------------------------------------------------------
 
+UPSAMPLING_RATIO=2
+CKPT="__weights__/2x/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
+
 # ---- 2x2 == 4x upscaling ----
-DATASET="mos2-sef"
-EXP_NAME="$DATASET-$UPSAMPLING_RATIO-Y-0-samples"
+EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-0-samples"
 python expert_evaluation.py \
     --exp_root "$EXP_ROOT" \
     --exp_name "$EXP_NAME" \
@@ -30,8 +30,11 @@ python expert_evaluation.py \
     --dataset "$DATASET" \
     --upsampling_ratio "$UPSAMPLING_RATIO"
 
-DATASET="sapphire"
-EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-1-samples"
+UPSAMPLING_RATIO=4
+CKPT="__weights__/4x/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
+
+# ---- 2x2 == 4x upscaling ----
+EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-0-samples"
 python expert_evaluation.py \
     --exp_root "$EXP_ROOT" \
     --exp_name "$EXP_NAME" \
@@ -40,8 +43,11 @@ python expert_evaluation.py \
     --dataset "$DATASET" \
     --upsampling_ratio "$UPSAMPLING_RATIO"
 
-DATASET="silicon"
-EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-1-samples"
+UPSAMPLING_RATIO=8
+CKPT="__weights__/8x/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth"
+
+# ---- 2x2 == 4x upscaling ----
+EXP_NAME="$DATASET-$UPSAMPLING_RATIO-X-0-samples"
 python expert_evaluation.py \
     --exp_root "$EXP_ROOT" \
     --exp_name "$EXP_NAME" \
