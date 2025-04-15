@@ -470,7 +470,10 @@ class BTOSRDataset(Dataset):
         self.src_dir = src_dir
 
         self.original_image_size: Tuple[int, int] = original_image_size
-        self.augmentation_pipeline = self._create_augmentation_pipeline()
+
+        # dedicated train/val augmentation pipelines
+        self.train_augmentation_pipeline = self._create_train_augmentation_pipeline()
+        self.val_augmentation_pipeline   = self._create_val_augmentation_pipeline()
 
         # (B, H, W)
         self.topo_maps = None
@@ -534,7 +537,22 @@ class BTOSRDataset(Dataset):
         self.topo_maps_max  = np.amax(np.array(self.topo_maps_512))
         self.topo_maps_min  = np.amin(np.array(self.topo_maps_512))
 
-    def _create_augmentation_pipeline(self):
+    def _create_train_augmentation_pipeline(self):
+        return A.Compose(
+            [
+                # A.HorizontalFlip(p=0.5),
+                # A.VerticalFlip(p=0.5),
+                # A.RandomRotate90(p=0.5),
+                # A.Rotate(limit=15, p=0.5),
+                A.RandomCrop(width=self.side_length, height=self.side_length, p=1.0),
+            ],
+            additional_targets={
+                "X":      "image",
+                "X_mask": "mask",
+            },
+        )
+    
+    def _create_val_augmentation_pipeline(self):
         return A.Compose(
             [
                 # A.HorizontalFlip(p=0.5),
@@ -595,7 +613,13 @@ class BTOSRDataset(Dataset):
         X: np.ndarray = X_512.copy()
 
         # ---- select a [128, 128] subset from full-sample ----
-        augmented: np.ndarray = self.augmentation_pipeline(image=X, X=X, X_mask=X)
+        # TODO: create a validation set augmentation pipeline
+        if self.split == "train":
+            augmented: np.ndarray = self.train_augmentation_pipeline(image=X, X=X, X_mask=X)
+        elif self.split == "val":
+            augmented: np.ndarray = self.val_augmentation_pipeline(image=X, X=X, X_mask=X)
+        else:
+            raise Exception()
 
         # [512, 512] -> [128, 128] + apply augs
         if self.split   == TRAIN_SPLIT:
@@ -615,7 +639,6 @@ class BTOSRDataset(Dataset):
         X_64 : torch.Tensor = torch.Tensor(X_64).float()
         
         X_unnorm = X_512.clone()
-
 
         # -> [0, 1]
         X = (X - self.topo_maps_min) / (

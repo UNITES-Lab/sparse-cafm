@@ -1,0 +1,167 @@
+Training: Epoch 1/200:   0%|                                                                          | 0/1024 [00:00<?, ?it/s]
+> /playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/train.py(230)train()
+-> X_hat: torch.Tensor = model(X_sparse)
+*** NameError: name 'X_hat' is not defined
+*** NameError: name 'X_sparsse' is not defined
+tensor([[[0.4865, 0.4664, 0.4654,  ..., 0.5796, 0.5873, 0.5194],
+         [0.5428, 0.4929, 0.5429,  ..., 0.5596, 0.5838, 0.5346],
+         [0.5249, 0.5012, 0.5667,  ..., 0.5010, 0.4654, 0.4582],
+         ...,
+         [0.6698, 0.6118, 0.6247,  ..., 0.5120, 0.4789, 0.4335],
+         [0.6142, 0.5450, 0.5913,  ..., 0.5804, 0.5827, 0.5176],
+         [0.5127, 0.4549, 0.5670,  ..., 0.5500, 0.5684, 0.5183]]],
+       device='cuda:0')
+torch.Size([1, 64, 64])
+UNet(
+  (inc): DoubleConv(
+    (double_conv): Sequential(
+      (0): Conv2d(1, 128, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+      (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU(inplace=True)
+      (3): Conv2d(128, 128, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+      (4): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (5): ReLU(inplace=True)
+    )
+  )
+  (down1): Down(
+    (maxpool_conv): Sequential(
+      (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+      (1): DoubleConv(
+        (double_conv): Sequential(
+          (0): Conv2d(128, 256, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(256, 256, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (4): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+  )
+  (down2): Down(
+    (maxpool_conv): Sequential(
+      (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+      (1): DoubleConv(
+        (double_conv): Sequential(
+          (0): Conv2d(256, 512, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(512, 512, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (4): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+  )
+  (down3): Down(
+    (maxpool_conv): Sequential(
+      (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+      (1): DoubleConv(
+        (double_conv): Sequential(
+          (0): Conv2d(512, 1024, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(1024, 1024, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (4): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+  )
+  (down4): Down(
+    (maxpool_conv): Sequential(
+      (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+      (1): DoubleConv(
+        (double_conv): Sequential(
+          (0): Conv2d(1024, 2048, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (1): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (2): ReLU(inplace=True)
+          (3): Conv2d(2048, 2048, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+          (4): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (5): ReLU(inplace=True)
+        )
+      )
+    )
+  )
+  (up1): Up(
+    (up): ConvTranspose2d(2048, 1024, kernel_size=(2, 2), stride=(2, 2))
+    (conv): DoubleConv(
+      (double_conv): Sequential(
+        (0): Conv2d(2048, 1024, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+        (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+        (3): Conv2d(1024, 1024, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+        (4): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (5): ReLU(inplace=True)
+      )
+    )
+  )
+  (up2): Up(
+    (up): ConvTranspose2d(1024, 512, kernel_size=(2, 2), stride=(2, 2))
+    (conv): DoubleConv(
+      (double_conv): Sequential(
+        (0): Conv2d(1024, 512, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+        (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+        (3): Conv2d(512, 512, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+        (4): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (5): ReLU(inplace=True)
+      )
+    )
+  )
+  (up3): Up(
+    (up): ConvTranspose2d(512, 256, kernel_size=(2, 2), stride=(2, 2))
+    (conv): DoubleConv(
+      (double_conv): Sequential(
+        (0): Conv2d(512, 256, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+        (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+        (3): Conv2d(256, 256, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+        (4): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (5): ReLU(inplace=True)
+      )
+    )
+  )
+  (up4): Up(
+    (up): ConvTranspose2d(256, 128, kernel_size=(2, 2), stride=(2, 2))
+    (conv): DoubleConv(
+      (double_conv): Sequential(
+        (0): Conv2d(256, 128, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+        (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): ReLU(inplace=True)
+        (3): Conv2d(128, 128, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), bias=False)
+        (4): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (5): ReLU(inplace=True)
+      )
+    )
+  )
+  (outc): OutConv(
+    (conv): Conv2d(128, 4, kernel_size=(1, 1), stride=(1, 1))
+  )
+  (pixel_shuffle): PixelShuffle(upscale_factor=2)
+)
+*** ValueError: expected 4D input (got 3D input)
+Traceback (most recent call last):
+  File "train.py", line 475, in <module>
+  File "train.py", line 410, in main
+  File "train.py", line 230, in train
+    # --- L1 ----
+  File "train.py", line 230, in train
+    # --- L1 ----
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/bdb.py", line 88, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/bdb.py", line 113, in dispatch_line
+    if self.quitting: raise BdbQuit
+bdb.BdbQuit
+Traceback (most recent call last):
+  File "train.py", line 475, in <module>
+  File "train.py", line 410, in main
+  File "train.py", line 230, in train
+    # --- L1 ----
+  File "train.py", line 230, in train
+    # --- L1 ----
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/bdb.py", line 88, in trace_dispatch
+    return self.dispatch_line(frame)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/bdb.py", line 113, in dispatch_line
+    if self.quitting: raise BdbQuit
+bdb.BdbQuit

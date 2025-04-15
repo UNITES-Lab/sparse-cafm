@@ -1,0 +1,1084 @@
+train.py:157: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  model = torch.load(str(args.weights))
+Training: Epoch 1/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  10%|▉         | 100/1024 [00:11<01:15, 12.20it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  20%|█▉        | 200/1024 [00:20<01:10, 11.76it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  29%|██▉       | 300/1024 [00:30<00:59, 12.18it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  39%|███▉      | 399/1024 [00:41<00:59, 10.57it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  49%|████▊     | 499/1024 [00:51<00:44, 11.84it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  59%|█████▊    | 600/1024 [01:02<00:34, 12.38it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  68%|██████▊   | 700/1024 [01:11<00:25, 12.49it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  78%|███████▊  | 800/1024 [01:20<00:17, 12.65it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  88%|████████▊ | 900/1024 [01:33<00:15,  7.88it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200:  98%|█████████▊| 1000/1024 [01:47<00:02,  8.07it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 1/200: 100%|██████████| 1024/1024 [01:51<00:00,  9.20it/s]
+Validation: Epoch 1/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 1/200:  39%|███▊      | 99/256 [00:06<00:08, 18.86it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 1/200:  78%|███████▊  | 199/256 [00:11<00:02, 21.88it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 1/200: 100%|██████████| 256/256 [00:15<00:00, 16.34it/s]
+Training: Epoch 2/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  10%|▉         | 100/1024 [00:13<01:52,  8.20it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  20%|█▉        | 200/1024 [00:27<01:44,  7.91it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  29%|██▉       | 300/1024 [00:40<01:23,  8.72it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  39%|███▉      | 400/1024 [00:52<01:16,  8.12it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  49%|████▉     | 500/1024 [01:05<00:51, 10.26it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  59%|█████▊    | 600/1024 [01:19<00:53,  8.00it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/logger.py:325: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`). Consider using `matplotlib.pyplot.close()`.
+  fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols*IMAGE_SIZE_IN, n_rows*IMAGE_SIZE_IN))
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  68%|██████▊   | 700/1024 [01:32<00:33,  9.54it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  78%|███████▊  | 800/1024 [01:45<00:27,  8.09it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  88%|████████▊ | 900/1024 [01:59<00:14,  8.67it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200:  98%|█████████▊| 1000/1024 [02:12<00:03,  7.95it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 2/200: 100%|██████████| 1024/1024 [02:16<00:00,  7.49it/s]
+Validation: Epoch 2/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 2/200:  39%|███▊      | 99/256 [00:06<00:06, 23.83it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 2/200:  77%|███████▋  | 198/256 [00:11<00:02, 24.29it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 2/200: 100%|██████████| 256/256 [00:15<00:00, 16.73it/s]
+Training: Epoch 3/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  10%|▉         | 100/1024 [00:13<01:54,  8.09it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  20%|█▉        | 200/1024 [00:27<01:40,  8.19it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  29%|██▉       | 300/1024 [00:40<01:23,  8.68it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  39%|███▉      | 400/1024 [00:52<00:52, 11.94it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  49%|████▊     | 499/1024 [01:01<00:42, 12.32it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  58%|█████▊    | 599/1024 [01:10<00:34, 12.29it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  68%|██████▊   | 699/1024 [01:19<00:26, 12.42it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  78%|███████▊  | 799/1024 [01:29<00:18, 12.38it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  88%|████████▊ | 899/1024 [01:38<00:10, 11.57it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200:  98%|█████████▊| 999/1024 [01:47<00:02, 11.86it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 3/200: 100%|██████████| 1024/1024 [01:51<00:00,  9.21it/s]
+Validation: Epoch 3/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 3/200:  39%|███▊      | 99/256 [00:03<00:04, 35.76it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 3/200:  78%|███████▊  | 199/256 [00:07<00:01, 35.93it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 3/200: 100%|██████████| 256/256 [00:10<00:00, 24.34it/s]
+Training: Epoch 4/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  10%|▉         | 100/1024 [00:09<01:12, 12.76it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  20%|█▉        | 200/1024 [00:22<01:41,  8.11it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  29%|██▉       | 300/1024 [00:35<01:21,  8.83it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  39%|███▉      | 400/1024 [00:46<01:11,  8.69it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  49%|████▊     | 499/1024 [00:57<00:49, 10.69it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  59%|█████▊    | 600/1024 [01:09<00:43,  9.82it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  68%|██████▊   | 700/1024 [01:19<00:31, 10.22it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  78%|███████▊  | 800/1024 [01:31<00:24,  9.04it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  88%|████████▊ | 900/1024 [01:44<00:15,  8.11it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200:  98%|█████████▊| 999/1024 [01:54<00:02, 10.91it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 4/200: 100%|██████████| 1024/1024 [01:57<00:00,  8.70it/s]
+Validation: Epoch 4/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 4/200:  38%|███▊      | 97/256 [00:03<00:04, 35.88it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 4/200:  78%|███████▊  | 200/256 [00:07<00:01, 34.87it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 4/200: 100%|██████████| 256/256 [00:10<00:00, 24.64it/s]
+Training: Epoch 5/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  10%|▉         | 99/1024 [00:09<01:16, 12.06it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  19%|█▉        | 199/1024 [00:19<01:06, 12.32it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  29%|██▉       | 300/1024 [00:30<01:19,  9.11it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  39%|███▉      | 399/1024 [00:39<00:51, 12.23it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  49%|████▊     | 499/1024 [00:49<00:44, 11.89it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  58%|█████▊    | 599/1024 [00:59<00:35, 11.84it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  68%|██████▊   | 699/1024 [01:08<00:26, 12.37it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  78%|███████▊  | 799/1024 [01:17<00:18, 12.30it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  88%|████████▊ | 899/1024 [01:26<00:11, 11.21it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200:  98%|█████████▊| 999/1024 [01:36<00:02, 12.32it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 5/200: 100%|██████████| 1024/1024 [01:39<00:00, 10.28it/s]
+Validation: Epoch 5/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 5/200:  38%|███▊      | 97/256 [00:03<00:04, 35.98it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 5/200:  77%|███████▋  | 197/256 [00:07<00:01, 35.75it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 5/200: 100%|██████████| 256/256 [00:10<00:00, 24.91it/s]
+Training: Epoch 6/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  10%|▉         | 99/1024 [00:09<01:15, 12.21it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  19%|█▉        | 199/1024 [00:19<01:14, 11.01it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  29%|██▉       | 299/1024 [00:28<01:00, 11.91it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  39%|███▉      | 399/1024 [00:37<00:50, 12.39it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  49%|████▊     | 499/1024 [00:46<00:42, 12.29it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  58%|█████▊    | 599/1024 [00:56<00:34, 12.28it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  68%|██████▊   | 699/1024 [01:05<00:26, 12.28it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  78%|███████▊  | 799/1024 [01:15<00:20, 11.05it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  88%|████████▊ | 899/1024 [01:24<00:10, 12.24it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200:  98%|█████████▊| 999/1024 [01:33<00:02, 12.10it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 6/200: 100%|██████████| 1024/1024 [01:36<00:00, 10.57it/s]
+Validation: Epoch 6/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 6/200:  38%|███▊      | 97/256 [00:03<00:04, 35.66it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 6/200:  77%|███████▋  | 197/256 [00:07<00:01, 35.87it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 6/200: 100%|██████████| 256/256 [00:10<00:00, 24.95it/s]
+Training: Epoch 7/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  10%|▉         | 99/1024 [00:09<01:14, 12.34it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  19%|█▉        | 199/1024 [00:18<01:07, 12.30it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  29%|██▉       | 299/1024 [00:27<00:59, 12.24it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  39%|███▉      | 399/1024 [00:37<00:58, 10.76it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  49%|████▊     | 499/1024 [00:47<00:42, 12.24it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  58%|█████▊    | 599/1024 [00:56<00:36, 11.77it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  68%|██████▊   | 699/1024 [01:05<00:29, 11.01it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  78%|███████▊  | 799/1024 [01:15<00:19, 11.74it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  88%|████████▊ | 899/1024 [01:25<00:10, 12.38it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200:  98%|█████████▊| 999/1024 [01:34<00:02, 11.06it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 7/200: 100%|██████████| 1024/1024 [01:38<00:00, 10.42it/s]
+Validation: Epoch 7/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 7/200:  38%|███▊      | 97/256 [00:03<00:04, 35.45it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 7/200:  77%|███████▋  | 197/256 [00:07<00:01, 35.72it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 7/200: 100%|██████████| 256/256 [00:10<00:00, 24.90it/s]
+Training: Epoch 8/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  10%|▉         | 100/1024 [00:10<01:24, 10.97it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  20%|█▉        | 200/1024 [00:20<01:15, 10.90it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  29%|██▉       | 300/1024 [00:29<01:00, 11.99it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  39%|███▉      | 400/1024 [00:39<00:57, 10.87it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  49%|████▉     | 500/1024 [00:49<00:47, 10.95it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  59%|█████▊    | 600/1024 [00:59<00:36, 11.66it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  68%|██████▊   | 700/1024 [01:09<00:26, 12.21it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  78%|███████▊  | 800/1024 [01:18<00:18, 12.22it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  88%|████████▊ | 900/1024 [01:28<00:11, 10.96it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200:  98%|█████████▊| 1000/1024 [01:37<00:02, 11.67it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 8/200: 100%|██████████| 1024/1024 [01:40<00:00, 10.15it/s]
+Validation: Epoch 8/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 8/200:  38%|███▊      | 97/256 [00:03<00:04, 35.00it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 8/200:  77%|███████▋  | 197/256 [00:07<00:01, 35.17it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 8/200: 100%|██████████| 256/256 [00:10<00:00, 24.74it/s]
+Training: Epoch 9/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  10%|▉         | 99/1024 [00:09<01:15, 12.24it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  19%|█▉        | 199/1024 [00:18<01:07, 12.26it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  29%|██▉       | 299/1024 [00:27<00:59, 12.21it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  39%|███▉      | 399/1024 [00:36<00:56, 11.10it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  49%|████▊     | 499/1024 [00:46<00:44, 11.67it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  58%|█████▊    | 599/1024 [00:56<00:34, 12.27it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  68%|██████▊   | 699/1024 [01:05<00:26, 12.30it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  78%|███████▊  | 799/1024 [01:14<00:19, 11.46it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  88%|████████▊ | 899/1024 [01:24<00:10, 11.47it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200:  98%|█████████▊| 999/1024 [01:34<00:02, 11.10it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 9/200: 100%|██████████| 1024/1024 [01:37<00:00, 10.46it/s]
+Validation: Epoch 9/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 9/200:  38%|███▊      | 97/256 [00:03<00:04, 35.50it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 9/200:  77%|███████▋  | 197/256 [00:07<00:01, 35.20it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 9/200: 100%|██████████| 256/256 [00:10<00:00, 24.89it/s]
+Training: Epoch 10/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  10%|▉         | 99/1024 [00:09<01:24, 10.93it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  19%|█▉        | 199/1024 [00:19<01:15, 10.92it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  29%|██▉       | 299/1024 [00:29<01:05, 11.00it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  39%|███▉      | 399/1024 [00:39<00:55, 11.16it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  49%|████▊     | 499/1024 [00:49<00:42, 12.33it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  58%|█████▊    | 599/1024 [00:58<00:34, 12.29it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  68%|██████▊   | 699/1024 [01:07<00:26, 12.28it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  78%|███████▊  | 799/1024 [01:16<00:18, 12.24it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  88%|████████▊ | 899/1024 [01:26<00:10, 12.23it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200:  98%|█████████▊| 999/1024 [01:35<00:02, 12.31it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 10/200: 100%|██████████| 1024/1024 [01:38<00:00, 10.39it/s]
+Validation: Epoch 10/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 10/200:  38%|███▊      | 97/256 [00:03<00:04, 36.25it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 10/200:  77%|███████▋  | 197/256 [00:07<00:01, 35.68it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 10/200: 100%|██████████| 256/256 [00:10<00:00, 25.01it/s]
+Training: Epoch 11/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  10%|▉         | 100/1024 [00:10<01:32,  9.99it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  19%|█▉        | 199/1024 [00:21<01:13, 11.15it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  29%|██▉       | 299/1024 [00:30<01:02, 11.52it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  39%|███▉      | 399/1024 [00:40<00:51, 12.23it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  49%|████▊     | 499/1024 [00:49<00:42, 12.22it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  58%|█████▊    | 599/1024 [00:59<00:34, 12.31it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  68%|██████▊   | 700/1024 [01:09<00:32,  9.91it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  78%|███████▊  | 800/1024 [01:20<00:23,  9.62it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  88%|████████▊ | 900/1024 [01:30<00:11, 10.92it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200:  98%|█████████▊| 999/1024 [01:41<00:02, 10.73it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 11/200: 100%|██████████| 1024/1024 [01:44<00:00,  9.80it/s]
+Validation: Epoch 11/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 11/200:  38%|███▊      | 97/256 [00:03<00:04, 35.25it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 11/200:  77%|███████▋  | 197/256 [00:07<00:01, 35.00it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 11/200: 100%|██████████| 256/256 [00:10<00:00, 24.54it/s]
+Training: Epoch 12/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  10%|▉         | 99/1024 [00:09<01:25, 10.80it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  19%|█▉        | 199/1024 [00:18<01:06, 12.32it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  29%|██▉       | 299/1024 [00:28<01:05, 11.03it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  39%|███▉      | 399/1024 [00:38<00:51, 12.19it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  49%|████▊     | 499/1024 [00:47<00:48, 10.75it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  58%|█████▊    | 599/1024 [00:57<00:38, 11.14it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  68%|██████▊   | 699/1024 [01:06<00:27, 11.82it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  78%|███████▊  | 799/1024 [01:16<00:19, 11.79it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  88%|████████▊ | 899/1024 [01:25<00:10, 12.31it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200:  98%|█████████▊| 999/1024 [01:35<00:02, 12.30it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 12/200: 100%|██████████| 1024/1024 [01:38<00:00, 10.40it/s]
+Validation: Epoch 12/200:   0%|          | 0/256 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 12/200:  38%|███▊      | 97/256 [00:03<00:04, 35.75it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 12/200:  78%|███████▊  | 200/256 [00:07<00:01, 36.13it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Validation: Epoch 12/200: 100%|██████████| 256/256 [00:10<00:00, 24.93it/s]
+Training: Epoch 13/200:   0%|          | 0/1024 [00:00<?, ?it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 13/200:  10%|▉         | 99/1024 [00:09<01:14, 12.36it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 13/200:  19%|█▉        | 199/1024 [00:18<01:09, 11.93it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 13/200:  29%|██▉       | 299/1024 [00:27<00:58, 12.34it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 13/200:  39%|███▉      | 399/1024 [00:37<00:52, 11.82it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 13/200:  49%|████▊     | 499/1024 [00:46<00:44, 11.92it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 13/200:  58%|█████▊    | 599/1024 [00:56<00:36, 11.75it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+Training: Epoch 13/200:  68%|██████▊   | 699/1024 [01:05<00:27, 11.77it/s]/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")
+/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/util/torch_helpers.py:55: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
+  cmap = cm.get_cmap("viridis")

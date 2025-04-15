@@ -1,0 +1,71 @@
+train.py:156: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  model = torch.load(str(args.weights))
+Training: Epoch 1/200:   0%|          | 0/1024 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "train.py", line 472, in <module>
+    main(args)
+  File "train.py", line 407, in main
+    train(args, config, model_config)
+  File "train.py", line 227, in train
+    X_hat: torch.Tensor = model(X_sparse)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/models/unet/unet.py", line 101, in forward
+    x1 = self.inc(x)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/models/unet/unet_parts.py", line 43, in forward
+    return self.double_conv(x)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/batchnorm.py", line 143, in forward
+    self._check_input_dim(input)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/batchnorm.py", line 426, in _check_input_dim
+    raise ValueError(f"expected 4D input (got {input.dim()}D input)")
+ValueError: expected 4D input (got 3D input)
+Traceback (most recent call last):
+  File "train.py", line 472, in <module>
+    main(args)
+  File "train.py", line 407, in main
+    train(args, config, model_config)
+  File "train.py", line 227, in train
+    X_hat: torch.Tensor = model(X_sparse)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/models/unet/unet.py", line 101, in forward
+    x1 = self.inc(x)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/src/models/unet/unet_parts.py", line 43, in forward
+    return self.double_conv(x)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/batchnorm.py", line 143, in forward
+    self._check_input_dim(input)
+  File "/home/mufan/miniforge3/envs/control/lib/python3.8/site-packages/torch/nn/modules/batchnorm.py", line 426, in _check_input_dim
+    raise ValueError(f"expected 4D input (got {input.dim()}D input)")
+ValueError: expected 4D input (got 3D input)

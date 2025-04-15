@@ -1,0 +1,17 @@
+Training: Epoch 1/200:   0%|          | 0/1024 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "train.py", line 473, in <module>
+    main(args)
+  File "train.py", line 408, in main
+    train(args, config, model_config)
+  File "train.py", line 222, in train
+    X = batch["y"].float().cuda()
+KeyError: 'y'
+Traceback (most recent call last):
+  File "train.py", line 473, in <module>
+    main(args)
+  File "train.py", line 408, in main
+    train(args, config, model_config)
+  File "train.py", line 222, in train
+    X = batch["y"].float().cuda()
+KeyError: 'y'

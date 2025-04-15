@@ -1,0 +1,111 @@
+{
+  "os": "Linux-6.8.0-56-generic-x86_64-with-glibc2.10",
+  "python": "3.8.19",
+  "startedAt": "2025-04-15T20:22:10.382884Z",
+  "args": [
+    "--exp_name",
+    "bto",
+    "--root",
+    "__exps__/bto",
+    "--upsample_factor",
+    "2",
+    "--dataset",
+    "bto",
+    "--formulation",
+    "X",
+    "--weights",
+    "__weights__/2x/DS={all}-[X|y]-BS=32-opt=Adam-lr=1e-5_best.pth",
+    "--surrogate_weights",
+    "__exps__/expert-surrogates/2025-03-02_15-27-59_{average_surface_current, coverage_percentage, total_area_extended_shapes}-ViT-Trainable-BS=64/{average_surface_current, coverage_percentage, total_area_extended_shapes}-ViT-Trainable-BS=64_best_older_surrogate.pth",
+    "--num_heads",
+    "6",
+    "--num_blocks",
+    "6",
+    "--window_size",
+    "8",
+    "--drop_path_rate",
+    "0.1",
+    "--norm_layer",
+    "torch.nn.LayerNorm"
+  ],
+  "program": "train.py",
+  "codePath": "train.py",
+  "git": {
+    "remote": "https://github.com/UNITES-Lab/sparse-cafm.git",
+    "commit": "5c31707df32d216b6fd746f5abec62db2f6d33c4"
+  },
+  "email": "levlevi@email.unc.edu",
+  "root": "/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm",
+  "host": "unites4.cs.unc.edu",
+  "username": "mufan",
+  "executable": "/home/mufan/miniforge3/envs/control/bin/python",
+  "codePathLocal": "train.py",
+  "cpu_count": 48,
+  "cpu_count_logical": 96,
+  "gpu": "NVIDIA RTX 6000 Ada Generation",
+  "gpu_count": 8,
+  "disk": {
+    "/": {
+      "total": "81978257408",
+      "used": "22494408704"
+    }
+  },
+  "memory": {
+    "total": "540861882368"
+  },
+  "cpu": {
+    "count": 48,
+    "countLogical": 96
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA RTX 6000 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 18176,
+      "architecture": "Ada"
+    },
+    {
+      "name": "NVIDIA RTX 6000 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 18176,
+      "architecture": "Ada"
+    },
+    {
+      "name": "NVIDIA RTX 6000 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 18176,
+      "architecture": "Ada"
+    },
+    {
+      "name": "NVIDIA RTX 6000 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 18176,
+      "architecture": "Ada"
+    },
+    {
+      "name": "NVIDIA RTX 6000 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 18176,
+      "architecture": "Ada"
+    },
+    {
+      "name": "NVIDIA RTX 6000 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 18176,
+      "architecture": "Ada"
+    },
+    {
+      "name": "NVIDIA RTX 6000 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 18176,
+      "architecture": "Ada"
+    },
+    {
+      "name": "NVIDIA RTX 6000 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 18176,
+      "architecture": "Ada"
+    }
+  ],
+  "cudaVersion": "12.6"
+}

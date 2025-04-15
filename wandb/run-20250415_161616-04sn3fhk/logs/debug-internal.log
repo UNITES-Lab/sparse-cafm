@@ -1,0 +1,16 @@
+{"time":"2025-04-15T16:16:17.010105494-04:00","level":"INFO","msg":"using version","core version":"0.18.7"}
+{"time":"2025-04-15T16:16:17.010163183-04:00","level":"INFO","msg":"created symlink","path":"/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/wandb/run-20250415_161616-04sn3fhk/logs/debug-core.log"}
+{"time":"2025-04-15T16:16:17.136378021-04:00","level":"INFO","msg":"created new stream","id":"04sn3fhk"}
+{"time":"2025-04-15T16:16:17.13653656-04:00","level":"INFO","msg":"stream: started","id":"04sn3fhk"}
+{"time":"2025-04-15T16:16:17.136553532-04:00","level":"INFO","msg":"handler: started","stream_id":"04sn3fhk"}
+{"time":"2025-04-15T16:16:17.136610871-04:00","level":"INFO","msg":"writer: Do: started","stream_id":"04sn3fhk"}
+{"time":"2025-04-15T16:16:17.136610871-04:00","level":"INFO","msg":"sender: started","stream_id":"04sn3fhk"}
+{"time":"2025-04-15T16:16:17.415426227-04:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-04-15T16:16:21.796995633-04:00","level":"INFO","msg":"stream: closing","id":"04sn3fhk"}
+{"time":"2025-04-15T16:16:21.797076998-04:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-04-15T16:16:21.798001484-04:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-04-15T16:16:23.202610994-04:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-04-15T16:16:23.348322528-04:00","level":"INFO","msg":"handler: closed","stream_id":"04sn3fhk"}
+{"time":"2025-04-15T16:16:23.348380705-04:00","level":"INFO","msg":"writer: Close: closed","stream_id":"04sn3fhk"}
+{"time":"2025-04-15T16:16:23.348532609-04:00","level":"INFO","msg":"sender: closed","stream_id":"04sn3fhk"}
+{"time":"2025-04-15T16:16:23.348593092-04:00","level":"INFO","msg":"stream: closed","id":"04sn3fhk"}

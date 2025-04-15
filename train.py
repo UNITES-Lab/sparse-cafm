@@ -147,16 +147,14 @@ def train(
     wandb.init(
         entity="team-levi",
         project="sparse-cafm",
-        config=config.to_dict()
+        config=config.to_dict(),
+        name="BTO-4X-no-augs"
     )
 
     # HACK: just loading a torch .pth file
-
     # model = create_model(config)
     # model = SwinCAFM.init_from_config(model_config.to_dict())
-    # model = torch.load(str(args.weights))
-
-    model = UNet.get()
+    model = torch.load(str(args.weights))
 
     train_dataloader = create_dataloader(args, config, "train")
     val_dataloader = create_dataloader(args, config, "val")
@@ -170,18 +168,7 @@ def train(
 
     num_epochs = config.epochs
     device = config.device
-
-    # if config.model_config_file != None:
-    #     if args.weights != "":
-    #         model_config.weights_fp = str(args.weights)
-    #         CONSOLE.print(Rule(f"Loading model weights from: {args.weights}"))
-    #         assert isinstance(model, SwinCAFM), f"Only SwinCAFM supports init from config."
-    #         # load weights/full model ckpt
-    #         item = torch.load(args.weights)
-    #         if   isinstance(item, dict):            model.load_state_dict(item['params'])
-    #         elif isinstance(item, torch.nn.Module): model = item
-    #         else: raise Exception()
-
+    
     # as per: https://arxiv.org/pdf/2404.00722
     optimizer = torch.optim.Adam(model.parameters(), lr=float(config.learning_rate))
 
@@ -189,8 +176,6 @@ def train(
 
     # HACK: randomly init weights
     # model.apply(model._init_weights)
-
-    model = UNet.get()
     model.cuda(device)
     model.float()
 
@@ -219,8 +204,9 @@ def train(
             #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
             # [0, 1]
-            X = batch["y"].float().cuda()
-            X_sparse = batch["y_sparse"].float().cuda()
+            # NOTE: manually specifing X vs y
+            X = batch["X"].float().cuda()
+            X_sparse = batch["X_sparse"].float().cuda()
             
             # zero gradients
             optimizer.zero_grad()
@@ -302,8 +288,9 @@ def train(
                 #     # current-map: y_sparse; [64, 64]
                 #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
 
-                X = batch["y"].float().cuda()
-                X_sparse = batch["y_sparse"].float().cuda()
+                # NOTE: manually specifing X vs y
+                X = batch["X"].float().cuda()
+                X_sparse = batch["X_sparse"].float().cuda()
 
                 # ---- forward: p(y | y_sparse) ----
                 X_hat: torch.Tensor = model(X_sparse)
