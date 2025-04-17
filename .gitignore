@@ -22,6 +22,7 @@ tb_logs/
 .vscode/**
 **.vscode/**
 
+wandb/
 _SwinIR/
 _RNAN/
 

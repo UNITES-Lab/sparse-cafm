@@ -8,16 +8,13 @@ import torch
 import torch.nn as nn
 
 from rich.console import Console
-from rich.rule import Rule
-from rich.pretty import Pretty
-from torch.utils.checkpoint import checkpoint
 from tqdm import tqdm
 from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
 
-from src.util.metrics import PSNR, SSIM
-from src.models.unet.unet import UNet
+from src.util.metrics import PSNR, SSIM, RMSE_surface_roughness_l1
+from src.models.unet.unet import UNetSR
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import (
     BTOSRDataset,
@@ -37,16 +34,18 @@ from src.util.config import (
     OPTIMIZERS,
     MODELS,
 )
+from src.util.loss import roughness_loss
 
 warnings.simplefilter("always")
 torch.multiprocessing.set_sharing_strategy("file_system")
 TRAIN_CONFIG_FP = os.path.abspath("configs/train.yaml")
 CONSOLE = Console()
 
+
 def setup_logger(
     train_config: TrainConfig, model_config: Optional[ModelConfig]
 ) -> ExperimentLogger:
-    
+
     logger = ExperimentLogger(
         train_config_dict=train_config.to_dict(),
         model_config_dict=model_config.to_dict() if model_config != None else None,
@@ -148,7 +147,7 @@ def train(
         entity="team-levi",
         project="sparse-cafm",
         config=config.to_dict(),
-        name="BTO-4X-no-augs"
+        name=str(args.exp_name),
     )
 
     # HACK: just loading a torch .pth file
@@ -164,18 +163,18 @@ def train(
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
 
     # use to save model checkpoints
-    best_val_loss = sys.maxsize
+    best_val_loss = float('inf')
 
     num_epochs = config.epochs
     device = config.device
-    
+
     # as per: https://arxiv.org/pdf/2404.00722
     optimizer = torch.optim.Adam(model.parameters(), lr=float(config.learning_rate))
 
     # assert isinstance(model, SwinCAFM)
-
     # HACK: randomly init weights
     # model.apply(model._init_weights)
+
     model.cuda(device)
     model.float()
 
@@ -188,47 +187,54 @@ def train(
             tqdm(train_dataloader, desc=f"Training: Epoch {epoch+1}/{num_epochs}")
         ):
 
-            # F = args.formulation
-            # assert F in ['X', 'y', 'both']
-
-            # y, y_sparse = None, None
-            # if F == 'both':
-            #     _F = "y" if random.random() < 0.5 else "X"
-            #     y: torch.Tensor = batch[_F].cuda(device)
-            #     # current-map: y_sparse; [64, 64]
-            #     y_sparse: torch.Tensor = batch[f"{_F}_sparse"].cuda(device)
-            # else:
-            #     # current-map: y; [128, 128]
-            #     y: torch.Tensor = batch[F].cuda(device)
-            #     # current-map: y_sparse; [64, 64]
-            #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
-
             # [0, 1]
             # NOTE: manually specifing X vs y
             X = batch["X"].float().cuda()
             X_sparse = batch["X_sparse"].float().cuda()
-            
+
             # zero gradients
             optimizer.zero_grad()
 
             # ---- forward: p(y | y_sparse) ----
             X_hat: torch.Tensor = model(X_sparse)
 
+            assert isinstance(train_dataloader.dataset, BTOSRDataset)
+            rmse_sr_loss = RMSE_surface_roughness_l1(
+                X,
+                X_hat,
+                train_dataloader.dataset.topo_maps_min,
+                train_dataloader.dataset.topo_maps_max,
+            )
+
             # --- L1 ----
-            loss = torch.nn.functional.l1_loss(X, X_hat)
+            # loss = torch.nn.functional.l1_loss(X, X_hat)
+
+            # --- L1 + surface_roughness ----
+            # EPS = 1.5
+            # loss = torch.nn.functional.l1_loss(X, X_hat) + (EPS * rmse_sr_loss)
+
+            # --- surface_roughness ---
+            loss = roughness_loss(
+                X_hat,
+                X,
+                train_dataloader.dataset.topo_maps_min,
+                train_dataloader.dataset.topo_maps_max,
+            )
+
+            # backprop and step
+            loss.backward()
+            optimizer.step()
 
             # HACK: clip to [0, 1]
+            X     = torch.clip(X, 0, 1)
             X_hat = torch.clip(X_hat, 0, 1)
 
             # ---- add dummy dims for PSNR/SSIM ----
-            X_il    : torch.Tensor     = X.unsqueeze(1).repeat(1,3,1,1)
-            X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1,3,1,1)
+            X_il: torch.Tensor = X.unsqueeze(1).repeat(1, 3, 1, 1)
+            X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1, 3, 1, 1)
 
             psnr = PSNR(X_il, X_hat_il, (0, 1))
             ssim = SSIM(X_il, X_hat_il, (0, 1))
-
-            loss.backward()
-            optimizer.step()
 
             logger.log(
                 **{
@@ -245,6 +251,7 @@ def train(
                     "train_l1_loss": loss.item(),
                     "train_psnr": psnr,
                     "train_ssim": ssim,
+                    "train_RMSE_surface_roughness_l1": rmse_sr_loss,
                 }
             )
 
@@ -273,21 +280,6 @@ def train(
                 tqdm(val_dataloader, desc=f"Validation: Epoch {epoch+1}/{num_epochs}")
             ):
 
-                # F = args.formulation
-                # assert F in ['X', 'y', 'both']
-
-                # y, y_sparse = None, None
-                # if F == 'both':
-                #     _F = "y" if random.random() < 0.5 else "X"
-                #     y: torch.Tensor = batch[_F].cuda(device)
-                #     # current-map: y_sparse; [64, 64]
-                #     y_sparse: torch.Tensor = batch[f"{_F}_sparse"].cuda(device)
-                # else:
-                #     # current-map: y; [128, 128]
-                #     y: torch.Tensor = batch[F].cuda(device)
-                #     # current-map: y_sparse; [64, 64]
-                #     y_sparse: torch.Tensor = batch[f"{F}_sparse"].cuda(device)
-
                 # NOTE: manually specifing X vs y
                 X = batch["X"].float().cuda()
                 X_sparse = batch["X_sparse"].float().cuda()
@@ -295,17 +287,37 @@ def train(
                 # ---- forward: p(y | y_sparse) ----
                 X_hat: torch.Tensor = model(X_sparse)
 
+                assert isinstance(train_dataloader.dataset, BTOSRDataset)
+                rmse_sr_loss = RMSE_surface_roughness_l1(
+                    X,
+                    X_hat,
+                    train_dataloader.dataset.topo_maps_min,
+                    train_dataloader.dataset.topo_maps_max,
+                )
+
+                # --- L1 ----
+                # loss = val_loss(X_hat, X)
+
+                # --- Surface Roughness ---
+
+                loss = roughness_loss(
+                    X_hat,
+                    X,
+                    train_dataloader.dataset.topo_maps_min,
+                    train_dataloader.dataset.topo_maps_max,
+                )
+
+                val_running_loss += loss.item() * X.size(0)
+                
+                X     = torch.clip(X, 0, 1)
+                X_hat = torch.clip(X_hat, 0, 1)
+
                 # ---- add dummy dims for PSNR/SSIM ----
-                X_il    : torch.Tensor     = X.unsqueeze(1).repeat(1,3,1,1)
-                X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1,3,1,1)
+                X_il: torch.Tensor = X.unsqueeze(1).repeat(1, 3, 1, 1)
+                X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1, 3, 1, 1)
 
                 psnr = PSNR(X_il, X_hat_il, (0, 1))
                 ssim = SSIM(X_il, X_hat_il, (0, 1))
-
-                # --- L1 ----
-                loss = val_loss(X_hat, X)
-
-                val_running_loss += loss.item() * X.size(0)
 
                 logger.log(
                     **{
@@ -322,6 +334,7 @@ def train(
                         "val_l1_loss": loss.item(),
                         "val_psnr": psnr,
                         "val_ssim": ssim,
+                        "val_RMSE_surface_roughness_l1": rmse_sr_loss,
                     }
                 )
 
@@ -330,14 +343,17 @@ def train(
                     continue
 
                 triplet_name = f"val_epoch_{epoch}_step_{i}.png"
-                logger.log_colorized_tensors(
+
+                fig = logger.log_colorized_tensors(
                     (X, "Target (y)"),
                     (X_sparse, "Model Input (y_sparse)"),
-                    (X_hat, "Model Prediction(y_hat)"),
+                    (X_hat, "Model Prediction (y_hat)"),
                     file_name=triplet_name,
                 )
+                wandb.log({"Val Qualitative Results": wandb.Image(fig)})
 
-                wandb.log({"Train Qualitative Results": wandb.Image(fig)})
+                # ++
+                num_val_steps += 1
 
             # optional: log best/recent model weights
             avg_val_loss = val_running_loss / num_val_steps
@@ -456,5 +472,5 @@ if __name__ == "__main__":
     parser.add_argument("-bs", "--batch_size", type=int, help="", default=1)
     parser.add_argument("-sr", "--upsample_factor", type=int, help="", default=2)
     args = parser.parse_args()
-    
+
     main(args)

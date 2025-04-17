@@ -532,10 +532,12 @@ class BTOSRDataset(Dataset):
         Saves results as internal vars.
         """
 
-        self.topo_maps_mean = np.mean(np.array(self.topo_maps_512))
-        self.topo_maps_std  = np.std(np.array(self.topo_maps_512))
-        self.topo_maps_max  = np.amax(np.array(self.topo_maps_512))
-        self.topo_maps_min  = np.amin(np.array(self.topo_maps_512))
+        # NOTE: we only use the first three samples to calculate global dataset statistics, validation data
+        # is not used...
+        self.topo_maps_mean = np.mean(np.array(self.topo_maps_512)[:-1])
+        self.topo_maps_std  = np.std(np.array(self.topo_maps_512)[:-1])
+        self.topo_maps_max  = np.amax(np.array(self.topo_maps_512)[:-1])
+        self.topo_maps_min  = np.amin(np.array(self.topo_maps_512)[:-1])
 
     def _create_train_augmentation_pipeline(self):
         return A.Compose(
@@ -661,13 +663,19 @@ class BTOSRDataset(Dataset):
 
         # -> [1, 1, 128, 128]
         X_unsqueezed = X.unsqueeze(0).unsqueeze(0)
+
+        # HACK: linear downsampling
         # -> [H', W']
-        X_sparse = F.interpolate(
-            X_unsqueezed, 
-            scale_factor=1/self.upsample_factor, 
-            mode='bicubic', 
-            align_corners=False
-            )
+        X_sparse = X_unsqueezed[:, :, ::self.upsample_factor, ::self.upsample_factor]
+        
+        # # -> [H', W']
+        # X_sparse = F.interpolate(
+        #     X_unsqueezed, 
+        #     scale_factor=1/self.upsample_factor, 
+        #     mode='bicubic', 
+        #     align_corners=False
+        #     )
+        
         X_sparse = X_sparse.squeeze(0).squeeze(0)
         
         assert (X.max()     <= 1.0 and X.min()     >= 0.0), f"Error normalizing X sample: {X.shape}"

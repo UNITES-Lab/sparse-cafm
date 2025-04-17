@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from typing import Optional, Sequence
+from typing import Optional, Sequence, List
 
 
 class ImageInpaintingL1Loss(nn.Module):
@@ -39,7 +39,7 @@ class ImageInpaintingL1Loss(nn.Module):
         predicted_image: torch.Tensor, target_image: torch.Tensor, mask: torch.Tensor
     ) -> torch.Tensor:
         """
-        Returns 
+        Returns
             (target * mask) + (pred * ~mask)
         """
         # y_sparse [given]
@@ -211,9 +211,78 @@ def focal_loss(
     return fl
 
 
-# Define the loss function
 def vae_loss_function(output, x, mu, logvar):
     # reconstruction loss
     recon_loss = F.mse_loss(output, x, reduction="sum") / x.size(0)
     kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     return recon_loss + 0.002 * kl_loss
+
+
+def _center(x: torch.Tensor) -> torch.Tensor:
+    """Zero‑centre each (H, W) map independently."""
+    return x - x.mean(dim=(-2, -1), keepdim=True)
+
+
+def rms_roughness(x: torch.Tensor) -> torch.Tensor:
+    # B × H × W  ➜  B
+    x = _center(x)
+    return torch.sqrt((x**2).mean(dim=(-2, -1)))
+
+
+def mean_roughness(x: torch.Tensor) -> torch.Tensor:
+    # B × H × W  ➜  B
+    x = _center(x)
+    return x.abs().mean(dim=(-2, -1))
+
+
+def roughness_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    dataset_min: float,
+    dataset_max: float,
+    use_metrics: List[str] = ["rms", "mean"],
+    weights: List[float] = [1.0, 1.0],
+) -> torch.Tensor:
+    """
+    Surface‑roughness consistency loss.
+
+    Parameters
+    ----------
+    pred, target : (B, H, W) tensors
+        Normalised to [0, 1]. This function rescales them to physical units
+        using `dataset_min` / `dataset_max` before computing roughness.
+    dataset_min, dataset_max : float
+        Global minimum / maximum of the *unnormalised* topography maps.
+    use_metrics : list[str]
+        Any subset of {"rms", "mean"}.
+    weights : list[float]
+        Per‑metric weights, same order as `use_metrics`.
+    """
+
+    # ------------------------------------------------------------
+    # 1) un‑normalise to original scale (e.g. nanometres)
+    # ------------------------------------------------------------
+    scale = dataset_max - dataset_min
+    pred_phys   = (pred   * scale + dataset_min) * 1e9
+    target_phys = (target * scale + dataset_min) * 1e9
+
+    # ------------------------------------------------------------
+    # 2) compute roughness metrics
+    # ------------------------------------------------------------
+    loss_terms: List[torch.Tensor] = []
+
+    if "rms" in use_metrics:
+        rms_diff = (rms_roughness(pred_phys) - rms_roughness(target_phys)).abs()
+        loss_terms.append(weights[0] * rms_diff)
+
+    if "mean" in use_metrics:
+        mean_diff = (mean_roughness(pred_phys) - mean_roughness(target_phys)).abs()
+        # if both metrics are used, weights[1] applies; else weights[0]
+        w = weights[1] if len(use_metrics) > 1 else weights[0]
+        loss_terms.append(w * mean_diff)
+
+    # ------------------------------------------------------------
+    # 3) aggregate to a scalar
+    # ------------------------------------------------------------
+    # -> (B, n_metrics)  ➜   scalar
+    return torch.stack(loss_terms, dim=-1).mean()

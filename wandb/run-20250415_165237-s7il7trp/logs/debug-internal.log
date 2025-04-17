@@ -1,8 +1,0 @@
-{"time":"2025-04-15T16:52:37.603171822-04:00","level":"INFO","msg":"using version","core version":"0.18.7"}
-{"time":"2025-04-15T16:52:37.603213936-04:00","level":"INFO","msg":"created symlink","path":"/playpen/mufan/levi/tianlong-chen-lab/sparse-cafm/wandb/run-20250415_165237-s7il7trp/logs/debug-core.log"}
-{"time":"2025-04-15T16:52:37.835085258-04:00","level":"INFO","msg":"created new stream","id":"s7il7trp"}
-{"time":"2025-04-15T16:52:37.835213556-04:00","level":"INFO","msg":"handler: started","stream_id":"s7il7trp"}
-{"time":"2025-04-15T16:52:37.835344578-04:00","level":"INFO","msg":"stream: started","id":"s7il7trp"}
-{"time":"2025-04-15T16:52:37.835376774-04:00","level":"INFO","msg":"sender: started","stream_id":"s7il7trp"}
-{"time":"2025-04-15T16:52:37.837107366-04:00","level":"INFO","msg":"writer: Do: started","stream_id":"s7il7trp"}
-{"time":"2025-04-15T16:52:38.111390798-04:00","level":"INFO","msg":"Starting system monitor"}

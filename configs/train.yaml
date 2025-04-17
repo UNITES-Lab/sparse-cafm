@@ -14,7 +14,7 @@ model:
 training:
   batch_size: 1
   steps_per_epoch: 1024
-  epochs: 200
+  epochs: 2000
   loss: L1
   lr: 1e-5
   optimizer: Adam

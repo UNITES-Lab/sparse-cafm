@@ -6,6 +6,29 @@ from torchmetrics.functional.image.psnr import psnr
 from typing import Optional, Tuple
 
 
+def RMSE_surface_roughness_l1(
+    pred: torch.Tensor, target: torch.Tensor, dataset_min: float, dataset_max: float
+) -> torch.Tensor:
+
+    # unnormalize to original topology distribution
+    pred = pred * (dataset_max - dataset_min) + dataset_min
+    target = target * (dataset_max - dataset_min) + dataset_min
+
+    def calculate_roughness(X: torch.Tensor) -> torch.Tensor:
+        """
+        Per Jayed's specs...
+        """
+        # Zero-centering the data
+        X -= torch.mean(X)
+        # RMS roughness in nm
+        Sq = torch.sqrt(torch.mean(X**2)) * 1e9
+        # Mean roughness in nm
+        Sa = torch.mean(torch.abs(X)) * 1e9
+        return Sq
+
+    return (calculate_roughness(pred) - calculate_roughness(target)).abs()
+
+
 def MAE(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     return (preds - target).abs().mean()
 
@@ -22,7 +45,7 @@ def SSIM(
     """
     ...
     """
-    
+
     low, high = _data_range
     diff = high - low
     # check that all vals are in range
@@ -63,7 +86,7 @@ def PSNR(
             f"Values in `target` are out of the expected range [{low}, {high}]. "
             f"Detected min={target.min().item()}, max={target.max().item()}"
         )
-    val = psnr(preds, target, data_range=high-low)
+    val = psnr(preds, target, data_range=high - low)
     return val
 
 
@@ -84,7 +107,7 @@ def OLDER(y_char: dict, y_sparse_char: dict) -> float:
 
     # KEYS = ["average_surface_current", "coverage_percentage", "num_extended_shapes", "total_area_extended_shapes"]
     diffs = []
-    
+
     for k1, k2 in zip(y_char.keys(), y_sparse_char.keys()):
         # if k1 not in KEYS or k2 not in KEYS: continue
         val1, val2 = y_char[k1], y_sparse_char[k2]
