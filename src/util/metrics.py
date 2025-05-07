@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 
-from torchmetrics.functional.image.ssim import ssim
-from torchmetrics.functional.image.psnr import psnr
+# from torchmetrics.functional.image.ssim import ssim
+# from torchmetrics.functional.image.psnr import psnr
 from typing import Optional, Tuple
 
 
@@ -11,7 +11,7 @@ def RMSE_surface_roughness_l1(
 ) -> torch.Tensor:
 
     # unnormalize to original topology distribution
-    pred = pred * (dataset_max - dataset_min) + dataset_min
+    pred   = pred   * (dataset_max - dataset_min) + dataset_min
     target = target * (dataset_max - dataset_min) + dataset_min
 
     def calculate_roughness(X: torch.Tensor) -> torch.Tensor:

@@ -13,7 +13,11 @@ from pathlib import Path
 from typing import List, Optional
 from torch.utils.data import DataLoader
 
-from src.util.metrics import PSNR, SSIM, RMSE_surface_roughness_l1
+from src.util.metrics import (
+    PSNR,
+    SSIM,
+    RMSE_surface_roughness_l1,
+)
 from src.models.unet.unet import UNetSR
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import (
@@ -34,7 +38,7 @@ from src.util.config import (
     OPTIMIZERS,
     MODELS,
 )
-from src.util.loss import roughness_loss
+from src.util.loss import roughness_loss, rotation_invariant_l1_loss
 
 warnings.simplefilter("always")
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -163,7 +167,7 @@ def train(
     val_loss: torch.nn.Module = LOSS_FUNCTIONS[config.val_loss]()
 
     # use to save model checkpoints
-    best_val_loss = float('inf')
+    best_val_loss = float("inf")
 
     num_epochs = config.epochs
     device = config.device
@@ -214,9 +218,10 @@ def train(
             # loss = torch.nn.functional.l1_loss(X, X_hat) + (EPS * rmse_sr_loss)
 
             # --- surface_roughness ---
-            loss = roughness_loss(
-                X_hat,
+            loss = rotation_invariant_l1_loss(
+                model,
                 X,
+                X_sparse,
                 train_dataloader.dataset.topo_maps_min,
                 train_dataloader.dataset.topo_maps_max,
             )
@@ -226,7 +231,7 @@ def train(
             optimizer.step()
 
             # HACK: clip to [0, 1]
-            X     = torch.clip(X, 0, 1)
+            X = torch.clip(X, 0, 1)
             X_hat = torch.clip(X_hat, 0, 1)
 
             # ---- add dummy dims for PSNR/SSIM ----
@@ -308,8 +313,8 @@ def train(
                 )
 
                 val_running_loss += loss.item() * X.size(0)
-                
-                X     = torch.clip(X, 0, 1)
+
+                X = torch.clip(X, 0, 1)
                 X_hat = torch.clip(X_hat, 0, 1)
 
                 # ---- add dummy dims for PSNR/SSIM ----
@@ -345,9 +350,9 @@ def train(
                 triplet_name = f"val_epoch_{epoch}_step_{i}.png"
 
                 fig = logger.log_colorized_tensors(
-                    (X, "Target (y)"),
-                    (X_sparse, "Model Input (y_sparse)"),
-                    (X_hat, "Model Prediction (y_hat)"),
+                    (X, "Target (X)"),
+                    (X_sparse, "Model Input (X_sparse)"),
+                    (X_hat, "Model Prediction (X_hat)"),
                     file_name=triplet_name,
                 )
                 wandb.log({"Val Qualitative Results": wandb.Image(fig)})

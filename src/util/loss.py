@@ -263,7 +263,7 @@ def roughness_loss(
     # 1) un‑normalise to original scale (e.g. nanometres)
     # ------------------------------------------------------------
     scale = dataset_max - dataset_min
-    pred_phys   = (pred   * scale + dataset_min) * 1e9
+    pred_phys = (pred * scale + dataset_min) * 1e9
     target_phys = (target * scale + dataset_min) * 1e9
 
     # ------------------------------------------------------------
@@ -286,3 +286,36 @@ def roughness_loss(
     # ------------------------------------------------------------
     # -> (B, n_metrics)  ➜   scalar
     return torch.stack(loss_terms, dim=-1).mean()
+
+
+def rotation_invariant_l1_loss(
+    model: torch.nn.Module, X: torch.Tensor, X_sparse: torch.Tensor, _min: float, _max: float
+) -> torch.Tensor:
+    """
+    Average L1 loss between the model’s output and its input over the
+    four right‑angle rotations of X (0°, 90°, 180°, 270°).
+
+    Args
+    ----
+    model : torch.nn.Module
+        Any network that maps a tensor shaped like `X` back to itself.
+    X : torch.Tensor
+        Image‑like tensor with at least (H, W) spatial dims.
+
+    Returns
+    -------
+    torch.Tensor
+        Scalar mean loss (requires_grad=True if model parameters do).
+    """
+    if X.ndim < 2:
+        raise ValueError("X must have at least 2 spatial dimensions.")
+
+    rot_dims = (0, 1) if X.ndim == 2 else (-2, -1)  # pick spatial axes
+    loss = roughness_loss
+
+    # Pre‑compute the four rotated views: X, R90(X), R180(X), R270(X)
+    views = [X] + [torch.rot90(X, k, rot_dims) for k in range(1, 4)]
+
+    # Evaluate model and loss for each view, then average
+    losses = [loss(model(v), X, _min, _max) for v in views]
+    return torch.stack(losses).mean()
