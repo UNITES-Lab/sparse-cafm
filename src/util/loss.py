@@ -262,8 +262,8 @@ def roughness_loss(
     # ------------------------------------------------------------
     # 1) un‑normalise to original scale (e.g. nanometres)
     # ------------------------------------------------------------
-    scale = dataset_max - dataset_min
-    pred_phys = (pred * scale + dataset_min) * 1e9
+    scale       = dataset_max - dataset_min
+    pred_phys   = (pred   * scale + dataset_min) * 1e9
     target_phys = (target * scale + dataset_min) * 1e9
 
     # ------------------------------------------------------------
@@ -289,7 +289,11 @@ def roughness_loss(
 
 
 def rotation_invariant_l1_loss(
-    model: torch.nn.Module, X: torch.Tensor, X_sparse: torch.Tensor, _min: float, _max: float
+    model: torch.nn.Module,
+    X: torch.Tensor,
+    X_sparse: torch.Tensor,
+    _min: float,
+    _max: float,
 ) -> torch.Tensor:
     """
     Average L1 loss between the model’s output and its input over the
@@ -311,11 +315,51 @@ def rotation_invariant_l1_loss(
         raise ValueError("X must have at least 2 spatial dimensions.")
 
     rot_dims = (0, 1) if X.ndim == 2 else (-2, -1)  # pick spatial axes
+    
     loss = roughness_loss
 
     # Pre‑compute the four rotated views: X, R90(X), R180(X), R270(X)
-    views = [X] + [torch.rot90(X, k, rot_dims) for k in range(1, 4)]
+    views = [X_sparse] + [torch.rot90(X_sparse, k, rot_dims) for k in range(1, 4)]
 
     # Evaluate model and loss for each view, then average
     losses = [loss(model(v), X, _min, _max) for v in views]
     return torch.stack(losses).mean()
+
+
+def rotation_plus_flip_invariant_loss(
+    model: torch.nn.Module,
+    X: torch.Tensor,
+    X_sparse: torch.Tensor,
+    _min: float,
+    _max: float,
+) -> torch.Tensor:
+    """
+    Average L1 loss between the model’s output and its input over the
+    four right‑angle rotations and horizontal flips of X.
+
+    Args
+    ----
+    model : torch.nn.Module
+        Any network that maps a tensor shaped like `X` back to itself.
+    X : torch.Tensor
+        Image‑like tensor with at least (H, W) spatial dims.
+
+    Returns
+    -------
+    torch.Tensor
+        Scalar mean loss (requires_grad=True if model parameters do).
+    """
+    if X.ndim < 2:
+        raise ValueError("X must have at least 2 spatial dimensions.")
+
+    rot_dims = (0, 1) if X.ndim == 2 else (-2, -1)  # pick spatial axes
+    views = [X] + [torch.rot90(X, k, rot_dims) for k in range(1, 4)]  # rotations
+    flipped_views = [torch.flip(v, dims=[rot_dims[-1]]) for v in views]  # flips
+    all_views = views + flipped_views
+
+    losses = [roughness_loss(model(v), X, _min, _max) for v in all_views]
+    return torch.stack(losses).mean()
+
+
+if __name__ == "__main__":
+    pass

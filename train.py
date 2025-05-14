@@ -235,7 +235,7 @@ def train(
             X_hat = torch.clip(X_hat, 0, 1)
 
             # ---- add dummy dims for PSNR/SSIM ----
-            X_il: torch.Tensor = X.unsqueeze(1).repeat(1, 3, 1, 1)
+            X_il    : torch.Tensor = X.unsqueeze(1).repeat(1, 3, 1, 1)
             X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1, 3, 1, 1)
 
             psnr = PSNR(X_il, X_hat_il, (0, 1))

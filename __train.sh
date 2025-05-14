@@ -20,13 +20,13 @@ WEIGHTS_FP="__exps__/bto/2025-04-16_09-26-54_CONT-bto-8x-no-augs-sr-lambda={1.0}
 
 LAMBDA=1.5
 LOGS_DIR="__exps__/__logs__"
-EXP_NAME="bto-8x-no-augs-sr-loss=SR-JOINT-downsample=linear-model=SparseCAFM"
+EXP_NAME="bto-4x-no-augs-sr-loss=SR-JOINT-downsample=linear-model=SparseCAFM"
 
 UPSAMPLE_FACTOR=8
 FORMULATION="X"
 DATASET="bto"
 
-export CUDA_VISIBLE_DEVICES=5
+export CUDA_VISIBLE_DEVICES=3
 python train.py \
   --exp_name "$EXP_NAME" \
   --root "$EXP_ROOT_DIR" \
