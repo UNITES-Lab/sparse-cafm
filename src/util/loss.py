@@ -1,7 +1,7 @@
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
 from typing import Optional, Sequence, List
 
@@ -340,5 +340,63 @@ def flip_invariant_sr_loss(
 
         # 5) accumulate detached copy for logging
         total_loss += loss_k.detach()
+
+    return total_loss
+
+
+def flip_rotation_invariant_sr_loss(
+    model: torch.nn.Module,
+    X: torch.Tensor,
+    X_sparse: torch.Tensor,
+    _min: float,
+    _max: float,
+) -> torch.Tensor:
+    """
+    Flip and rotation-invariant super-resolution loss.
+
+    Parameters
+    ----------
+    model : nn.Module
+        Network that maps sparse inputs → dense predictions.
+    X : Tensor
+        (B, C, H, W) or (B, H, W) ground truth maps.
+    X_sparse : Tensor
+        (B, C, H, W) or (B, H, W) low-quality maps with missing pixels.
+    _min, _max : float
+        Dataset-wide extrema (unnormalised units) used inside roughness_loss.
+
+    Returns
+    -------
+    Tensor
+        Scalar (detached) mean loss over all flip and rotation variants.
+    """
+    # Define all unique flip and rotation combinations
+    flip_dims_list = [(), (-1,), (-2,), (-2, -1)]
+    n_flips = len(flip_dims_list)
+    n_rots = 4  # 0, 90, 180, 270 degrees
+    total_loss = 0.0
+    n_variants = n_flips * n_rots
+
+    for flip_dims in flip_dims_list:
+        # Flip input and target if needed
+        X_sparse_flipped = torch.flip(X_sparse, flip_dims) if flip_dims else X_sparse
+        X_flipped = torch.flip(X, flip_dims) if flip_dims else X
+        for k in range(n_rots):
+            # Rotate input and target
+            rot_dims = (-2, -1) if X_sparse_flipped.ndim > 2 else (0, 1)
+            X_sparse_trans = torch.rot90(X_sparse_flipped, k, rot_dims)
+            X_trans = torch.rot90(X_flipped, k, rot_dims)
+
+            # Forward pass
+            out = model(X_sparse_trans)
+
+            # Compute loss in the transformed frame
+            loss_k = roughness_loss(out, X_trans, _min, _max) / n_variants
+
+            # Backpropagate; free graph before next variant
+            loss_k.backward(retain_graph=False)
+
+            # Accumulate detached loss for logging
+            total_loss += loss_k.detach()
 
     return total_loss
