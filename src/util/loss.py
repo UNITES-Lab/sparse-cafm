@@ -259,16 +259,10 @@ def roughness_loss(
         Per‑metric weights, same order as `use_metrics`.
     """
 
-    # ------------------------------------------------------------
-    # 1) un‑normalise to original scale (e.g. nanometres)
-    # ------------------------------------------------------------
     scale = dataset_max - dataset_min
     pred_phys = (pred * scale + dataset_min) * 1e9
     target_phys = (target * scale + dataset_min) * 1e9
 
-    # ------------------------------------------------------------
-    # 2) compute roughness metrics
-    # ------------------------------------------------------------
     loss_terms: List[torch.Tensor] = []
 
     if "rms" in use_metrics:
@@ -281,41 +275,70 @@ def roughness_loss(
         w = weights[1] if len(use_metrics) > 1 else weights[0]
         loss_terms.append(w * mean_diff)
 
-    # ------------------------------------------------------------
-    # 3) aggregate to a scalar
-    # ------------------------------------------------------------
-    # -> (B, n_metrics)  ➜   scalar
     return torch.stack(loss_terms, dim=-1).mean()
 
 
-def rotation_invariant_l1_loss(
-    model: torch.nn.Module, X: torch.Tensor, X_sparse: torch.Tensor, _min: float, _max: float
+def rotation_invariant_sr_loss(
+    model: torch.nn.Module,
+    X: torch.Tensor,
+    X_sparse: torch.Tensor,
+    _min: float,
+    _max: float,
+) -> torch.Tensor:
+    rot_dims = (-2, -1) if X.ndim > 2 else (0, 1)
+    total_loss = 0.0
+    for k in range(4):
+        v = torch.rot90(X_sparse, k, rot_dims).contiguous()
+        out = model(v)
+        loss_k = roughness_loss(out, X, _min, _max) / 4
+        loss_k.backward(retain_graph=False)
+        total_loss += loss_k.detach()
+    return total_loss
+
+
+def flip_invariant_sr_loss(
+    model: torch.nn.Module,
+    X: torch.Tensor,
+    X_sparse: torch.Tensor,
+    _min: float,
+    _max: float,
 ) -> torch.Tensor:
     """
-    Average L1 loss between the model’s output and its input over the
-    four right‑angle rotations of X (0°, 90°, 180°, 270°).
+    Flip-invariant super-resolution loss.
 
-    Args
-    ----
-    model : torch.nn.Module
-        Any network that maps a tensor shaped like `X` back to itself.
-    X : torch.Tensor
-        Image‑like tensor with at least (H, W) spatial dims.
+    Parameters
+    ----------
+    model : nn.Module
+        Network that maps sparse inputs → dense predictions.
+    X_sparse : Tensor
+        (B, C, H, W) or (B, H, W) low-quality maps with missing pixels.
+    _min, _max : float
+        Dataset-wide extrema (unnormalised units) used inside roughness_loss.
 
     Returns
     -------
-    torch.Tensor
-        Scalar mean loss (requires_grad=True if model parameters do).
+    Tensor
+        Scalar (detached) mean loss over four flip variants.
     """
-    if X.ndim < 2:
-        raise ValueError("X must have at least 2 spatial dimensions.")
+    # List of flip configurations: () = identity, (-1,) = H, (-2,) = V, both = H+V
+    flip_dims = [(), (-1,), (-2,), (-2, -1)]
+    n_flips = len(flip_dims)
 
-    rot_dims = (0, 1) if X.ndim == 2 else (-2, -1)  # pick spatial axes
-    loss = roughness_loss
+    total_loss = 0.0
+    for dims in flip_dims:
+        # 1) create flipped view (no copy if dims == ())
+        v = torch.flip(X_sparse, dims) if dims else X_sparse
 
-    # Pre‑compute the four rotated views: X, R90(X), R180(X), R270(X)
-    views = [X] + [torch.rot90(X, k, rot_dims) for k in range(1, 4)]
+        # 2) forward pass
+        out = model(v)
 
-    # Evaluate model and loss for each view, then average
-    losses = [loss(model(v), X, _min, _max) for v in views]
-    return torch.stack(losses).mean()
+        # 3) compute loss inside the *same* flipped frame
+        loss_k = roughness_loss(out, X, _min, _max) / n_flips
+
+        # 4) back-propagate; free graph before next flip
+        loss_k.backward(retain_graph=False)
+
+        # 5) accumulate detached copy for logging
+        total_loss += loss_k.detach()
+
+    return total_loss

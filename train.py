@@ -38,7 +38,7 @@ from src.util.config import (
     OPTIMIZERS,
     MODELS,
 )
-from src.util.loss import roughness_loss, rotation_invariant_l1_loss
+from src.util.loss import roughness_loss, rotation_invariant_sr_loss, flip_invariant_sr_loss
 
 warnings.simplefilter("always")
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -203,12 +203,14 @@ def train(
             X_hat: torch.Tensor = model(X_sparse)
 
             assert isinstance(train_dataloader.dataset, BTOSRDataset)
-            rmse_sr_loss = RMSE_surface_roughness_l1(
-                X,
-                X_hat,
-                train_dataloader.dataset.topo_maps_min,
-                train_dataloader.dataset.topo_maps_max,
-            )
+
+            with torch.no_grad():
+                rmse_sr_loss = RMSE_surface_roughness_l1(
+                    X,
+                    X_hat,
+                    train_dataloader.dataset.topo_maps_min,
+                    train_dataloader.dataset.topo_maps_max,
+                )
 
             # --- L1 ----
             # loss = torch.nn.functional.l1_loss(X, X_hat)
@@ -218,7 +220,8 @@ def train(
             # loss = torch.nn.functional.l1_loss(X, X_hat) + (EPS * rmse_sr_loss)
 
             # --- surface_roughness ---
-            loss = rotation_invariant_l1_loss(
+            # NOTE: we backprop the loss in this fn
+            loss = rotation_invariant_sr_loss(
                 model,
                 X,
                 X_sparse,
@@ -227,7 +230,7 @@ def train(
             )
 
             # backprop and step
-            loss.backward()
+            # loss.backward()
             optimizer.step()
 
             # HACK: clip to [0, 1]
