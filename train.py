@@ -1,15 +1,15 @@
 import os
+import sys
 import wandb
 import random
-import sys
 import argparse
 import warnings
 import torch
 import torch.nn as nn
 
-from rich.console import Console
 from tqdm import tqdm
 from pathlib import Path
+from rich.console import Console
 from typing import List, Optional
 from torch.utils.data import DataLoader
 

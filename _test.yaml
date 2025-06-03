@@ -1,0 +1,51 @@
+wandb:
+  use_wandb: False
+  login:
+    target: wandb.login
+    args:
+      key: 3d8c09b359c1abc995fd03c27398c41afce857c1
+  init:
+    target: wandb.init
+    args:
+      entity: team-levi
+      project: sparse-bto
+      name: test_run
+
+logger:
+  target: src.util.logger.Logger
+  args:
+    root: __exps__/bto
+    exp_name: test_run
+
+train_args:
+  optimizer:
+    target: torch.optim.Adam
+    args:
+      lr: 1e-5
+  dataset:
+    target: src.datasets.mos2_sr.BTOSRDataset
+    args:
+      upsample_factor: 4
+      steps_per_epoch: 1024
+  loss:
+    target: torch.nn.L1Loss
+    args:
+  num_epochs: 50
+  batch_size: 1
+  
+
+val_args:
+  dataset:
+    target: src.datasets.mos2_sr.BTOSRDataset
+    args:
+      upsample_factor: 4
+      steps_per_epoch: 256
+  loss:
+    target: torch.nn.L1Loss
+    args:
+  batch_size: 1
+
+model:
+  target: src.models.our_method.swin_cafm.SwinCAFM
+  args:
+    

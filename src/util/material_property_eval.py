@@ -10,7 +10,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.widgets import RectangleSelector
 
 crop_coords = None
-pixel_size_um = None  # To store pixel size in micrometers
+pixel_size_um = None
 
 
 def calculate_pixel_size(image, image_size_um=2.0):
