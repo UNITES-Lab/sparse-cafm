@@ -21,7 +21,7 @@ train_args:
   optimizer:
     target: torch.optim.Adam
     args:
-      lr: 1e-5
+      lr: 0.00001
   dataset:
     target: src.datasets.mos2_sr.BTOSRDataset
     args:
@@ -29,10 +29,8 @@ train_args:
       steps_per_epoch: 1024
   loss:
     target: torch.nn.L1Loss
-    args:
   num_epochs: 50
   batch_size: 1
-  
 
 val_args:
   dataset:
@@ -42,10 +40,20 @@ val_args:
       steps_per_epoch: 256
   loss:
     target: torch.nn.L1Loss
-    args:
   batch_size: 1
 
 model:
   target: src.models.our_method.swin_cafm.SwinCAFM
-  args:
-    
+  args: 
+    upscale: 4
+    img_size: 64
+    window_size: 8
+    img_range: 1.0
+    depths: [6, 6, 6, 6, 6, 6]
+    embed_dim: 180
+    num_heads: [6, 6, 6, 6, 6, 6]
+    mlp_ratio: 2
+    drop_path_rate: 0.1
+    upsampler: "pixelshuffle"
+    resi_connection: "1conv"
+

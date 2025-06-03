@@ -231,7 +231,7 @@ def train(
             optimizer.step()
 
             # HACK: clip to [0, 1]
-            X = torch.clip(X, 0, 1)
+            X     = torch.clip(X, 0, 1)
             X_hat = torch.clip(X_hat, 0, 1)
 
             # ---- add dummy dims for PSNR/SSIM ----

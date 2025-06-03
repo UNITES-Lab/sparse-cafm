@@ -1326,7 +1326,20 @@ class SwinCAFM(nn.Module):
 
     @staticmethod
     def swin_cafm_4x():
-        pass
+        return SwinCAFM(
+            upscale=4,
+            img_size=64,
+            window_size=8,
+            img_range=1.0,
+            depths=[6, 6, 6, 6, 6, 6],
+            embed_dim=180,
+            num_heads=[6, 6, 6, 6, 6, 6],
+            mlp_ratio=2,
+            drop_path_rate=0.1,
+            norm_layer=torch.nn.LayerNorm,
+            upsampler="pixelshuffle",
+            resi_connection="1conv",
+        )
 
     @staticmethod
     def swin_cafm_8x():

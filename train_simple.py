@@ -9,6 +9,7 @@ import importlib
 import argparse
 import warnings
 
+from tqdm import tqdm
 from pathlib import Path
 from typing import Any
 from torch.utils.data import DataLoader
@@ -18,10 +19,10 @@ from src.util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import BTOSRDataset, BTO_MANY_RES
 
-warnings.simplefilter("always")
+warnings.simplefilter("ignore")
 
 
-def _init_module_from_target(mod_config: dict) -> Any:
+def _init_module_from_target(mod_config: dict, *, additional_args: dict={}) -> Any:
     """
     Init a module from a module config dict,
        expect keywords `target` and `args`.
@@ -29,14 +30,12 @@ def _init_module_from_target(mod_config: dict) -> Any:
     mod_path, cls_name = mod_config["target"].rsplit(".", 1)
     module = importlib.import_module(mod_path)
     cls = getattr(module, cls_name)
-    args = mod_config.get("args", {})
+    args: dict = mod_config.get("args", {})
+    args.update(additional_args)
     return cls(**args)
 
 
-def _get_dataloader(config: dict, split: str): pass
-
-
-def train(config: dict):
+def train(config: dict) -> None:
 
     logger = _init_module_from_target(config["logger"])
 
@@ -46,28 +45,44 @@ def train(config: dict):
         _init_module_from_target(config['wandb']['init'])
 
     # init datasets/dataloaders
-    train_dataset = _init_module_from_target(config['train_args']['dataset'])
-    val_dataset   = _init_module_from_target(config['val_args']['dataset'])
-    train_dataloader = DataLoader(
-        train_dataset, 
-        batch_size = int(config['train_args']['batch_size']),
-        shuffle=False,
-    )
-    val_dataloader = DataLoader(
-        val_dataset, 
-        batch_size = int(config['val_args']['batch_size']),
-        shuffle=False,
-    )
+    train_dataset    = _init_module_from_target(config['train_args']['dataset'])
+    val_dataset      = _init_module_from_target(config['val_args']['dataset'])
+    train_dataloader = DataLoader(train_dataset, batch_size = int(config['train_args']['batch_size']), shuffle=False)
+    val_dataloader   = DataLoader(val_dataset, batch_size = int(config['val_args']['batch_size']), shuffle=False)
     
     # init loss
     train_loss = _init_module_from_target(config['train_args']['loss'])
-    val_loss = _init_module_from_target(config['val_args']['loss'])
+    val_loss   = _init_module_from_target(config['val_args']['loss'])
 
-    model = config['model']
-    breakpoint()
+    model: torch.nn.Module = _init_module_from_target(config['model'])
+    model.float().cuda()
 
     # init optim
-    optimizer  = _init_module_from_target(config['train_args']['optimizer'])
+    optimizer  = _init_module_from_target(config['train_args']['optimizer'], additional_args={"params": model.parameters()})
+
+    # main training loop
+    for epoch in range(int(config['train_args']['num_epochs'])):
+        
+        # train
+        model.train()
+
+        for step, item in tqdm(enumerate(train_dataloader), desc=f"🚀 Training Epoch: {epoch + 1}/{int(config['train_args']['num_epochs'])}", total=int(config['train_args']['dataset']['args']['steps_per_epoch'])):
+
+            X        = item["X"].float().cuda()
+            X_sparse = item["X_sparse"].float().cuda()
+
+        # validate
+        model.eval()
+
+        with torch.no_grad():
+
+            for step, item in tqdm(enumerate(val_dataloader), desc=f"🚀 Validation Epoch: {epoch + 1}/{int(config['train_args']['num_epochs'])}", total=int(config['val_args']['dataset']['args']['steps_per_epoch'])):
+
+                X        = item["X"].float().cuda()
+                X_sparse = item["X_sparse"].float().cuda()
+
+        quit()
+
 
 def main(config: dict) -> None:
     train(config)
