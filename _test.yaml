@@ -9,13 +9,13 @@ wandb:
     args:
       entity: team-levi
       project: sparse-bto
-      name: test_run
+      name: overfit
 
 logger:
   target: src.util.logger.Logger
   args:
     root: __exps__/bto
-    exp_name: test_run
+    exp_name: overfit
 
 train_args:
   optimizer:
@@ -29,7 +29,7 @@ train_args:
       steps_per_epoch: 1024
   loss:
     target: torch.nn.L1Loss
-  num_epochs: 50
+  num_epochs: 5000
   batch_size: 1
 
 val_args:

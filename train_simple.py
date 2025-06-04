@@ -61,6 +61,9 @@ def train(config: dict) -> None:
     # init optim
     optimizer: torch.optim.optimizer.Optimizer  = _init_module_from_target(config['train_args']['optimizer'], additional_args={"params": model.parameters()})
 
+    # for weight saving
+    best_validation_loss = float("inf")
+
     # main training loop
     for epoch in range(int(config['train_args']['num_epochs'])):
         
@@ -86,6 +89,15 @@ def train(config: dict) -> None:
 
             X     = torch.clip(X, 0, 1)
             X_hat = torch.clip(X_hat, 0, 1)
+
+            # TODO: calcuate material-statistics profile
+            # 1. Average value
+            # 2. RMS roughnes (sq)
+            # 3. RMS (grain-wise)
+            # 4. RMS Mean roughness (Sa)
+            # 5. Skew (Ssk)
+            # 6. Excess kurtosis
+
             X_il    : torch.Tensor = X.unsqueeze(1).repeat(1, 3, 1, 1)
             X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1, 3, 1, 1)
 
@@ -101,14 +113,16 @@ def train(config: dict) -> None:
                     "val_loss": None,
                 }
             )
-            wandb.log(
-                {
-                    "epoch": epoch,
-                    "train_l1_loss": loss.item(),
-                    "train_psnr": psnr,
-                    "train_ssim": ssim,
-                }
-            )
+
+            if bool(config['wandb']['use_wandb']) == True:
+                wandb.log(
+                    {
+                        "epoch": epoch,
+                        "train_l1_loss": loss.item(),
+                        "train_psnr": psnr,
+                        "train_ssim": ssim,
+                    }
+                )
 
             # log figures every 100 steps
             if step % 100 != 0:
@@ -116,7 +130,7 @@ def train(config: dict) -> None:
 
             triplet_name = f"train_epoch_{epoch}_step_{step}.png"
 
-            if isinstance(logger, Logger):
+            if isinstance(logger, Logger) and bool(config['wandb']['use_wandb']) == True:
                 fig = logger.log_colorized_tensors(
                     (X, "Target (X)"),
                     (X_sparse, "Model Input (X_sparse)"),
@@ -127,6 +141,7 @@ def train(config: dict) -> None:
 
         # validate
         model.eval()
+        running_val_loss = 0.
 
         with torch.no_grad():
 
@@ -159,20 +174,22 @@ def train(config: dict) -> None:
                         "val_loss": loss.item(),
                     }
                 )
-                wandb.log(
-                    {
-                        "epoch": epoch,
-                        "val_l1_loss": loss.item(),
-                        "val_psnr": psnr,
-                        "val_ssim": ssim,
-                    }
-                )
+                
+                if bool(config['wandb']['use_wandb']) == True:
+                    wandb.log(
+                        {
+                            "epoch": epoch,
+                            "val_l1_loss": loss.item(),
+                            "val_psnr": psnr,
+                            "val_ssim": ssim,
+                        }
+                    )
 
                 # log figures every 100 steps
                 if step % 100 != 0:
                     continue
 
-                if isinstance(logger, Logger):
+                if isinstance(logger, Logger) and bool(config['wandb']['use_wandb']) == True:
                     triplet_name = f"val_epoch_{epoch}_step_{step}.png"
                     fig = logger.log_colorized_tensors(
                         (X, "Target (X)"),
@@ -181,6 +198,17 @@ def train(config: dict) -> None:
                         file_name=triplet_name,
                     )
                     wandb.log({"Val Qualitative Results": wandb.Image(fig)})
+            
+                # accumulate validation loss
+                running_val_loss += loss.item()
+            
+            total_val_steps = int(config['val_args']['dataset']['args']['steps_per_epoch'])
+            avg_val_loss = running_val_loss / total_val_steps
+
+            # if best validation perf, save model weights
+            if avg_val_loss < best_validation_loss:
+                best_validation_loss = avg_val_loss
+                logger.save_weights(model, f"best_epoch_{epoch}")
 
 
 def main(config: dict) -> None:
@@ -194,7 +222,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     assert str(args.config).endswith(".yaml"), f"Error: run config must be a `.yaml` file."
-    assert Path(str(args.config)).is_file(), f"Error: config is not a valid file."
+    assert Path(str(args.config)).is_file(),   f"Error: config is not a valid file."
     config_path = Path(str(args.config))
 
     try:

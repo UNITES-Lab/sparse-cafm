@@ -138,11 +138,25 @@ class Logger:
             col = idx % MAX_COLS
             axes[row, col].axis("off")
 
-        outdir = os.path.join(self.root, FIGURES_DIR_NAME)
+        outdir = os.path.join(self.exp_dir, FIGURES_DIR_NAME)
         os.makedirs(outdir, exist_ok=True)
         out_fp = os.path.join(outdir, file_name)
         plt.savefig(out_fp, bbox_inches="tight", pad_inches=0.1, dpi=300)
         return fig
+
+    def save_weights(
+        self,
+        model: torch.nn.Module,
+        name: str = "best",
+    ) -> None:
+        """
+        Save model weights of a `torch.nn.Module` object to the current exp dir.
+
+        :param model: model to save
+        """
+
+        out_fp = Path(self.exp_dir) / Path(f"{name}.pth")
+        torch.save(model, str(out_fp))
 
 
 class ExperimentLogger:
