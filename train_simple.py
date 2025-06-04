@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 from torch.utils.data import DataLoader
 
+from src.util.metrics import PSNR, SSIM
 from src.util.logger import Logger
 from src.util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS
 from src.models.our_method.swin_cafm import SwinCAFM
@@ -58,7 +59,7 @@ def train(config: dict) -> None:
     model.float().cuda()
 
     # init optim
-    optimizer  = _init_module_from_target(config['train_args']['optimizer'], additional_args={"params": model.parameters()})
+    optimizer: torch.optim.optimizer.Optimizer  = _init_module_from_target(config['train_args']['optimizer'], additional_args={"params": model.parameters()})
 
     # main training loop
     for epoch in range(int(config['train_args']['num_epochs'])):
@@ -68,8 +69,61 @@ def train(config: dict) -> None:
 
         for step, item in tqdm(enumerate(train_dataloader), desc=f"🚀 Training Epoch: {epoch + 1}/{int(config['train_args']['num_epochs'])}", total=int(config['train_args']['dataset']['args']['steps_per_epoch'])):
 
-            X        = item["X"].float().cuda()
-            X_sparse = item["X_sparse"].float().cuda()
+            X       :torch.Tensor = item["X"].float().cuda()
+            X_sparse:torch.Tensor = item["X_sparse"].float().cuda()
+
+            # zero gradients
+            optimizer.zero_grad()
+
+            # ---- forward: p(y | y_sparse) ----
+            X_hat: torch.Tensor = model(X_sparse)
+
+            loss: torch.Tensor = train_loss(X_hat, X)
+            loss.backward()
+            optimizer.step()
+
+            # ---- log ----
+
+            X     = torch.clip(X, 0, 1)
+            X_hat = torch.clip(X_hat, 0, 1)
+            X_il    : torch.Tensor = X.unsqueeze(1).repeat(1, 3, 1, 1)
+            X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1, 3, 1, 1)
+
+            psnr = PSNR(X_il, X_hat_il, (0, 1))
+            ssim = SSIM(X_il, X_hat_il, (0, 1))
+
+            logger.log(
+                **{
+                    "global_train_step": len(train_dataloader) * (epoch) + step,
+                    "global_val_step": None,
+                    "epoch": epoch,
+                    "train_loss": loss.item(),
+                    "val_loss": None,
+                }
+            )
+            wandb.log(
+                {
+                    "epoch": epoch,
+                    "train_l1_loss": loss.item(),
+                    "train_psnr": psnr,
+                    "train_ssim": ssim,
+                }
+            )
+
+            # log figures every 100 steps
+            if step % 100 != 0:
+                continue
+
+            triplet_name = f"train_epoch_{epoch}_step_{step}.png"
+
+            if isinstance(logger, Logger):
+                fig = logger.log_colorized_tensors(
+                    (X, "Target (X)"),
+                    (X_sparse, "Model Input (X_sparse)"),
+                    (X_hat, "Model Prediction"),
+                    file_name=triplet_name,
+                )
+                wandb.log({"Train Qualitative Results": wandb.Image(fig)})
 
         # validate
         model.eval()
@@ -78,10 +132,55 @@ def train(config: dict) -> None:
 
             for step, item in tqdm(enumerate(val_dataloader), desc=f"🚀 Validation Epoch: {epoch + 1}/{int(config['train_args']['num_epochs'])}", total=int(config['val_args']['dataset']['args']['steps_per_epoch'])):
 
-                X        = item["X"].float().cuda()
-                X_sparse = item["X_sparse"].float().cuda()
+                X       :torch.Tensor = item["X"].float().cuda()
+                X_sparse:torch.Tensor = item["X_sparse"].float().cuda()
+                
+                # ---- forward: p(y | y_sparse) ----
+                X_hat: torch.Tensor = model(X_sparse)
 
-        quit()
+                loss = val_loss(X_hat, X)
+
+                X = torch.clip(X, 0, 1)
+                X_hat = torch.clip(X_hat, 0, 1)
+
+                # ---- add dummy dims for PSNR/SSIM ----
+                X_il: torch.Tensor = X.unsqueeze(1).repeat(1, 3, 1, 1)
+                X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1, 3, 1, 1)
+
+                psnr = PSNR(X_il, X_hat_il, (0, 1))
+                ssim = SSIM(X_il, X_hat_il, (0, 1))
+
+                logger.log(
+                    **{
+                        "global_train_step": None,
+                        "global_val_step": len(val_dataloader) * (epoch) + step,
+                        "epoch": epoch,
+                        "train_loss": None,
+                        "val_loss": loss.item(),
+                    }
+                )
+                wandb.log(
+                    {
+                        "epoch": epoch,
+                        "val_l1_loss": loss.item(),
+                        "val_psnr": psnr,
+                        "val_ssim": ssim,
+                    }
+                )
+
+                # log figures every 100 steps
+                if step % 100 != 0:
+                    continue
+
+                if isinstance(logger, Logger):
+                    triplet_name = f"val_epoch_{epoch}_step_{step}.png"
+                    fig = logger.log_colorized_tensors(
+                        (X, "Target (X)"),
+                        (X_sparse, "Model Input (X_sparse)"),
+                        (X_hat, "Model Prediction (X_hat)"),
+                        file_name=triplet_name,
+                    )
+                    wandb.log({"Val Qualitative Results": wandb.Image(fig)})
 
 
 def main(config: dict) -> None:

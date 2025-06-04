@@ -1,5 +1,5 @@
 wandb:
-  use_wandb: False
+  use_wandb: True
   login:
     target: wandb.login
     args:

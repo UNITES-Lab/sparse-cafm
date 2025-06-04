@@ -1,17 +1,19 @@
-import math
 import os
-import pytorch_lightning
+import math
 import torch
 import datetime
 import yaml
 import wandb
 import numpy as np
 import pandas as pd
+import pytorch_lightning
 import matplotlib.pyplot as plt
 
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Union
 from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
+
 from src.util.torch_helpers import convert_to_img_like
 from src.util.config import parse_config
 
@@ -32,37 +34,44 @@ class Logger:
         """
 
         # path to experiment
-        assert os.path.isdir(root)
+        assert Path(root).is_dir(), f"Error: not a valid dir: {root}"
         self.root = root
+        
         try:
             os.makedirs(self.root, exist_ok=True)
         except:
             raise Exception(
                 f"Could not create a new experiment directory @: \n \
-                {self.root}")
-        
+                {self.root}"
+            )
+
         # name of new subdir for expeiment
         self.exp_name = exp_name
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now = now.replace(" ", "_").replace(":", "-")
+
+        self.exp_dir: Path = Path(root) / Path(now + "_" + exp_name)
+
         try:
-            os.makedirs(
-                os.path.join(self.root, self.exp_name), 
-                exist_ok=True)
+            os.makedirs(str(self.exp_dir), exist_ok=True)
         except:
             raise Exception(
                 f"Could not create a new experiment directory @: \n \
-                {os.path.join(self.root, self.exp_name)}")
-        
-        self.results_out_path = os.path.join(root, exp_name, "results.csv")
-        
+                {os.path.join(self.root, self.exp_name)}"
+            )
+
+        self.results_out_path = os.path.join(str(self.exp_dir), "results.csv")
+
         # logs
         self.results = pd.DataFrame()
         self.log_buffer = []
 
-
     def _flush(self):
 
-        if not self.log_buffer: return
-        
+        if not self.log_buffer:
+            return
+
         # init new results table from buffer
         _logs = pd.DataFrame.from_records(self.log_buffer)
 
@@ -74,14 +83,66 @@ class Logger:
         else:
             # write to csv in append mode
             _logs.to_csv(self.results_out_path, mode="a", header=False, index=False)
-        
+
         self.log_buffer = []
- 
-    def log(self,  **kwargs) -> None:
-        
+
+    def log(self, **kwargs) -> None:
+
         # append results to mem
         self.log_buffer.append(kwargs)
         self._flush()
+
+    def log_colorized_tensors(
+        self, *samples: Tuple[torch.Tensor, str], file_name: str
+    ) -> plt.Figure:
+        """
+        Log tensors with the exact shape: [B, H, W], using an added color pallet to make things pretty.
+        """
+
+        MAX_COLS = 3
+        IMAGE_SIZE_IN = 6
+        num_images = len(samples)
+        n_cols = min(num_images, MAX_COLS)
+        n_rows = math.ceil(num_images / MAX_COLS)
+
+        # TODO: is 4-inches enough?... (;
+        fig, axes = plt.subplots(
+            n_rows, n_cols, figsize=(n_cols * IMAGE_SIZE_IN, n_rows * IMAGE_SIZE_IN)
+        )
+
+        # axes always 2d arr
+        if n_rows == 1 and n_cols == 1:
+            axes = np.array([[axes]])
+        elif n_rows == 1:
+            axes = np.expand_dims(axes, axis=0)
+        elif n_cols == 1:
+            axes = np.expand_dims(axes, axis=1)
+
+        for idx, (tensor, name) in enumerate(samples):
+            row = idx // MAX_COLS
+            col = idx % MAX_COLS
+            # only use first tensor in batch
+            img = tensor[0, ...]
+            # strange, convert to img like returns a list...
+            img = convert_to_img_like(img)[0]
+            ax = axes[row, col]
+            ax.imshow(img)
+            ax.set_title(name, fontsize=14)
+            ax.axis("off")
+
+        # turn off extra subplots
+        # idk, chat thinks this a good idea
+        total_cells = n_rows * n_cols
+        for idx in range(num_images, total_cells):
+            row = idx // MAX_COLS
+            col = idx % MAX_COLS
+            axes[row, col].axis("off")
+
+        outdir = os.path.join(self.root, FIGURES_DIR_NAME)
+        os.makedirs(outdir, exist_ok=True)
+        out_fp = os.path.join(outdir, file_name)
+        plt.savefig(out_fp, bbox_inches="tight", pad_inches=0.1, dpi=300)
+        return fig
 
 
 class ExperimentLogger:
@@ -111,23 +172,23 @@ class ExperimentLogger:
         """
 
         self.config: dict = train_config_dict
-        self.model_config: Optional[dict]  = model_config_dict
+        self.model_config: Optional[dict] = model_config_dict
         self.exp_name: str = exp_name
-        
+
         self.results = pd.DataFrame()
         self.log_buffer = []
         self.log_interval: int = log_interval
         self.log_counter = 0
-        
+
         self.root: str = root
         self.exp_dir: Optional[str] = None
-        
-        # ---- tensorboard support ---- 
+
+        # ---- tensorboard support ----
         self.enable_tensorboard: bool = enable_tensorboard
         self.results_out_path: Optional[str] = None
         self.summary_writer: Optional[SummaryWriter] = None
 
-        # ---- wandb support ---- 
+        # ---- wandb support ----
         self.enable_wandb = enable_wandb
         if self.enable_wandb == True:
             assert (
@@ -137,12 +198,13 @@ class ExperimentLogger:
         self.wandb_run = None
 
         self._setup_exp_dir()
-        
+
     def _flush(self) -> None:
-        if not self.log_buffer: return
+        if not self.log_buffer:
+            return
         # init new results table from buffer
         _logs = pd.DataFrame.from_records(self.log_buffer)
-        
+
         # append results in memory
         self.results = pd.concat([self.results, _logs], ignore_index=True)
         if not os.path.exists(self.results_out_path):
@@ -166,7 +228,7 @@ class ExperimentLogger:
 
         # make new subdir if needed
         os.makedirs(exp_out_dir, exist_ok=True)
-        
+
         # save config in subdir
         config_save_fp = os.path.join(exp_out_dir, "config.yaml")
         with open(config_save_fp, "w") as f:
@@ -194,11 +256,11 @@ class ExperimentLogger:
             self.wandb_run = wandb.run
 
         model_config_save_fp = os.path.join(exp_out_dir, "model.yaml")
-        
+
         # save a copy of the model config to the exp dir
         with open(model_config_save_fp, "w") as f:
             yaml.dump(self.model_config, f, indent=4)
-        
+
         # TODO: this looks hacky; remove
         self.config_fp = config_save_fp
 
@@ -217,15 +279,15 @@ class ExperimentLogger:
         """
         Log a dictionary of items to a csv.
         """
-        
+
         # append results to mem
         self.log_buffer.append(kwargs)
         self.log_counter += 1
-        
+
         # write to out
         if len(self.log_buffer) >= self.log_interval:
             self._flush()
-        
+
         # optional: log -> tensorboard
         if self.enable_tensorboard:
             if step is None:
@@ -233,7 +295,7 @@ class ExperimentLogger:
             for k, v in kwargs.items():
                 if isinstance(v, (int, float)):
                     self.summary_writer.add_scalar(k, v, step)
-        
+
         # optional: log -> wandb
         if self.enable_wandb:
             step = self.log_counter
@@ -309,8 +371,10 @@ class ExperimentLogger:
         # TODO: support other data formats
         if name.endswith(".npy"):
             np.save(out_fp, data)
-            
-    def log_colorized_tensors(self, *samples: Tuple[torch.Tensor, str], file_name: str) -> plt.Figure:
+
+    def log_colorized_tensors(
+        self, *samples: Tuple[torch.Tensor, str], file_name: str
+    ) -> plt.Figure:
         """
         Log tensors with the exact shape: [B, H, W], using an added color pallet to make things pretty.
         """
@@ -320,10 +384,12 @@ class ExperimentLogger:
         num_images = len(samples)
         n_cols = min(num_images, MAX_COLS)
         n_rows = math.ceil(num_images / MAX_COLS)
-        
+
         # TODO: is 4-inches enough?... (;
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols*IMAGE_SIZE_IN, n_rows*IMAGE_SIZE_IN))
-        
+        fig, axes = plt.subplots(
+            n_rows, n_cols, figsize=(n_cols * IMAGE_SIZE_IN, n_rows * IMAGE_SIZE_IN)
+        )
+
         # axes always 2d arr
         if n_rows == 1 and n_cols == 1:
             axes = np.array([[axes]])
@@ -331,7 +397,7 @@ class ExperimentLogger:
             axes = np.expand_dims(axes, axis=0)
         elif n_cols == 1:
             axes = np.expand_dims(axes, axis=1)
-            
+
         for idx, (tensor, name) in enumerate(samples):
             row = idx // MAX_COLS
             col = idx % MAX_COLS
@@ -348,16 +414,15 @@ class ExperimentLogger:
         # idk, chat thinks this a good idea
         total_cells = n_rows * n_cols
         for idx in range(num_images, total_cells):
-            row = idx // MAX_COLS 
+            row = idx // MAX_COLS
             col = idx % MAX_COLS
             axes[row, col].axis("off")
-            
+
         outdir = os.path.join(self.exp_dir, FIGURES_DIR_NAME)
         os.makedirs(outdir, exist_ok=True)
         out_fp = os.path.join(outdir, file_name)
         plt.savefig(out_fp, bbox_inches="tight", pad_inches=0.1, dpi=300)
         return fig
-
 
     def log_original_masked_predicted_sample_triplet(
         self,
@@ -414,4 +479,3 @@ class ExperimentLogger:
         os.makedirs(outdir, exist_ok=True)
         out_fp = os.path.join(outdir, name)
         plt.savefig(out_fp, bbox_inches="tight", pad_inches=0.1, dpi=300)
-        

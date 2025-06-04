@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 
-# from torchmetrics.functional.image.ssim import ssim
-# from torchmetrics.functional.image.psnr import psnr
+from torchmetrics.functional.image.ssim import multiscale_structural_similarity_index_measure as ssim
+from torchmetrics.functional.image.psnr import peak_signal_noise_ratio as psnr
 from typing import Optional, Tuple
 
 

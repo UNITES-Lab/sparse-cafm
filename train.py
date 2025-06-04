@@ -286,7 +286,7 @@ def train(
             ):
 
                 # NOTE: manually specifing X vs y
-                X = batch["X"].float().cuda()
+                X        = batch["X"].float().cuda()
                 X_sparse = batch["X_sparse"].float().cuda()
 
                 # ---- forward: p(y | y_sparse) ----
