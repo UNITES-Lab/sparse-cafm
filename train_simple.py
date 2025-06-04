@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 from src.util.metrics import PSNR, SSIM
 from src.util.logger import Logger
 from src.util.config import LOSS_FUNCTIONS, OPTIMIZERS, MODELS
+from src.util.moment_based import cal_moment_based_errs
 from src.models.our_method.swin_cafm import SwinCAFM
 from src.datasets.mos2_sr import BTOSRDataset, BTO_MANY_RES
 
@@ -87,16 +88,14 @@ def train(config: dict) -> None:
 
             # ---- log ----
 
+            # calculate moment-based errors
+            mb_errs = cal_moment_based_errs(X_hat, X)
+            train_mb_errs = {}
+            for k in mb_errs:
+                train_mb_errs['train_' + k] = mb_errs[k]
+
             X     = torch.clip(X, 0, 1)
             X_hat = torch.clip(X_hat, 0, 1)
-
-            # TODO: calcuate material-statistics profile
-            # 1. Average value
-            # 2. RMS roughnes (sq)
-            # 3. RMS (grain-wise)
-            # 4. RMS Mean roughness (Sa)
-            # 5. Skew (Ssk)
-            # 6. Excess kurtosis
 
             X_il    : torch.Tensor = X.unsqueeze(1).repeat(1, 3, 1, 1)
             X_hat_il: torch.Tensor = X_hat.unsqueeze(1).repeat(1, 3, 1, 1)
@@ -115,14 +114,14 @@ def train(config: dict) -> None:
             )
 
             if bool(config['wandb']['use_wandb']) == True:
-                wandb.log(
-                    {
+                log = {
                         "epoch": epoch,
                         "train_l1_loss": loss.item(),
                         "train_psnr": psnr,
                         "train_ssim": ssim,
                     }
-                )
+                log.update(train_mb_errs)
+                wandb.log(log)
 
             # log figures every 100 steps
             if step % 100 != 0:
@@ -155,6 +154,12 @@ def train(config: dict) -> None:
 
                 loss = val_loss(X_hat, X)
 
+                # calculate moment-based errors
+                mb_errs = cal_moment_based_errs(X_hat, X)
+                val_mb_errs = {}
+                for k in mb_errs:
+                    val_mb_errs['val_' + k] = mb_errs[k]
+                
                 X = torch.clip(X, 0, 1)
                 X_hat = torch.clip(X_hat, 0, 1)
 
@@ -176,14 +181,14 @@ def train(config: dict) -> None:
                 )
                 
                 if bool(config['wandb']['use_wandb']) == True:
-                    wandb.log(
-                        {
+                    log = {
                             "epoch": epoch,
                             "val_l1_loss": loss.item(),
                             "val_psnr": psnr,
                             "val_ssim": ssim,
                         }
-                    )
+                    log.update(val_mb_errs)
+                    wandb.log(log)
 
                 # log figures every 100 steps
                 if step % 100 != 0:

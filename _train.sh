@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=3
 
 LOGS_DIR=__exps__/__logs__
 EXP_ROOT_DIR=__exps__/bto
@@ -7,7 +7,7 @@ EXP_NAME=overfit
 CONFIG_FP="_test.yaml"
 
 python train_simple.py \
-    --config $CONFIG_FP > "$LOGS_DIR/_$EXP_NAME.out" 2>&1 &
+    --config $CONFIG_FP > "$LOGS_DIR/_$EXP_NAME.out" # 2>&1 &
 
-# ---------------------------------------
-exit
+# # ---------------------------------------
+# exit
