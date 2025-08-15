@@ -48,6 +48,7 @@ def SSIM(
 
     low, high = _data_range
     diff = high - low
+
     # check that all vals are in range
     if not ((preds >= low) & (preds <= high)).all():
         raise ValueError(
@@ -59,11 +60,14 @@ def SSIM(
             f"Values in `target` are out of the expected range [{low}, {high}]. "
             f"Detected min={target.min().item()}, max={target.max().item()}"
         )
-    return ssim(
-        preds.clamp(low, high).float(),
-        target.clamp(low, high).float(),
-        data_range=diff,
-    )
+    
+    # val = ssim(preds.clamp(low, high).float(), target.clamp(low, high).float(), data_range=diff)
+    
+    # NOTE: don't use explicit range
+    # this implementation calculates max, min values automatically
+    val = ssim(preds, target)
+
+    return val
 
 
 def PSNR(
@@ -86,7 +90,13 @@ def PSNR(
             f"Values in `target` are out of the expected range [{low}, {high}]. "
             f"Detected min={target.min().item()}, max={target.max().item()}"
         )
-    val = psnr(preds, target, data_range=high - low)
+    
+    # val = psnr(preds, target, data_range=high - low)
+
+    # NOTE: don't use explicit range
+    # this implementation calculates max, min values automatically
+    val = psnr(preds, target)
+
     return val
 
 
@@ -105,7 +115,7 @@ def OLDER(y_char: dict, y_sparse_char: dict) -> float:
     :val float: mean-abs %-diff in range [0, inf)
     """
 
-    # KEYS = ["average_surface_current", "coverage_percentage", "num_extended_shapes", "total_area_extended_shapes"]
+    # KEYS = ["average_surface_current", "coverage_percentage", "num_extended_shapes", "total_Area Extended Shapes"]
     diffs = []
 
     for k1, k2 in zip(y_char.keys(), y_sparse_char.keys()):

@@ -9,13 +9,13 @@ wandb:
     args:
       entity: team-levi
       project: sparse-bto
-      name: overfit
+      name: long-run-mb-stats-psnr-ssim-test
 
 logger:
   target: src.util.logger.Logger
   args:
     root: __exps__/bto
-    exp_name: overfit
+    exp_name: long-run-mb-stats-psnr-ssim-test
 
 train_args:
   optimizer:
@@ -27,6 +27,7 @@ train_args:
     args:
       upsample_factor: 4
       steps_per_epoch: 1024
+      split: train
   loss:
     target: torch.nn.L1Loss
   num_epochs: 5000
@@ -38,6 +39,7 @@ val_args:
     args:
       upsample_factor: 4
       steps_per_epoch: 256
+      split: val
   loss:
     target: torch.nn.L1Loss
   batch_size: 1

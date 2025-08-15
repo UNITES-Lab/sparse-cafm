@@ -768,7 +768,7 @@ if __name__ == "__main__":
 
     dataset = BTOSRDataset(
         src_dir=BTO_MANY_RES,
-        split="train", 
-        upsample_factor=2, 
+        split="val", 
+        upsample_factor=4, 
     )
     dataset[0]
