@@ -1,5 +1,0 @@
-dataloader:
-  batch_size: 1
-  num_workers: 1
-  pin_memory: false
-  shuffle: false

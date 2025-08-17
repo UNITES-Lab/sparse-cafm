@@ -5,7 +5,6 @@
 **.tif
 **.bmp
 **.pt
-**.pth
 **.npz
 **.npy
 **.pkl
@@ -37,6 +36,8 @@ __benchmarks__/
 __exps__/
 __repos__/
 __notes__/
+
+___notes___/
 
 ___old___/
 ___old___/**
