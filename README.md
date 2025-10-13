@@ -39,11 +39,17 @@ conda activate sparse-cafm
 | [`data/weights/...8x.pth`](data/weights/8x/8x.pth) | $$\times8$$ | MoS<sub>2</sub> |  ✅ | ✅ | SiO<sub>2</sub>-Si, Sapphire |
 
 ## Citation
-    @article{harris2025sparsec-afm,
-      title={SparseC-AFM: a deep learning method for fast and accurate characterization of MoS2 with C-AFM},
-      author={Harris, Hossain, Qui, Zhang, Ma, Chen, Gu, Tongay, Celano},
-      conference={SPIE},
-      year={2025}
+    @inproceedings{Harris2025,
+      title = {Sparse C-AFM: a deep learning method for fast and accurate characterization of MoS2 with conductive atomic force microscopy},
+      url = {http://dx.doi.org/10.1117/12.3067427},
+      DOI = {10.1117/12.3067427},
+      booktitle = {Low-Dimensional Materials and Devices 2025},
+      publisher = {SPIE},
+      author = {Harris,  Levi and Hossain,  Md Jayed and Qui,  Mufan and Zhang,  Ruichen and Ma,  Pingchuan and Chen,  Tianlong and Gu,  Jiaqi and Tongay,  Seth Ariel and Celano,  Umberto},
+      editor = {Kobayashi,  Nobuhiko P. and Talin,  A. Alec and Davydov,  Albert V. and Islam,  M. Saif},
+      year = {2025},
+      month = sep,
+      pages = {35}
     }
 
 ## License
