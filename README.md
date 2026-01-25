@@ -14,6 +14,9 @@ license: apache-2.0
 ---
 
 [![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2507.13527v1)
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/leharris3/sparse-cafm)
+
+**Try our interactive demo:** [huggingface.co/spaces/leharris3/sparse-cafm](https://huggingface.co/spaces/leharris3/sparse-cafm)
 
 This is the official Pytorch implementation of our paper: **SparseC-AFM**: a deep learning method for fast and accurate characterization of MoS<sub>2</sub> with C-AFM. We present a novel method for rapid acquisition and analysis of C-AFM scans using a super-resolution model based on the work of SwinIR. In this repository, you can find the datasets and model weights used in our paper, as well as scripts to **train** and **deploy** our model on ***your own datasets***.
 
