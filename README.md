@@ -1,5 +1,15 @@
-# **SparseC-AFM**: fast 2D-material acquisition & analysis with super resolution models
 ---
+title: SparseC-AFM
+emoji: 🔬
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+sdk_version: 4.44.0
+app_file: app.py
+pinned: false
+---
+
+# **SparseC-AFM**: fast 2D-material acquisition & analysis with super resolution models
 
 [![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2507.13527v1)
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/leharris3/sparse-cafm)
