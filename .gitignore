@@ -17,6 +17,10 @@ ControlNet/
 outputs/
 tb_logs/
 
+**__pycache__/**
+**__MACOSX/**
+.DS_Store
+
 .vscode/
 .vscode/**
 **.vscode/**
