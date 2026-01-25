@@ -1,15 +1,3 @@
----
-title: SparseC-AFM
-emoji: 🔬
-colorFrom: blue
-colorTo: purple
-sdk: gradio
-sdk_version: "4.44.1"
-app_file: app.py
-pinned: false
-license: apache-2.0
----
-
 # **SparseC-AFM**: fast 2D-material acquisition & analysis with super resolution models
 ---
 
@@ -64,4 +52,4 @@ Then open http://127.0.0.1:7860 in your browser.
 
 ## License
 
-We release our work under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) ❤️. 
+We release our work under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) ❤️
