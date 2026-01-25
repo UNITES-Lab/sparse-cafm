@@ -5,28 +5,13 @@
 
 This is the official Pytorch implementation of our paper: **SparseC-AFM**: a deep learning method for fast and accurate characterization of MoS<sub>2</sub> with C-AFM. We present a novel method for rapid acquisition and analysis of C-AFM scans using a super-resolution model based on the work of SwinIR. In this repository, you can find the datasets and model weights used in our paper, as well as scripts to **train** and **deploy** our model on ***your own datasets***.
 
-Below we include our enviornments, data, and model weights.
-
 ## Getting Started
 
-We use [anaconda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) for all Python enviornment management. Clone our enviornment using the command below.
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and run:
 
 ```bash
-conda env create -f environment.yml
-```
-
-Once installed, activate the enviornment.
-
-```bash
-conda activate sparse-cafm
-```
-
-## Demo
-
-Launch the interactive demo to experiment with our models:
-
-```bash
-python demo.py
+uv sync
+uv run python demo.py
 ```
 
 Then open http://127.0.0.1:7860 in your browser.

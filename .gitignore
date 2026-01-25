@@ -1,6 +1,9 @@
 # Keep demo app
 !demo.py
 
+# Virtual environment
+.venv/
+
 **.png
 **.out
 **.ckpt
