@@ -21,6 +21,16 @@ Once installed, activate the enviornment.
 conda activate sparse-cafm
 ```
 
+## Demo
+
+Launch the interactive demo to experiment with our models:
+
+```bash
+python demo.py
+```
+
+Then open http://127.0.0.1:7860 in your browser.
+
 ## Datasets
 
 | Path | Material | Height Maps | Current Maps | Substrate | Mode | # Samples | # Data Points | Resolutions |
