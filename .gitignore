@@ -4,8 +4,6 @@
 
 # Virtual environment
 .venv/
-
-**.png
 **.out
 **.ckpt
 **.zip
