@@ -5,7 +5,7 @@ A simple Gradio-based web app for experimenting with Swin Transformer
 models for AFM (Atomic Force Microscopy) map super-resolution.
 
 Usage:
-    python demo.py
+    python app.py
 
 Then open http://127.0.0.1:7860 in your browser.
 """
@@ -554,8 +554,4 @@ def create_app() -> gr.Blocks:
 
 if __name__ == "__main__":
     app = create_app()
-    app.launch(
-        server_name="127.0.0.1",
-        server_port=7860,
-        show_error=True,
-    )
+    app.launch()

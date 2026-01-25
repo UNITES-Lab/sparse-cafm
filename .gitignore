@@ -1,5 +1,6 @@
 # Keep demo app
-!demo.py
+!app.py
+!demo/*.npy
 
 # Virtual environment
 .venv/

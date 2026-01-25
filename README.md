@@ -1,3 +1,15 @@
+---
+title: SparseC-AFM
+emoji: 🔬
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+sdk_version: "4.44.1"
+app_file: app.py
+pinned: false
+license: apache-2.0
+---
+
 # **SparseC-AFM**: fast 2D-material acquisition & analysis with super resolution models
 ---
 
@@ -11,7 +23,7 @@ Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and run:
 
 ```bash
 uv sync
-uv run python demo.py
+uv run python app.py
 ```
 
 Then open http://127.0.0.1:7860 in your browser.

@@ -1,0 +1,7 @@
+torch>=2.0
+numpy>=1.21
+gradio>=4.0
+pillow>=9.0
+scipy>=1.9
+timm>=0.9
+matplotlib>=3.5
