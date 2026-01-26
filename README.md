@@ -48,18 +48,20 @@ uv run python app.py
 | [`data/weights/...8x.pth`](data/weights/8x/8x.pth) | $$\times8$$ | MoS<sub>2</sub> |  ✅ | ✅ | SiO<sub>2</sub>-Si, Sapphire |
 
 ## Citation
-    @inproceedings{Harris2025,
-      title = {Sparse C-AFM: a deep learning method for fast and accurate characterization of MoS2 with conductive atomic force microscopy},
-      url = {http://dx.doi.org/10.1117/12.3067427},
-      DOI = {10.1117/12.3067427},
-      booktitle = {Low-Dimensional Materials and Devices 2025},
-      publisher = {SPIE},
-      author = {Harris,  Levi and Hossain,  Md Jayed and Qui,  Mufan and Zhang,  Ruichen and Ma,  Pingchuan and Chen,  Tianlong and Gu,  Jiaqi and Tongay,  Seth Ariel and Celano,  Umberto},
-      editor = {Kobayashi,  Nobuhiko P. and Talin,  A. Alec and Davydov,  Albert V. and Islam,  M. Saif},
-      year = {2025},
-      month = sep,
-      pages = {35}
-    }
+@inproceedings{10.1117/12.3067427,
+    author = {Levi Harris and Md Jayed Hossain and Mufan Qui and Ruichen Zhang and Pingchuan Ma and Tianlong Chen and Jiaqi Gu and Seth Ariel Tongay and Umberto Celano},
+    title = {{Sparse C-AFM: a deep learning method for fast and accurate characterization of MoS2 with conductive atomic force microscopy}},
+    volume = {13582},
+    booktitle = {Low-Dimensional Materials and Devices 2025},
+    editor = {Nobuhiko P. Kobayashi and A. Alec Talin and Albert V. Davydov and M. Saif Islam},
+    organization = {International Society for Optics and Photonics},
+    publisher = {SPIE},
+    pages = {135820J},
+    keywords = {2D materials, MoS2, conductive atomic force microscopy (C-AFM), AFM, Deep Learning },
+    year = {2025},
+    doi = {10.1117/12.3067427},
+    URL = {https://doi.org/10.1117/12.3067427}
+}
 
 ## License
 
