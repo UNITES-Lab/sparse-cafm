@@ -48,6 +48,7 @@ uv run python app.py
 | [`data/weights/...8x.pth`](data/weights/8x/8x.pth) | $$\times8$$ | MoS<sub>2</sub> |  ✅ | ✅ | SiO<sub>2</sub>-Si, Sapphire |
 
 ## Citation
+```
 @inproceedings{10.1117/12.3067427,
     author = {Levi Harris and Md Jayed Hossain and Mufan Qui and Ruichen Zhang and Pingchuan Ma and Tianlong Chen and Jiaqi Gu and Seth Ariel Tongay and Umberto Celano},
     title = {{Sparse C-AFM: a deep learning method for fast and accurate characterization of MoS2 with conductive atomic force microscopy}},
@@ -62,6 +63,7 @@ uv run python app.py
     doi = {10.1117/12.3067427},
     URL = {https://doi.org/10.1117/12.3067427}
 }
+```
 
 ## License
 
